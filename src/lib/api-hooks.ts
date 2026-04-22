@@ -305,7 +305,7 @@ export interface CampaignCreatePayload {
 export function useCampaigns() {
   return useQuery<Campaign[]>({
     queryKey: ["campaigns"],
-    queryFn: async () => (await api.get("/campaigns/")).data,
+    queryFn: async () => (await api.get("/campaigns")).data,
   });
 }
 
@@ -323,7 +323,7 @@ export function useCreateCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CampaignCreatePayload) =>
-      api.post<Campaign>("/campaigns/", payload).then((r) => r.data),
+      api.post<Campaign>("/campaigns", payload).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["campaigns"] }),
   });
 }
