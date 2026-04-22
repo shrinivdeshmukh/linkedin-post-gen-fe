@@ -47,13 +47,9 @@ const FREQ_LABELS: Record<number, string> = {
 
 function PostCard({
   cp,
-  campaignId,
-  isOwner,
   onRegenerate,
 }: {
   cp: CampaignPost;
-  campaignId: string;
-  isOwner: boolean;
   onRegenerate: (postId: string) => void;
 }) {
   const navigate = useNavigate();
@@ -93,9 +89,9 @@ function PostCard({
         </div>
       </div>
 
-      {post.content_json?.image_data && (
+      {(post.content_json?.image_data as string | undefined) && (
         <img
-          src={`data:${post.content_json.mime_type ?? "image/png"};base64,${post.content_json.image_data}`}
+          src={`data:${(post.content_json?.mime_type as string | undefined) ?? "image/png"};base64,${post.content_json?.image_data as string}`}
           alt="Post image"
           className="w-full rounded-xl object-cover max-h-48"
         />
@@ -103,9 +99,9 @@ function PostCard({
 
       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{preview}</p>
 
-      {post.content_json?.hashtags && Array.isArray(post.content_json.hashtags) && post.content_json.hashtags.length > 0 && (
+      {Array.isArray(post.content_json?.hashtags) && (post.content_json?.hashtags as string[]).length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {(post.content_json.hashtags as string[]).map((tag, i) => (
+          {(post.content_json?.hashtags as string[]).map((tag, i) => (
             <span key={i} className="text-xs text-indigo-500 font-medium">#{tag.replace(/^#/, "")}</span>
           ))}
         </div>
@@ -255,8 +251,6 @@ export default function CampaignDetailPage() {
               <PostCard
                 key={cp.id}
                 cp={cp}
-                campaignId={campaign.id}
-                isOwner={isOwner}
                 onRegenerate={(postId) => regeneratePost.mutate({ campaignId: campaign.id, postId })}
               />
             ))}

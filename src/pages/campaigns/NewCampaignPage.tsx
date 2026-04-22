@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCreateCampaign, type CampaignCreatePayload } from "../../lib/api-hooks";
 import { Button } from "../../components/ui/Button";
