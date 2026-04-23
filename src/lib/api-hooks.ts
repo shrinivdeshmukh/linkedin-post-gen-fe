@@ -386,6 +386,66 @@ export function useGenerateAI() {
   });
 }
 
+// ─── Org / Company Profile ────────────────────────────────────────────────────
+
+export interface OrgProfile {
+  id: string;
+  name: string;
+  slug: string;
+  company_description?: string | null;
+  company_context?: string | null;
+  logo_url?: string | null;
+}
+
+export function useOrgProfile() {
+  return useQuery<OrgProfile>({
+    queryKey: ["org-profile"],
+    queryFn: async () => (await api.get("/orgs/me")).data,
+    staleTime: 60_000,
+  });
+}
+
+export function useUpdateCompanyContext() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { company_description: string }) =>
+      api.patch<OrgProfile>("/orgs/me", payload).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-profile"] }),
+  });
+}
+
+export function useUploadCompanyDoc() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return api
+        .post<{ company_context: string }>("/orgs/company-context/upload", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        .then((r) => r.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-profile"] }),
+  });
+}
+
+export function useUploadLogo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return api
+        .post<OrgProfile>("/orgs/logo", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        .then((r) => r.data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-profile"] }),
+  });
+}
+
 // ─── Billing ─────────────────────────────────────────────────────────────────
 
 export type BillingPeriod = "monthly" | "annual";

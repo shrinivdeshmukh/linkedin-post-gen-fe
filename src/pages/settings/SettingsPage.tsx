@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   useLinkedInStatus,
@@ -6,6 +6,10 @@ import {
   usePlanStatus,
   useCreateCheckout,
   useCreatePortal,
+  useOrgProfile,
+  useUpdateCompanyContext,
+  useUploadCompanyDoc,
+  useUploadLogo,
   type BillingPeriod,
 } from "../../lib/api-hooks";
 
@@ -86,6 +90,20 @@ export default function SettingsPage() {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const checkout = useCreateCheckout();
   const portal = useCreatePortal();
+
+  const { data: orgProfile } = useOrgProfile();
+  const updateContext = useUpdateCompanyContext();
+  const uploadDoc = useUploadCompanyDoc();
+  const uploadLogo = useUploadLogo();
+  const [description, setDescription] = useState("");
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (orgProfile?.company_description) {
+      setDescription(orgProfile.company_description);
+    }
+  }, [orgProfile?.company_description]);
 
   const linkedinParam = searchParams.get("linkedin");
   const billingParam = searchParams.get("billing");
@@ -263,6 +281,135 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Company Profile card */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Company profile</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Help the AI write accurate, on-brand content for your company.</p>
+        </div>
+
+        {/* Logo section */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">Logo</p>
+          <div className="flex items-center gap-4">
+            {orgProfile?.logo_url ? (
+              <img
+                src={orgProfile.logo_url}
+                alt="Company logo"
+                className="w-16 h-16 rounded-xl object-contain border border-slate-200 bg-slate-50"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50">
+                <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 3h18M3 21h18" />
+                </svg>
+              </div>
+            )}
+            <div>
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={uploadLogo.isPending}
+                className="px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {uploadLogo.isPending ? "Uploading…" : orgProfile?.logo_url ? "Change logo" : "Upload logo"}
+              </button>
+              <p className="text-xs text-slate-400 mt-1">PNG, JPG, SVG — max 5MB</p>
+            </div>
+          </div>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadLogo.mutate(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {/* Description textarea */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-slate-700">Company description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            placeholder="Describe your company: what you do, who you serve, your mission and differentiators…"
+            className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors placeholder:text-slate-300"
+          />
+          <button
+            type="button"
+            onClick={() => updateContext.mutate({ company_description: description })}
+            disabled={updateContext.isPending || !description.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            {updateContext.isPending && (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
+            {updateContext.isPending ? "Generating brief…" : "Save & generate brief"}
+          </button>
+        </div>
+
+        {/* PDF upload */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">Or upload a company document</p>
+          <p className="text-xs text-slate-400">Upload a pitch deck, about-us doc, or company overview as a PDF. We'll extract a brief automatically.</p>
+          <button
+            type="button"
+            onClick={() => docInputRef.current?.click()}
+            disabled={uploadDoc.isPending}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {uploadDoc.isPending ? (
+              <>
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Extracting & summarizing…
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                Upload company document (PDF)
+              </>
+            )}
+          </button>
+          <input
+            ref={docInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadDoc.mutate(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {/* AI-generated brief (read-only) */}
+        {orgProfile?.company_context && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">AI-generated company brief</label>
+            <textarea
+              readOnly
+              value={orgProfile.company_context}
+              rows={8}
+              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl resize-none bg-slate-50 text-slate-600 focus:outline-none"
+            />
+          </div>
+        )}
+      </div>
 
       {/* LinkedIn integration card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
