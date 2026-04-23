@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { logout } from "../../lib/firebase";
 import { useMe, usePlanStatus } from "../../lib/api-hooks";
 import { Button } from "../ui/Button";
+import { ComposeModal } from "../ComposeModal";
 
 const navItems = [
   {
@@ -65,6 +67,7 @@ export default function AppLayout() {
   const { data: me } = useMe();
   const { data: plan } = usePlanStatus();
   const navigate = useNavigate();
+  const [composeOpen, setComposeOpen] = useState(false);
 
   async function handleLogout() {
     await logout();
@@ -96,7 +99,7 @@ export default function AppLayout() {
           <Button
             fullWidth
             size="sm"
-            onClick={() => navigate("/composer")}
+            onClick={() => setComposeOpen(true)}
             className="justify-center"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -108,22 +111,34 @@ export default function AppLayout() {
 
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-0.5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-700"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`
-              }
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
+          {navItems.map((item) =>
+            item.to === "/composer" ? (
+              <button
+                key={item.to}
+                type="button"
+                onClick={() => setComposeOpen(true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ) : (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+                    isActive
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  }`
+                }
+              >
+                {item.icon}
+                {item.label}
+              </NavLink>
+            )
+          )}
         </nav>
 
         {/* User footer */}
@@ -152,6 +167,8 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content */}
+      <ComposeModal isOpen={composeOpen} onClose={() => setComposeOpen(false)} />
+
       <main className="flex-1 overflow-hidden min-w-0 flex flex-col">
         {/* Trial expiry banner */}
         {plan?.trial_active && plan.days_remaining !== null && plan.days_remaining <= 2 && (

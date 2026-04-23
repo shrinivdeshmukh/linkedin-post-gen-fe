@@ -45,6 +45,66 @@ const FREQ_LABELS: Record<number, string> = {
   1: "daily", 7: "weekly", 14: "bi-weekly", 30: "monthly",
 };
 
+function BlogPostCard({ cp, onRegenerate }: { cp: CampaignPost; onRegenerate: (id: string) => void }) {
+  const navigate = useNavigate();
+  const post = cp.post;
+  const cj = post.content_json as Record<string, unknown> | undefined;
+
+  async function handleCopyFormatted() {
+    if (!post.content) return;
+    const { marked } = await import("marked");
+    const html = marked.parse(post.content) as string;
+    try {
+      const item = new ClipboardItem({ "text/html": new Blob([html], { type: "text/html" }), "text/plain": new Blob([html], { type: "text/plain" }) });
+      await navigator.clipboard.write([item]);
+    } catch {
+      await navigator.clipboard.writeText(html);
+    }
+  }
+
+  function handleDownloadImage() {
+    const imageData = cj?.hero_image_data as string | undefined;
+    if (!imageData) return;
+    const a = document.createElement("a");
+    a.href = `data:image/png;base64,${imageData}`;
+    a.download = `${post.title ?? "hero"}.png`;
+    a.click();
+  }
+
+  const wordCount = post.content ? post.content.split(/\s+/).filter(Boolean).length : 0;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-indigo-600">{cp.sequence_number}</span>
+          </div>
+          <div>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[post.status] ?? STATUS_STYLES.draft}`}>
+              {STATUS_LABELS[post.status] ?? post.status}
+            </span>
+            {wordCount > 0 && <p className="text-xs text-slate-400 mt-0.5">~{wordCount.toLocaleString()} words</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => onRegenerate(post.id)} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">↻ Redo</button>
+          {post.content && <button onClick={handleCopyFormatted} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Copy HTML</button>}
+          {!!cj?.hero_image_data && <button onClick={handleDownloadImage} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Image</button>}
+          <Button size="sm" variant="outline" onClick={() => navigate(`/blog/${post.id}`)}>Edit</Button>
+        </div>
+      </div>
+      <h3 className="text-sm font-semibold text-slate-800">{post.title ?? "Untitled article"}</h3>
+      {!!cj?.primary_keyword && (
+        <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-lg">
+          {cj.primary_keyword as string}
+        </span>
+      )}
+      {post.content && <p className="text-xs text-slate-500 line-clamp-2">{post.content.replace(/[#*`]/g, "").slice(0, 200)}…</p>}
+    </div>
+  );
+}
+
 function PostCard({
   cp,
   onRegenerate,
@@ -54,6 +114,12 @@ function PostCard({
 }) {
   const navigate = useNavigate();
   const post = cp.post;
+
+  // Route to the blog composer for blog posts
+  if (post.medium === "blog") {
+    return <BlogPostCard cp={cp} onRegenerate={onRegenerate} />;
+  }
+
   const preview = post.content ? post.content.slice(0, 200) + (post.content.length > 200 ? "…" : "") : "No content yet.";
 
   return (

@@ -102,8 +102,9 @@ export interface Post {
   org_id: string;
   author_id: string;
   type: PostType;
+  medium?: string;
   status: PostStatus;
-  title?: string;
+  title?: string | null;
   content?: string;
   content_json?: Record<string, unknown>;
   ai_model_used?: string;
@@ -133,7 +134,7 @@ export function usePosts(status?: string) {
 export function useCreatePost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { type: PostType; title?: string; content?: string }) =>
+    mutationFn: (payload: { type: PostType | string; medium?: string; title?: string; content?: string }) =>
       api.post<Post>("/posts", payload).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
   });
@@ -148,11 +149,15 @@ export function useUpdatePost() {
     }: {
       id: string;
       title?: string;
+      medium?: string;
       content?: string;
       content_json?: Record<string, unknown>;
       ai_model_used?: string;
     }) => api.patch<Post>(`/posts/${id}`, payload).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["post", data.id] });
+    },
   });
 }
 
@@ -284,12 +289,14 @@ export interface Campaign {
   target_outcome: string;
   key_messages: string[];
   mode: "series" | "collection";
+  medium?: string;
   post_count: number;
   frequency_days: number;
   start_date: string;
   post_type: string;
   include_images: boolean;
   tone_override?: string;
+  target_word_count?: number | null;
   status: "draft" | "generating" | "ready_for_review" | "active" | "completed";
   created_at: string;
   updated_at: string;
@@ -302,12 +309,14 @@ export interface CampaignCreatePayload {
   target_outcome: string;
   key_messages: string[];
   mode: "series" | "collection";
+  medium?: string;
   post_count: number;
   frequency_days: number;
   start_date: string; // YYYY-MM-DD
   post_type: string;
   include_images: boolean;
   tone_override?: string;
+  target_word_count?: number;
 }
 
 export function useCampaigns() {
@@ -391,6 +400,49 @@ export function useGenerateAI() {
       api
         .post<{ results: AIResult[] }>(`/posts/${postId}/generate`, { topic })
         .then((r) => r.data.results),
+  });
+}
+
+// ─── Blog / SEO ───────────────────────────────────────────────────────────────
+
+export interface SeoResearchResult {
+  primary_keyword: string;
+  secondary_keywords: string[];
+  people_also_ask: string[];
+  meta_title: string;
+  meta_description: string;
+  recommended_word_count: number;
+}
+
+export function useSeoResearch() {
+  return useMutation({
+    mutationFn: (topic: string) =>
+      api.post<SeoResearchResult>("/posts/seo-research", { topic }).then(r => r.data),
+  });
+}
+
+export function useGenerateBlogOutline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, primary_keyword, secondary_keywords, word_count }: {
+      postId: string;
+      primary_keyword: string;
+      secondary_keywords: string[];
+      word_count: number;
+    }) =>
+      api.post<Post>(`/posts/${postId}/generate-blog-outline`, {
+        primary_keyword, secondary_keywords, word_count,
+      }).then(r => r.data),
+    onSuccess: (data) => qc.invalidateQueries({ queryKey: ["post", data.id] }),
+  });
+}
+
+export function useGenerateBlogDraft() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: string) =>
+      api.post<Post>(`/posts/${postId}/generate-blog-draft`).then(r => r.data),
+    onSuccess: (data) => qc.invalidateQueries({ queryKey: ["post", data.id] }),
   });
 }
 

@@ -28,11 +28,13 @@ interface FormState {
   topic: string;
   target_outcome: string;
   key_messages: string[];
+  medium: "linkedin" | "blog";
   // Step 2
   mode: "series" | "collection";
   post_count: number;
   frequency_days: number;
   start_date: string;
+  target_word_count: number;
   // Step 3
   post_type: "text" | "image";
   tone_override: string;
@@ -117,10 +119,12 @@ export default function NewCampaignPage() {
     topic: "",
     target_outcome: TARGET_OUTCOMES[0],
     key_messages: [],
+    medium: "linkedin",
     mode: "series",
     post_count: 4,
     frequency_days: 7,
     start_date: today,
+    target_word_count: 1200,
     post_type: "text",
     tone_override: "",
   });
@@ -142,12 +146,14 @@ export default function NewCampaignPage() {
       target_outcome: form.target_outcome,
       key_messages: form.key_messages,
       mode: form.mode,
+      medium: form.medium,
       post_count: form.post_count,
-      frequency_days: form.frequency_days,
-      start_date: form.start_date,
+      frequency_days: form.medium === "blog" ? 7 : form.frequency_days,
+      start_date: form.medium === "blog" ? today : form.start_date,
       post_type: form.post_type,
       include_images: form.post_type === "image",
       tone_override: form.tone_override.trim() || undefined,
+      target_word_count: form.medium === "blog" ? form.target_word_count : undefined,
     };
     const campaign = await createCampaign.mutateAsync(payload);
     navigate(`/campaigns/${campaign.id}`);
@@ -173,6 +179,30 @@ export default function NewCampaignPage() {
         {/* Step 1 — Brief */}
         {step === 1 && (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
+            {/* Medium selector */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Channel</label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["linkedin", "blog"] as const).map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => set("medium", m)}
+                    className={["p-4 rounded-xl border-2 text-left transition-all",
+                      form.medium === m ? "border-indigo-600 bg-indigo-50" : "border-slate-200 hover:border-indigo-200",
+                    ].join(" ")}
+                  >
+                    <p className={`text-sm font-bold ${form.medium === m ? "text-indigo-700" : "text-slate-800"}`}>
+                      {m === "linkedin" ? "LinkedIn" : "Website blog"}
+                    </p>
+                    <p className={`text-xs mt-1 ${form.medium === m ? "text-indigo-500" : "text-slate-500"}`}>
+                      {m === "linkedin" ? "Short-form posts, auto-published to LinkedIn" : "Long-form articles, copy to your website"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Campaign name</label>
               <input
@@ -272,41 +302,65 @@ export default function NewCampaignPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Posting frequency</label>
-              <div className="flex gap-2 flex-wrap">
-                {FREQUENCIES.map(f => (
-                  <button
-                    key={f.days}
-                    type="button"
-                    onClick={() => set("frequency_days", f.days)}
-                    className={[
-                      "px-4 py-2 rounded-xl text-sm font-medium border transition-all",
-                      form.frequency_days === f.days
-                        ? "bg-indigo-600 text-white border-indigo-600"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300",
-                    ].join(" ")}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+            {form.medium !== "blog" && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Posting frequency</label>
+                <div className="flex gap-2 flex-wrap">
+                  {FREQUENCIES.map(f => (
+                    <button
+                      key={f.days}
+                      type="button"
+                      onClick={() => set("frequency_days", f.days)}
+                      className={[
+                        "px-4 py-2 rounded-xl text-sm font-medium border transition-all",
+                        form.frequency_days === f.days
+                          ? "bg-indigo-600 text-white border-indigo-600"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300",
+                      ].join(" ")}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700">Start date</label>
-              <input
-                type="date"
-                value={form.start_date}
-                onChange={e => set("start_date", e.target.value)}
-                min={today}
-                className="px-4 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <p className="text-xs text-slate-400">
-                {form.post_count} posts · {FREQUENCIES.find(f => f.days === form.frequency_days)?.label.toLowerCase()} · last post on{" "}
-                {new Date(new Date(form.start_date).getTime() + (form.post_count - 1) * form.frequency_days * 86400000).toLocaleDateString()}
-              </p>
-            </div>
+            {form.medium !== "blog" && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700">Start date</label>
+                <input
+                  type="date"
+                  value={form.start_date}
+                  onChange={e => set("start_date", e.target.value)}
+                  min={today}
+                  className="px-4 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-xs text-slate-400">
+                  {form.post_count} posts · {FREQUENCIES.find(f => f.days === form.frequency_days)?.label.toLowerCase()} · last post on{" "}
+                  {new Date(new Date(form.start_date).getTime() + (form.post_count - 1) * form.frequency_days * 86400000).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+
+            {form.medium === "blog" && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700">Target word count per article</label>
+                <div className="flex gap-2 flex-wrap">
+                  {[800, 1200, 1500, 2000, 2500].map(wc => (
+                    <button
+                      key={wc}
+                      type="button"
+                      onClick={() => set("target_word_count", wc)}
+                      className={["px-4 py-2 rounded-xl text-sm font-medium border transition-all",
+                        form.target_word_count === wc ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300",
+                      ].join(" ")}
+                    >
+                      {wc.toLocaleString()} words
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -355,10 +409,18 @@ export default function NewCampaignPage() {
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Campaign summary</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-slate-500">Name</span><span className="font-medium text-slate-800">{form.name}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Channel</span><span className="font-medium text-slate-800 capitalize">{form.medium === "blog" ? "Website blog" : "LinkedIn"}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Type</span><span className="font-medium text-slate-800 capitalize">{form.mode}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Posts</span><span className="font-medium text-slate-800">{form.post_count}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Frequency</span><span className="font-medium text-slate-800">{FREQUENCIES.find(f => f.days === form.frequency_days)?.label}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Starts</span><span className="font-medium text-slate-800">{new Date(form.start_date).toLocaleDateString()}</span></div>
+                {form.medium !== "blog" && (
+                  <>
+                    <div className="flex justify-between"><span className="text-slate-500">Frequency</span><span className="font-medium text-slate-800">{FREQUENCIES.find(f => f.days === form.frequency_days)?.label}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Starts</span><span className="font-medium text-slate-800">{new Date(form.start_date).toLocaleDateString()}</span></div>
+                  </>
+                )}
+                {form.medium === "blog" && (
+                  <div className="flex justify-between"><span className="text-slate-500">Words per article</span><span className="font-medium text-slate-800">{form.target_word_count.toLocaleString()}</span></div>
+                )}
                 <div className="flex justify-between"><span className="text-slate-500">Format</span><span className="font-medium text-slate-800 capitalize">{form.post_type}</span></div>
               </div>
             </div>
