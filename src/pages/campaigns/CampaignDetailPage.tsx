@@ -91,6 +91,7 @@ function BlogPostCard({ cp, onRegenerate }: { cp: CampaignPost; onRegenerate: (i
           <button onClick={() => onRegenerate(post.id)} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">↻ Redo</button>
           {post.content && <button onClick={handleCopyFormatted} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Copy HTML</button>}
           {cj?.hero_image_data ? <button onClick={handleDownloadImage} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Image</button> : null}
+          {cj?.hero_image_url ? <button onClick={() => navigator.clipboard.writeText(cj.hero_image_url as string)} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Copy URL</button> : null}
           <Button size="sm" variant="outline" onClick={() => navigate(`/blog/${post.id}`)}>Edit</Button>
         </div>
       </div>
