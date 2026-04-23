@@ -212,6 +212,7 @@ export interface ImageGenPayload {
 export interface ImageGenResult {
   image_data: string;  // base64
   mime_type: string;
+  hero_image_url?: string | null;  // public DO Spaces URL (blog posts only)
 }
 
 export function useGenerateImage() {

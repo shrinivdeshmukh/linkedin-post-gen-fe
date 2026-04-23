@@ -176,6 +176,7 @@ export default function BlogComposerPage() {
         ...existingCj,
         hero_image_data: result.image_data,
         hero_image_mime: result.mime_type,
+        ...(result.hero_image_url ? { hero_image_url: result.hero_image_url } : {}),
       },
     });
   }
@@ -235,18 +236,31 @@ export default function BlogComposerPage() {
 
           {/* Hero image */}
           {cj?.hero_image_data ? (
-            <div className="relative mx-6 mt-4 rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
-              <img
-                src={`data:${(cj.hero_image_mime as string | undefined) ?? "image/png"};base64,${cj.hero_image_data as string}`}
-                alt="Hero"
-                className="w-full h-full object-cover"
-              />
-              <button
-                onClick={handleDownloadImage}
-                className="absolute top-3 right-3 bg-white/90 hover:bg-white text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors"
-              >
-                Download
-              </button>
+            <div className="mx-6 mt-4 space-y-2">
+              <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
+                <img
+                  src={`data:${(cj.hero_image_mime as string | undefined) ?? "image/png"};base64,${cj.hero_image_data as string}`}
+                  alt="Hero"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={handleDownloadImage}
+                  className="absolute top-3 right-3 bg-white/90 hover:bg-white text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors"
+                >
+                  Download
+                </button>
+              </div>
+              {cj?.hero_image_url ? (
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  <span className="text-xs text-slate-500 truncate flex-1">{cj.hero_image_url as string}</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(cj.hero_image_url as string)}
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex-shrink-0 transition-colors"
+                  >
+                    Copy URL
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="mx-6 mt-4">
