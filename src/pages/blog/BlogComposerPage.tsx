@@ -236,31 +236,52 @@ export default function BlogComposerPage() {
 
           {/* Hero image */}
           {cj?.hero_image_data ? (
-            <div className="mx-6 mt-4 space-y-2">
+            <div className="mx-6 mt-4">
               <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "16/9" }}>
                 <img
                   src={`data:${(cj.hero_image_mime as string | undefined) ?? "image/png"};base64,${cj.hero_image_data as string}`}
                   alt="Hero"
                   className="w-full h-full object-cover"
                 />
-                <button
-                  onClick={handleDownloadImage}
-                  className="absolute top-3 right-3 bg-white/90 hover:bg-white text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm transition-colors"
-                >
-                  Download
-                </button>
-              </div>
-              {cj?.hero_image_url ? (
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-                  <span className="text-xs text-slate-500 truncate flex-1">{cj.hero_image_url as string}</span>
+                <div className="absolute top-3 right-3 flex items-center gap-1">
+                  {/* Copy image to clipboard */}
                   <button
-                    onClick={() => navigator.clipboard.writeText(cj.hero_image_url as string)}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex-shrink-0 transition-colors"
+                    title="Copy image"
+                    onClick={async () => {
+                      const mime = (cj.hero_image_mime as string | undefined) ?? "image/png";
+                      const blob = await fetch(`data:${mime};base64,${cj.hero_image_data as string}`).then(r => r.blob());
+                      await navigator.clipboard.write([new ClipboardItem({ [mime]: blob })]);
+                    }}
+                    className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
                   >
-                    Copy URL
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  {/* Copy image URL */}
+                  {cj?.hero_image_url ? (
+                    <button
+                      title="Copy image URL"
+                      onClick={() => navigator.clipboard.writeText(cj.hero_image_url as string)}
+                      className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                    </button>
+                  ) : null}
+                  {/* Download */}
+                  <button
+                    title="Download image"
+                    onClick={handleDownloadImage}
+                    className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                   </button>
                 </div>
-              ) : null}
+              </div>
             </div>
           ) : (
             <div className="mx-6 mt-4">
