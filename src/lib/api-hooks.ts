@@ -69,6 +69,14 @@ export interface VoiceProfile {
   free_form?: string;
 }
 
+export function useVoiceProfile() {
+  return useQuery<VoiceProfile>({
+    queryKey: ["voice-profile"],
+    queryFn: async () => (await api.get("/orgs/voice-profile")).data,
+    staleTime: 60_000,
+  });
+}
+
 export function useUpsertVoiceProfile() {
   const qc = useQueryClient();
   return useMutation({

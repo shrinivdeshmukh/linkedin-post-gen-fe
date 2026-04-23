@@ -38,7 +38,7 @@ export function VoiceDetailsStep({
 
   function addSample() {
     const trimmed = sampleInput.trim();
-    if (trimmed && data.sample_posts.length < 3) {
+    if (trimmed && data.sample_posts.length < 5) {
       onChange({ ...data, sample_posts: [...data.sample_posts, trimmed] });
       setSampleInput("");
     }
@@ -82,7 +82,7 @@ export function VoiceDetailsStep({
           <h3 className="text-sm font-semibold text-slate-700">
             Sample posts{" "}
             <span className="text-slate-400 font-normal">
-              (up to 3, optional but recommended)
+              (up to 5, optional but recommended)
             </span>
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -108,7 +108,7 @@ export function VoiceDetailsStep({
           </div>
         ))}
 
-        {data.sample_posts.length < 3 && (
+        {data.sample_posts.length < 5 && (
           <div className="space-y-2">
             <textarea
               value={sampleInput}

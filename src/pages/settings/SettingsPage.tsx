@@ -10,6 +10,8 @@ import {
   useUpdateCompanyContext,
   useUploadCompanyDoc,
   useUploadLogo,
+  useVoiceProfile,
+  useUpsertVoiceProfile,
   type BillingPeriod,
 } from "../../lib/api-hooks";
 
@@ -98,6 +100,31 @@ export default function SettingsPage() {
   const [description, setDescription] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: voiceProfile } = useVoiceProfile();
+  const upsertVoice = useUpsertVoiceProfile();
+  const [samplePosts, setSamplePosts] = useState<string[]>([]);
+  const [sampleInput, setSampleInput] = useState("");
+
+  useEffect(() => {
+    if (voiceProfile?.sample_posts) setSamplePosts(voiceProfile.sample_posts);
+  }, [voiceProfile?.sample_posts]);
+
+  function addSamplePost() {
+    const trimmed = sampleInput.trim();
+    if (trimmed && samplePosts.length < 5) {
+      setSamplePosts([...samplePosts, trimmed]);
+      setSampleInput("");
+    }
+  }
+
+  function removeSamplePost(i: number) {
+    setSamplePosts(samplePosts.filter((_, idx) => idx !== i));
+  }
+
+  async function saveSamplePosts() {
+    await upsertVoice.mutateAsync({ ...voiceProfile, sample_posts: samplePosts });
+  }
 
   useEffect(() => {
     if (orgProfile?.company_description) {
@@ -409,6 +436,51 @@ export default function SettingsPage() {
             />
           </div>
         )}
+      </div>
+
+      {/* Voice samples card */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900">Your writing samples</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Paste up to 5 of your best LinkedIn posts. The AI uses these to match your voice.</p>
+        </div>
+
+        <div className="space-y-3">
+          {samplePosts.map((post, i) => (
+            <div key={i} className="relative bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed">
+              <p className="pr-8 line-clamp-3">{post}</p>
+              <button type="button" onClick={() => removeSamplePost(i)} className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+
+          {samplePosts.length < 5 && (
+            <div className="space-y-2">
+              <textarea
+                value={sampleInput}
+                onChange={(e) => setSampleInput(e.target.value)}
+                placeholder={`Paste sample post ${samplePosts.length + 1}…`}
+                rows={4}
+                className="w-full px-3.5 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+              />
+              <button type="button" onClick={addSamplePost} disabled={!sampleInput.trim()} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-40 transition-colors">
+                + Add this post
+              </button>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={saveSamplePosts}
+          disabled={upsertVoice.isPending}
+          className="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition-colors"
+        >
+          {upsertVoice.isPending ? "Saving…" : "Save samples"}
+        </button>
       </div>
 
       {/* LinkedIn integration card */}
