@@ -245,41 +245,47 @@ export default function BlogComposerPage() {
                 />
                 <div className="absolute top-3 right-3 flex items-center gap-1">
                   {/* Copy image to clipboard */}
-                  <button
-                    title="Copy image"
-                    onClick={async () => {
-                      const mime = (cj.hero_image_mime as string | undefined) ?? "image/png";
-                      const blob = await fetch(`data:${mime};base64,${cj.hero_image_data as string}`).then(r => r.blob());
-                      await navigator.clipboard.write([new ClipboardItem({ [mime]: blob })]);
-                    }}
-                    className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  {/* Copy image URL */}
-                  {cj?.hero_image_url ? (
+                  <div className="relative group/tip">
                     <button
-                      title="Copy image URL"
-                      onClick={() => navigator.clipboard.writeText(cj.hero_image_url as string)}
+                      onClick={async () => {
+                        const mime = (cj.hero_image_mime as string | undefined) ?? "image/png";
+                        const blob = await fetch(`data:${mime};base64,${cj.hero_image_data as string}`).then(r => r.blob());
+                        await navigator.clipboard.write([new ClipboardItem({ [mime]: blob })]);
+                      }}
                       className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     </button>
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 group-hover/tip:opacity-100 transition-opacity">Copy image</span>
+                  </div>
+                  {/* Copy image URL */}
+                  {cj?.hero_image_url ? (
+                    <div className="relative group/tip">
+                      <button
+                        onClick={() => navigator.clipboard.writeText(cj.hero_image_url as string)}
+                        className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      </button>
+                      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 group-hover/tip:opacity-100 transition-opacity">Copy image URL</span>
+                    </div>
                   ) : null}
                   {/* Download */}
-                  <button
-                    title="Download image"
-                    onClick={handleDownloadImage}
-                    className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
+                  <div className="relative group/tip">
+                    <button
+                      onClick={handleDownloadImage}
+                      className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </button>
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 group-hover/tip:opacity-100 transition-opacity">Download</span>
+                  </div>
                 </div>
               </div>
             </div>
