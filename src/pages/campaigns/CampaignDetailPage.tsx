@@ -90,16 +90,16 @@ function BlogPostCard({ cp, onRegenerate }: { cp: CampaignPost; onRegenerate: (i
         <div className="flex items-center gap-2">
           <button onClick={() => onRegenerate(post.id)} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">↻ Redo</button>
           {post.content && <button onClick={handleCopyFormatted} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Copy HTML</button>}
-          {!!cj?.hero_image_data && <button onClick={handleDownloadImage} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Image</button>}
+          {cj?.hero_image_data ? <button onClick={handleDownloadImage} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Image</button> : null}
           <Button size="sm" variant="outline" onClick={() => navigate(`/blog/${post.id}`)}>Edit</Button>
         </div>
       </div>
       <h3 className="text-sm font-semibold text-slate-800">{post.title ?? "Untitled article"}</h3>
-      {!!cj?.primary_keyword && (
+      {cj?.primary_keyword ? (
         <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-lg">
           {cj.primary_keyword as string}
         </span>
-      )}
+      ) : null}
       {post.content && <p className="text-xs text-slate-500 line-clamp-2">{post.content.replace(/[#*`]/g, "").slice(0, 200)}…</p>}
     </div>
   );

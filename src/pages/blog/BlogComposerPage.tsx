@@ -341,14 +341,14 @@ export default function BlogComposerPage() {
               </button>
             </div>
 
-            {!!cj?.primary_keyword && (
+            {cj?.primary_keyword ? (
               <div className="space-y-1">
                 <p className="text-xs text-slate-500">Primary keyword</p>
                 <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 rounded-lg">
                   {cj.primary_keyword as string}
                 </span>
               </div>
-            )}
+            ) : null}
 
             {Array.isArray(cj?.secondary_keywords) && (cj.secondary_keywords as string[]).length > 0 && (
               <div className="space-y-1">
@@ -361,35 +361,35 @@ export default function BlogComposerPage() {
               </div>
             )}
 
-            {!!cj?.meta_title && (
+            {cj?.meta_title ? (
               <div className="space-y-1">
                 <p className="text-xs text-slate-500">Meta title <span className="text-slate-400">({(cj.meta_title as string).length}/60)</span></p>
                 <p className="text-xs text-slate-700 bg-slate-50 rounded-lg p-2">{cj.meta_title as string}</p>
               </div>
-            )}
+            ) : null}
 
-            {!!cj?.meta_description && (
+            {cj?.meta_description ? (
               <div className="space-y-1">
                 <p className="text-xs text-slate-500">Meta description <span className="text-slate-400">({(cj.meta_description as string).length}/160)</span></p>
                 <p className="text-xs text-slate-700 bg-slate-50 rounded-lg p-2">{cj.meta_description as string}</p>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Outline preview */}
-          {!!cj?.outline && (
+          {cj?.outline ? (
             <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
               <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Outline</p>
               <p className="text-xs font-medium text-slate-800">{(cj.outline as Record<string, unknown>)?.title as string}</p>
-              {Array.isArray((cj.outline as Record<string, unknown>)?.sections) && (
+              {Array.isArray((cj.outline as Record<string, unknown>)?.sections) ? (
                 <ul className="space-y-1">
                   {((cj.outline as Record<string, unknown>).sections as Array<{ h2: string }>).map((s, i) => (
                     <li key={i} className="text-xs text-slate-500">• {s.h2}</li>
                   ))}
                 </ul>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
