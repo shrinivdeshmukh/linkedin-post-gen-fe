@@ -24,7 +24,7 @@ const FREQ_LABELS: Record<number, string> = {
 
 function CampaignCard({ campaign, onDelete }: { campaign: Campaign; onDelete: () => void }) {
   const navigate = useNavigate();
-  const approved = campaign.campaign_posts.filter(cp => cp.post.status === "approved" || cp.post.status === "scheduled" || cp.post.status === "published").length;
+  const approved = campaign.approved_count ?? campaign.campaign_posts.filter(cp => cp.post.status === "approved" || cp.post.status === "scheduled" || cp.post.status === "published").length;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 hover:border-indigo-200 hover:shadow-sm transition-all">

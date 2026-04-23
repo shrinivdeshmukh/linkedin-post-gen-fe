@@ -302,6 +302,7 @@ export interface Campaign {
   created_at: string;
   updated_at: string;
   campaign_posts: CampaignPost[];
+  approved_count?: number;
 }
 
 export interface CampaignCreatePayload {
