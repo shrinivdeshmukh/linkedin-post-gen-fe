@@ -170,8 +170,8 @@ export default function AppLayout() {
       <ComposeModal isOpen={composeOpen} onClose={() => setComposeOpen(false)} />
 
       <main className="flex-1 overflow-hidden min-w-0 flex flex-col">
-        {/* Trial expiry banner */}
-        {plan?.trial_active && plan.days_remaining !== null && plan.days_remaining <= 2 && (
+        {/* Trial expiring soon */}
+        {plan?.trial_active && plan.days_remaining !== null && plan.days_remaining <= 2 && !plan.read_only && (
           <div className="flex items-center justify-between px-6 py-2.5 bg-amber-50 border-b border-amber-200 text-sm flex-shrink-0">
             <p className="text-amber-800 font-medium">
               {plan.days_remaining === 0
@@ -182,13 +182,35 @@ export default function AppLayout() {
           </div>
         )}
 
-        {/* Expired state */}
+        {/* Trial ended or plan expired */}
         {plan?.read_only && (
-          <div className="flex items-center justify-between px-6 py-2.5 bg-red-50 border-b border-red-200 text-sm flex-shrink-0">
-            <p className="text-red-700 font-medium">
-              Your {plan.plan === "trial" ? "trial" : "plan"} has expired. Upgrade to continue generating content.
-            </p>
-            <Button size="sm" onClick={() => navigate("/settings")}>Upgrade</Button>
+          <div className="flex items-center justify-between px-6 py-2.5 bg-orange-50 border-b border-orange-200 text-sm flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <p className="text-orange-800 font-medium">
+                {plan.plan === "trial"
+                  ? "Your free trial has ended — upgrade to keep generating content."
+                  : "Your plan has expired — upgrade to keep generating content."}
+              </p>
+            </div>
+            <Button size="sm" onClick={() => navigate("/settings")}>Upgrade now</Button>
+          </div>
+        )}
+
+        {/* Quota exhausted (plan still active) */}
+        {!plan?.read_only && plan?.post_generations_limit !== null && plan?.post_generations_used !== undefined && plan.post_generations_limit !== null && plan.post_generations_used >= plan.post_generations_limit && (
+          <div className="flex items-center justify-between px-6 py-2.5 bg-orange-50 border-b border-orange-200 text-sm flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <p className="text-orange-800 font-medium">
+                You've used all your post generations for this month — upgrade for more.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => navigate("/settings")}>Upgrade now</Button>
           </div>
         )}
 
