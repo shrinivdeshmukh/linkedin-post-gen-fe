@@ -260,7 +260,7 @@ export default function SettingsPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowUpgrade(false); }}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 space-y-5">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-900">Choose a plan</h2>
               <button
