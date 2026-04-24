@@ -68,18 +68,43 @@ const PLAN_PRICING = [
     label: "Solo",
     monthly: "$79/mo",
     annual: "$759/yr ($63/mo)",
+    description: "For founders and execs building their personal brand.",
+    features: [
+      "150 post generations / mo",
+      "30 image generations / mo",
+      "LinkedIn + Blog mediums",
+      "Campaigns (series & collections)",
+      "Voice profile & company context",
+      "Direct LinkedIn publishing",
+    ],
   },
   {
     key: "team" as const,
     label: "Team",
     monthly: "$199/mo",
     annual: "$1,910/yr ($159/mo)",
+    description: "For marketing teams managing executive content.",
+    features: [
+      "500 post generations / mo",
+      "75 image generations / mo",
+      "Up to 5 seats",
+      "Approval workflows",
+      "Everything in Solo",
+    ],
   },
   {
     key: "agency" as const,
     label: "Agency",
     monthly: "$499/mo",
     annual: "$4,790/yr ($399/mo)",
+    description: "For agencies running content for multiple clients.",
+    features: [
+      "Unlimited post generations",
+      "200 image generations / mo",
+      "Up to 15 seats",
+      "Priority support",
+      "Everything in Team",
+    ],
   },
 ];
 
@@ -235,7 +260,7 @@ export default function SettingsPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowUpgrade(false); }}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-5">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-900">Choose a plan</h2>
               <button
@@ -280,24 +305,37 @@ export default function SettingsPage() {
               {PLAN_PRICING.map((p) => (
                 <div
                   key={p.key}
-                  className="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:border-indigo-300 transition-colors"
+                  className="p-4 border border-slate-200 rounded-xl hover:border-indigo-300 transition-colors space-y-3"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{p.label}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {billingPeriod === "monthly" ? p.monthly : p.annual}
-                    </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{p.label}</p>
+                      <p className="text-xs text-indigo-600 font-semibold mt-0.5">
+                        {billingPeriod === "monthly" ? p.monthly : p.annual}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">{p.description}</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={checkout.isPending}
+                      onClick={() =>
+                        checkout.mutate({ plan: p.key, billing_period: billingPeriod })
+                      }
+                      className="flex-shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
+                    >
+                      {checkout.isPending ? "Loading…" : "Select"}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    disabled={checkout.isPending}
-                    onClick={() =>
-                      checkout.mutate({ plan: p.key, billing_period: billingPeriod })
-                    }
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
-                  >
-                    {checkout.isPending ? "Loading…" : "Select"}
-                  </button>
+                  <ul className="space-y-1.5">
+                    {p.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-xs text-slate-600">
+                        <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
