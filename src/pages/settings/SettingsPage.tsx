@@ -260,7 +260,7 @@ export default function SettingsPage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowUpgrade(false); }}
         >
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-5">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-5">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-900">Choose a plan</h2>
               <button
@@ -301,41 +301,37 @@ export default function SettingsPage() {
             </div>
 
             {/* Plan cards */}
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {PLAN_PRICING.map((p) => (
                 <div
                   key={p.key}
-                  className="p-4 border border-slate-200 rounded-xl hover:border-indigo-300 transition-colors space-y-3"
+                  className="flex flex-col p-5 border border-slate-200 rounded-xl hover:border-indigo-300 transition-colors space-y-4"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">{p.label}</p>
-                      <p className="text-xs text-indigo-600 font-semibold mt-0.5">
-                        {billingPeriod === "monthly" ? p.monthly : p.annual}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">{p.description}</p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={checkout.isPending}
-                      onClick={() =>
-                        checkout.mutate({ plan: p.key, billing_period: billingPeriod })
-                      }
-                      className="flex-shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
-                    >
-                      {checkout.isPending ? "Loading…" : "Select"}
-                    </button>
+                  <div>
+                    <p className="text-base font-bold text-slate-900">{p.label}</p>
+                    <p className="text-sm text-indigo-600 font-semibold mt-0.5">
+                      {billingPeriod === "monthly" ? p.monthly : p.annual}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{p.description}</p>
                   </div>
-                  <ul className="space-y-1.5">
+                  <ul className="flex-1 space-y-2">
                     {p.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-xs text-slate-600">
-                        <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <li key={f} className="flex items-start gap-2 text-xs text-slate-600">
+                        <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         {f}
                       </li>
                     ))}
                   </ul>
+                  <button
+                    type="button"
+                    disabled={checkout.isPending}
+                    onClick={() => checkout.mutate({ plan: p.key, billing_period: billingPeriod })}
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors"
+                  >
+                    {checkout.isPending ? "Loading…" : "Select"}
+                  </button>
                 </div>
               ))}
             </div>
