@@ -75,8 +75,8 @@ function BlogPostCard({ cp, onRegenerate }: { cp: CampaignPost; onRegenerate: (i
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-bold text-indigo-600">{cp.sequence_number}</span>
           </div>
@@ -87,7 +87,7 @@ function BlogPostCard({ cp, onRegenerate }: { cp: CampaignPost; onRegenerate: (i
             {wordCount > 0 && <p className="text-xs text-slate-400 mt-0.5">~{wordCount.toLocaleString()} words</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => onRegenerate(post.id)} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">↻ Redo</button>
           {post.content && <button onClick={handleCopyFormatted} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Copy HTML</button>}
           {cj?.hero_image_data ? <button onClick={handleDownloadImage} className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium">Image</button> : null}
@@ -125,8 +125,8 @@ function PostCard({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-bold text-indigo-600">{cp.sequence_number}</span>
           </div>
@@ -141,12 +141,11 @@ function PostCard({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => onRegenerate(post.id)}
             className="text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium"
-            title="Regenerate this post"
           >
             ↻ Redo
           </button>
@@ -215,57 +214,58 @@ export default function CampaignDetailPage() {
   return (
     <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-6">
       {/* Header */}
-      <div className="flex items-start gap-4">
-        <button onClick={() => navigate("/campaigns")} className="text-slate-400 hover:text-slate-600 transition-colors mt-1">
+      <div className="flex items-start gap-3">
+        <button onClick={() => navigate("/campaigns")} className="text-slate-400 hover:text-slate-600 transition-colors mt-1 flex-shrink-0">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${CAMPAIGN_STATUS_STYLES[campaign.status] ?? "bg-slate-100 text-slate-600"}`}>
-              {CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status}
-            </span>
-            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${campaign.mode === "series" ? "bg-violet-50 text-violet-700" : "bg-sky-50 text-sky-700"}`}>
-              {campaign.mode === "series" ? "Connected series" : "Themed collection"}
-            </span>
+        <div className="flex-1 min-w-0 space-y-3">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${CAMPAIGN_STATUS_STYLES[campaign.status] ?? "bg-slate-100 text-slate-600"}`}>
+                {CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status}
+              </span>
+              <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${campaign.mode === "series" ? "bg-violet-50 text-violet-700" : "bg-sky-50 text-sky-700"}`}>
+                {campaign.mode === "series" ? "Connected series" : "Themed collection"}
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">{campaign.name}</h1>
+            <p className="text-sm text-slate-500 mt-1">{campaign.topic}</p>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">{campaign.name}</h1>
-          <p className="text-sm text-slate-500 mt-1">{campaign.topic}</p>
-        </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            loading={regenerateCampaign.isPending}
-            disabled={regenerateCampaign.isPending}
-            onClick={() => regenerateCampaign.mutate(campaign.id)}
-            title="Regenerate all posts"
-          >
-            ↻ Regenerate all
-          </Button>
-          {canApprove && (
+          {/* Actions — full width row below title on mobile */}
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
+              variant="outline"
               size="sm"
-              loading={approveCampaign.isPending}
-              disabled={approveCampaign.isPending}
-              onClick={() => approveCampaign.mutate(campaign.id)}
+              loading={regenerateCampaign.isPending}
+              disabled={regenerateCampaign.isPending}
+              onClick={() => regenerateCampaign.mutate(campaign.id)}
             >
-              Approve & schedule all
+              ↻ Regenerate all
             </Button>
-          )}
-          {campaign.status === "active" && (
-            <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-              ✓ Scheduled
-            </span>
-          )}
+            {canApprove && (
+              <Button
+                size="sm"
+                loading={approveCampaign.isPending}
+                disabled={approveCampaign.isPending}
+                onClick={() => approveCampaign.mutate(campaign.id)}
+              >
+                Approve & schedule all
+              </Button>
+            )}
+            {campaign.status === "active" && (
+              <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                ✓ Scheduled
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Meta strip */}
-      <div className="flex flex-wrap gap-6 px-5 py-4 bg-slate-50 rounded-2xl border border-slate-200 text-sm">
+      <div className="flex flex-wrap gap-4 px-4 py-4 md:px-5 bg-slate-50 rounded-2xl border border-slate-200 text-sm">
         <div>
           <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-0.5">Posts</p>
           <p className="font-semibold text-slate-800">{campaign.post_count}</p>
