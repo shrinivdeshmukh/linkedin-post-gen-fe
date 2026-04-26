@@ -177,7 +177,7 @@ export default function SettingsPage() {
   }, [billingParam]);
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-7 space-y-8">
+    <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
         <p className="text-sm text-slate-500 mt-1">Manage your workspace integrations.</p>

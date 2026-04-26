@@ -68,6 +68,7 @@ export default function AppLayout() {
   const { data: plan } = usePlanStatus();
   const navigate = useNavigate();
   const [composeOpen, setComposeOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   async function handleLogout() {
     await logout();
@@ -78,10 +79,139 @@ export default function AppLayout() {
     ? me.display_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : me?.email?.[0]?.toUpperCase() ?? "?";
 
+  const sidebarNav = (onNavigate?: () => void) => (
+    <>
+      {/* New post CTA */}
+      <div className="px-3 pt-3 pb-1">
+        <Button
+          fullWidth
+          size="sm"
+          onClick={() => { setComposeOpen(true); onNavigate?.(); }}
+          className="justify-center"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          New post
+        </Button>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 p-3 space-y-0.5">
+        {navItems.map((item) =>
+          item.to === "/composer" ? (
+            <button
+              key={item.to}
+              type="button"
+              onClick={() => { setComposeOpen(true); onNavigate?.(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`
+              }
+            >
+              {item.icon}
+              {item.label}
+            </NavLink>
+          )
+        )}
+      </nav>
+
+      {/* User footer */}
+      <div className="p-3 border-t border-slate-100">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors group">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-800 truncate">
+              {me?.display_name ?? me?.email ?? "Account"}
+            </p>
+            <p className="text-xs text-slate-400 capitalize">{me?.role ?? "member"}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Sign out"
+            className="text-slate-300 hover:text-slate-600 transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-slate-100 flex flex-col flex-shrink-0">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50">
+
+      {/* Mobile top bar */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <span className="font-semibold text-slate-900 text-sm tracking-tight">
+            postcards<span className="text-indigo-600">.studio</span>
+          </span>
+        </div>
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="p-2 text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Mobile drawer */}
+      {drawerOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-40 md:hidden"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <aside className="fixed inset-y-0 left-0 w-64 bg-white z-50 flex flex-col shadow-xl md:hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span className="font-semibold text-slate-900 text-sm tracking-tight">
+                  postcards<span className="text-indigo-600">.studio</span>
+                </span>
+              </div>
+              <button onClick={() => setDrawerOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {sidebarNav(() => setDrawerOpen(false))}
+          </aside>
+        </>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-56 bg-white border-r border-slate-100 flex-col flex-shrink-0">
         {/* Logo */}
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
           <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
@@ -93,77 +223,7 @@ export default function AppLayout() {
             postcards<span className="text-indigo-600">.studio</span>
           </span>
         </div>
-
-        {/* New post CTA */}
-        <div className="px-3 pt-3 pb-1">
-          <Button
-            fullWidth
-            size="sm"
-            onClick={() => setComposeOpen(true)}
-            className="justify-center"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            New post
-          </Button>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 p-3 space-y-0.5">
-          {navItems.map((item) =>
-            item.to === "/composer" ? (
-              <button
-                key={item.to}
-                type="button"
-                onClick={() => setComposeOpen(true)}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ) : (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-                    isActive
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  }`
-                }
-              >
-                {item.icon}
-                {item.label}
-              </NavLink>
-            )
-          )}
-        </nav>
-
-        {/* User footer */}
-        <div className="p-3 border-t border-slate-100">
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 transition-colors group">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-800 truncate">
-                {me?.display_name ?? me?.email ?? "Account"}
-              </p>
-              <p className="text-xs text-slate-400 capitalize">{me?.role ?? "member"}</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              title="Sign out"
-              className="text-slate-300 hover:text-slate-600 transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        {sidebarNav()}
       </aside>
 
       {/* Main content */}

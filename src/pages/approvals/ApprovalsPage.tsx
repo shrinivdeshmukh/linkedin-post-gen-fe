@@ -56,7 +56,7 @@ export default function ApprovalsPage() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-slate-100 bg-white flex-shrink-0">
+      <div className="px-4 py-4 md:px-6 md:py-5 border-b border-slate-100 bg-white flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-slate-900">Approvals</h1>
@@ -115,7 +115,7 @@ export default function ApprovalsPage() {
               Select a post to review
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
+            <div className="max-w-2xl mx-auto px-4 py-5 md:px-6 md:py-6 space-y-6">
               {/* Post meta */}
               <div className="flex items-center gap-3 flex-wrap">
                 <StatusBadge status={selected.status} />

@@ -229,9 +229,9 @@ export default function BlogComposerPage() {
       </div>
 
       {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-auto md:overflow-hidden">
         {/* Editor panel */}
-        <div className="flex-1 flex flex-col overflow-hidden border-r border-slate-200">
+        <div className="flex-1 flex flex-col md:overflow-hidden border-b md:border-b-0 md:border-r border-slate-200">
           <EditorToolbar editor={editor} />
 
           {/* Hero image */}
@@ -310,7 +310,7 @@ export default function BlogComposerPage() {
         </div>
 
         {/* SEO sidebar */}
-        <div className="w-72 flex-shrink-0 overflow-y-auto p-5 space-y-5 bg-slate-50">
+        <div className="w-full md:w-72 md:flex-shrink-0 overflow-y-auto p-5 space-y-5 bg-slate-50">
           {/* Generate actions */}
           {!post?.content && (
             <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">

@@ -57,9 +57,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-7 space-y-7">
+    <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-7">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
             {greeting(me?.display_name)}

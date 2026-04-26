@@ -190,7 +190,7 @@ export default function CampaignDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="h-full overflow-y-auto px-8 py-7 space-y-5">
+      <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-5">
         <div className="h-8 w-48 bg-slate-100 rounded-xl animate-pulse" />
         <div className="h-40 bg-white rounded-2xl border border-slate-100 animate-pulse" />
         {[1, 2, 3, 4].map(i => (
@@ -213,7 +213,7 @@ export default function CampaignDetailPage() {
   const canApprove = isOwner && campaign.status === "ready_for_review" && sorted.length > 0;
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-7 space-y-6">
+    <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
         <button onClick={() => navigate("/campaigns")} className="text-slate-400 hover:text-slate-600 transition-colors mt-1">
