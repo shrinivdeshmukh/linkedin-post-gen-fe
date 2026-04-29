@@ -72,6 +72,7 @@ const PLAN_PRICING = [
     features: [
       "150 post generations / mo",
       "30 image generations / mo",
+      "2 GB video storage",
       "LinkedIn + Blog mediums",
       "Campaigns (series & collections)",
       "Voice profile & company context",
@@ -87,6 +88,7 @@ const PLAN_PRICING = [
     features: [
       "500 post generations / mo",
       "75 image generations / mo",
+      "10 GB video storage",
       "Up to 5 seats",
       "Approval workflows",
       "Everything in Solo",
@@ -101,6 +103,7 @@ const PLAN_PRICING = [
     features: [
       "Unlimited post generations",
       "200 image generations / mo",
+      "50 GB video storage",
       "Up to 15 seats",
       "Priority support",
       "Everything in Team",
