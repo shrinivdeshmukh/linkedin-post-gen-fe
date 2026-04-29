@@ -12,6 +12,7 @@ import {
   useUploadLogo,
   useVoiceProfile,
   useUpsertVoiceProfile,
+  useVideos,
   type BillingPeriod,
 } from "../../lib/api-hooks";
 
@@ -116,6 +117,7 @@ export default function SettingsPage() {
   const { data: liAccount, isLoading } = useLinkedInStatus();
   const disconnect = useLinkedInDisconnect();
   const { data: plan } = usePlanStatus();
+  const { data: videoLibrary } = useVideos();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const checkout = useCreateCheckout();
@@ -251,9 +253,16 @@ export default function SettingsPage() {
               used={plan.image_generations_used}
               limit={plan.image_generations_limit}
             />
+            {videoLibrary && (
+              <UsageMeter
+                label="Video storage"
+                used={Math.round((videoLibrary.total_storage_bytes) / (1024 * 1024))}
+                limit={videoLibrary.storage_limit_bytes !== null ? Math.round(videoLibrary.storage_limit_bytes / (1024 * 1024)) : null}
+              />
+            )}
           </div>
 
-          <p className="text-xs text-slate-400">Usage resets monthly.</p>
+          <p className="text-xs text-slate-400">Post &amp; image usage resets monthly. Video storage is cumulative.</p>
         </div>
       )}
 

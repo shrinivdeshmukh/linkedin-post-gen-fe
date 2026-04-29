@@ -27,6 +27,43 @@ export interface PlanStatus {
   image_generations_limit: number | null;
 }
 
+// ─── Videos ──────────────────────────────────────────────────────────────────
+
+export interface Video {
+  id: string;
+  org_id: string;
+  uploaded_by: string;
+  title: string;
+  spaces_url: string;
+  file_size: number;
+  mime_type: string;
+  duration_seconds: number | null;
+  linkedin_asset_urn: string | null;
+  linkedin_uploaded_at: string | null;
+  created_at: string;
+}
+
+export interface VideoLibrary {
+  videos: Video[];
+  total_storage_bytes: number;
+  storage_limit_bytes: number | null;
+}
+
+export function useVideos() {
+  return useQuery<VideoLibrary>({
+    queryKey: ["videos"],
+    queryFn: async () => (await api.get("/videos")).data,
+  });
+}
+
+export function useDeleteVideo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/videos/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["videos"] }),
+  });
+}
+
 export function usePlanStatus() {
   return useQuery<PlanStatus>({
     queryKey: ["plan"],

@@ -5,6 +5,8 @@ import { PostEditor } from "./components/PostEditor";
 import { LinkedInPreview } from "./components/LinkedInPreview";
 import { PollBuilder, type PollData } from "./components/PollBuilder";
 import { ImageUploadPanel } from "./components/ImageUploadPanel";
+import { VideoUploadPanel } from "./components/VideoUploadPanel";
+import type { Video } from "../../lib/api-hooks";
 import { Button } from "../../components/ui/Button";
 import {
   useCreatePost,
@@ -35,6 +37,15 @@ const MODEL_LABELS: Record<string, string> = {
 };
 
 const POST_TYPE_OPTIONS: { type: PostType; label: string; icon: React.ReactNode }[] = [
+  {
+    type: "video",
+    label: "Video",
+    icon: (
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.677V15.32a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+      </svg>
+    ),
+  },
   {
     type: "image",
     label: "Image",
@@ -80,6 +91,7 @@ export default function ComposerPage() {
   const [aiResults, setAiResults] = useState<AIResult[] | null>(null);
   const [phase, setPhase] = useState<Phase>("setup");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [pollData, setPollData] = useState<PollData>(DEFAULT_POLL);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [hydrated, setHydrated] = useState(!urlPostId);
@@ -375,6 +387,22 @@ export default function ComposerPage() {
                 />
               )}
             </div>
+          )}
+
+          {/* Video panel */}
+          {postType === "video" && (
+            <VideoUploadPanel
+              videoId={selectedVideo?.id ?? null}
+              onChange={(video) => {
+                setSelectedVideo(video);
+                if (postId) {
+                  updatePost.mutate({
+                    id: postId,
+                    content_json: video ? { video_id: video.id } : {},
+                  });
+                }
+              }}
+            />
           )}
 
           {/* Image panel — visible as soon as Image is checked */}

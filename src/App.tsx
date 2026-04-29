@@ -15,6 +15,7 @@ import CampaignsPage from "./pages/campaigns/CampaignsPage";
 import NewCampaignPage from "./pages/campaigns/NewCampaignPage";
 import CampaignDetailPage from "./pages/campaigns/CampaignDetailPage";
 import BlogComposerPage from "./pages/blog/BlogComposerPage";
+import VideoLibraryPage from "./pages/videos/VideoLibraryPage";
 import AppLayout from "./components/layout/AppLayout";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="campaigns/new" element={<NewCampaignPage />} />
           <Route path="campaigns/:campaignId" element={<CampaignDetailPage />} />
           <Route path="blog/:postId" element={<BlogComposerPage />} />
+          <Route path="videos" element={<VideoLibraryPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

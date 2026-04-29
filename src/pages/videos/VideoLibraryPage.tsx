@@ -1,0 +1,268 @@
+import { useRef, useState } from "react";
+import { useVideos, useDeleteVideo, type Video } from "../../lib/api-hooks";
+import api from "../../lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+
+const ACCEPTED = ".mp4,.mov,.avi,.mkv,.webm";
+const MAX_BYTES = 500 * 1024 * 1024;
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function StorageBar({ used, limit }: { used: number; limit: number | null }) {
+  const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const warn = limit !== null && pct >= 80;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium text-slate-700">Video storage</span>
+        <span className={warn ? "text-amber-600 font-semibold" : "text-slate-500"}>
+          {formatBytes(used)} / {limit === null ? "∞" : formatBytes(limit)}
+        </span>
+      </div>
+      {limit !== null && (
+        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-400" : "bg-indigo-500"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VideoCard({ video, onDelete }: { video: Video; onDelete: () => void }) {
+  const [playing, setPlaying] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function handleCopyUrl() {
+    navigator.clipboard.writeText(video.spaces_url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden group">
+      {/* Video preview */}
+      <div className="relative bg-slate-900 aspect-video">
+        {playing ? (
+          <video
+            src={video.spaces_url}
+            controls
+            autoPlay
+            className="w-full h-full object-contain"
+          />
+        ) : (
+          <>
+            <video
+              src={video.spaces_url}
+              className="w-full h-full object-cover opacity-70"
+              preload="metadata"
+            />
+            <button
+              onClick={() => setPlaying(true)}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <svg className="w-5 h-5 text-slate-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Info + actions */}
+      <div className="p-3 space-y-2">
+        <p className="text-sm font-medium text-slate-800 truncate" title={video.title}>
+          {video.title}
+        </p>
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span>{formatBytes(video.file_size)}</span>
+          {video.linkedin_asset_urn && (
+            <span className="text-emerald-500 font-medium">· LinkedIn ready</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 pt-1">
+          <button
+            onClick={handleCopyUrl}
+            className="flex-1 text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+          >
+            {copied ? "Copied!" : "Copy URL"}
+          </button>
+          <a
+            href={video.spaces_url}
+            download
+            className="text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+          >
+            ↓
+          </a>
+          <button
+            onClick={onDelete}
+            className="text-xs text-red-400 border border-red-100 rounded-lg px-2.5 py-1.5 hover:bg-red-50 hover:border-red-200 transition-colors"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function VideoLibraryPage() {
+  const { data: library, isLoading } = useVideos();
+  const deleteVideo = useDeleteVideo();
+  const qc = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["video/mp4", "video/quicktime", "video/x-msvideo", "video/x-matroska", "video/webm"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Unsupported format. Please upload MP4, MOV, AVI, MKV, or WebM.");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      setError("File is too large. Maximum size is 500 MB.");
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+    setProgress(0);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", file.name.replace(/\.[^/.]+$/, ""));
+
+    try {
+      await api.post("/videos", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (e) => {
+          if (e.total) setProgress(Math.round((e.loaded / e.total) * 100));
+        },
+      });
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(msg ?? "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      setProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  const videos = library?.videos ?? [];
+  const usedBytes = library?.total_storage_bytes ?? 0;
+  const limitBytes = library?.storage_limit_bytes ?? null;
+
+  return (
+    <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Video Library</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Upload and manage videos for LinkedIn posts</p>
+        </div>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          Upload video
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED}
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+      </div>
+
+      {/* Storage bar */}
+      <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4">
+        <StorageBar used={usedBytes} limit={limitBytes} />
+      </div>
+
+      {/* Upload progress */}
+      {uploading && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-indigo-700">Uploading…</span>
+            <span className="text-indigo-500">{progress}%</span>
+          </div>
+          <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-3 flex items-center justify-between">
+          <p className="text-sm text-red-700">{error}</p>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Videos grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-2xl bg-slate-100 aspect-video animate-pulse" />
+          ))}
+        </div>
+      ) : videos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+            <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.677V15.32a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-slate-600">No videos yet</p>
+          <p className="text-xs text-slate-400">Upload an MP4 or MOV to get started</p>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="text-sm text-indigo-600 font-medium hover:text-indigo-700"
+          >
+            Upload your first video
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {videos.map((video) => (
+            <VideoCard
+              key={video.id}
+              video={video}
+              onDelete={() => deleteVideo.mutate(video.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
