@@ -65,6 +65,15 @@ export function useDeleteVideo() {
   });
 }
 
+export function useUpdateVideo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) =>
+      api.patch(`/videos/${id}`, { title }).then((r) => r.data as Video),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["videos"] }),
+  });
+}
+
 export function usePlanStatus() {
   return useQuery<PlanStatus>({
     queryKey: ["plan"],

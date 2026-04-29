@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useVideos, useDeleteVideo, type Video } from "../../lib/api-hooks";
+import { useVideos, useDeleteVideo, useUpdateVideo, type Video } from "../../lib/api-hooks";
 import api from "../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -36,11 +36,19 @@ function StorageBar({ used, limit }: { used: number; limit: number | null }) {
   );
 }
 
-function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () => void; deleting: boolean }) {
+function VideoCard({ video, onDelete, deleting, onRename }: { video: Video; onDelete: () => void; deleting: boolean; onRename: (title: string) => void }) {
   const [playing, setPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(video.title);
   const shareUrl = `${window.location.origin}/v/${video.slug}`;
+
+  function handleRenameSubmit() {
+    const trimmed = editTitle.trim();
+    if (trimmed && trimmed !== video.title) onRename(trimmed);
+    setEditing(false);
+  }
 
   function handleCopyUrl() {
     navigator.clipboard.writeText(shareUrl);
@@ -70,7 +78,28 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
 
       {/* Info + actions */}
       <div className="p-3 space-y-2">
-        <p className="text-sm font-medium text-slate-800 truncate" title={video.title}>{video.title}</p>
+        {editing ? (
+          <input
+            autoFocus
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onBlur={handleRenameSubmit}
+            onKeyDown={(e) => { if (e.key === "Enter") handleRenameSubmit(); if (e.key === "Escape") { setEditTitle(video.title); setEditing(false); } }}
+            className="w-full text-sm font-medium text-slate-800 border border-indigo-400 rounded-lg px-2 py-0.5 outline-none ring-2 ring-indigo-200"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setEditTitle(video.title); setEditing(true); }}
+            className="w-full text-left text-sm font-medium text-slate-800 truncate hover:text-indigo-600 transition-colors group/title flex items-center gap-1"
+            title="Click to rename"
+          >
+            <span className="truncate">{video.title}</span>
+            <svg className="w-3 h-3 text-slate-300 group-hover/title:text-indigo-400 flex-shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+        )}
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <span>{formatBytes(video.file_size)}</span>
           {video.linkedin_asset_urn && <span className="text-emerald-500 font-medium">· LinkedIn ready</span>}
@@ -141,6 +170,7 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
 export default function VideoLibraryPage() {
   const { data: library, isLoading } = useVideos();
   const deleteVideo = useDeleteVideo();
+  const updateVideo = useUpdateVideo();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -302,6 +332,7 @@ export default function VideoLibraryPage() {
               video={video}
               onDelete={() => deleteVideo.mutate(video.id)}
               deleting={deleteVideo.isPending && deleteVideo.variables === video.id}
+              onRename={(title) => updateVideo.mutate({ id: video.id, title })}
             />
           ))}
         </div>
