@@ -6,6 +6,7 @@ import { LinkedInPreview } from "./components/LinkedInPreview";
 import { PollBuilder, type PollData } from "./components/PollBuilder";
 import { ImageUploadPanel } from "./components/ImageUploadPanel";
 import { VideoUploadPanel } from "./components/VideoUploadPanel";
+import { ContextAttachmentPanel } from "./components/ContextAttachmentPanel";
 import type { Video } from "../../lib/api-hooks";
 import { Button } from "../../components/ui/Button";
 import {
@@ -92,6 +93,7 @@ export default function ComposerPage() {
   const [phase, setPhase] = useState<Phase>("setup");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [documentContext, setDocumentContext] = useState<string | null>(null);
   const [pollData, setPollData] = useState<PollData>(DEFAULT_POLL);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [hydrated, setHydrated] = useState(!urlPostId);
@@ -142,7 +144,7 @@ export default function ComposerPage() {
         id = post.id;
         setPostId(id);
       }
-      const results = await generateAI.mutateAsync({ postId: id, topic });
+      const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext });
       setAiResults(results);
       // Default to openai if available, otherwise first successful result
       const openaiResult = results.find((r) => r.model === "openai" && !r.error);
@@ -307,6 +309,7 @@ export default function ComposerPage() {
               })}
               <span className="text-xs text-slate-400">· ⌘+Enter to generate</span>
             </div>
+            <ContextAttachmentPanel onContext={setDocumentContext} />
           </div>
 
           {/* Generating skeleton */}

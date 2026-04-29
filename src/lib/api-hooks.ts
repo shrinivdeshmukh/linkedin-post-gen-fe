@@ -366,6 +366,7 @@ export interface CampaignCreatePayload {
   include_images: boolean;
   tone_override?: string;
   target_word_count?: number;
+  document_context?: string;
 }
 
 export function useCampaigns() {
@@ -442,12 +443,14 @@ export function useGenerateAI() {
     mutationFn: ({
       postId,
       topic,
+      document_context,
     }: {
       postId: string;
       topic: string;
+      document_context?: string | null;
     }) =>
       api
-        .post<{ results: AIResult[] }>(`/posts/${postId}/generate`, { topic })
+        .post<{ results: AIResult[] }>(`/posts/${postId}/generate`, { topic, document_context: document_context ?? undefined })
         .then((r) => r.data.results),
   });
 }

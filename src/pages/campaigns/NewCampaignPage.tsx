@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCreateCampaign, type CampaignCreatePayload } from "../../lib/api-hooks";
 import { Button } from "../../components/ui/Button";
+import { ContextAttachmentPanel } from "../composer/components/ContextAttachmentPanel";
 
 const TARGET_OUTCOMES = [
   "Build thought leadership",
@@ -111,6 +112,7 @@ export default function NewCampaignPage() {
   const navigate = useNavigate();
   const createCampaign = useCreateCampaign();
   const [step, setStep] = useState<Step>(1);
+  const [documentContext, setDocumentContext] = useState<string | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -154,6 +156,7 @@ export default function NewCampaignPage() {
       include_images: form.post_type === "image",
       tone_override: form.tone_override.trim() || undefined,
       target_word_count: form.medium === "blog" ? form.target_word_count : undefined,
+      document_context: documentContext ?? undefined,
     };
     const campaign = await createCampaign.mutateAsync(payload);
     navigate(`/campaigns/${campaign.id}`);
@@ -248,6 +251,14 @@ export default function NewCampaignPage() {
             <div className="space-y-1.5">
               <label className="text-sm font-semibold text-slate-700">Key messages</label>
               <KeyMessagesInput messages={form.key_messages} onChange={m => set("key_messages", m)} />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700">
+                Reference document <span className="font-normal text-slate-400">(optional)</span>
+              </label>
+              <ContextAttachmentPanel onContext={setDocumentContext} />
+              <p className="text-xs text-slate-400">Attach a PDF or image to give the AI additional context — e.g. a report, strategy doc, or screenshot.</p>
             </div>
           </div>
         )}
