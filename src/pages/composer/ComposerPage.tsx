@@ -125,10 +125,9 @@ export default function ComposerPage() {
   function handleTypeToggle(type: PostType) {
     const next = postType === type ? "text" : type;
     setPostType(next);
-    setPostId(null);
-    setAiResults(null);
-    setContent("");
-    setPhase("setup");
+    // Only clear attachment state — never wipe content, postId, aiResults, or phase
+    setImageUrl(null);
+    setSelectedVideo(null);
   }
 
   async function handleGenerate() {
