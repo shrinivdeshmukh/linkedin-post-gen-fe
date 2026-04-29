@@ -40,9 +40,10 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
   const [playing, setPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const shareUrl = `${window.location.origin}/v/${video.slug}`;
 
   function handleCopyUrl() {
-    navigator.clipboard.writeText(video.spaces_url);
+    navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -103,14 +104,24 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
           <div className="flex items-center gap-1.5 pt-1">
             <button
               onClick={handleCopyUrl}
-              className="flex-1 text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              className="flex-1 text-xs text-indigo-600 border border-indigo-200 rounded-lg px-2.5 py-1.5 hover:bg-indigo-50 transition-colors font-medium"
             >
-              {copied ? "Copied!" : "Copy URL"}
+              {copied ? "Copied!" : "Copy share link"}
             </button>
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              title="Open public page"
+            >
+              ↗
+            </a>
             <a
               href={video.spaces_url}
               download
               className="text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              title="Download"
             >
               ↓
             </a>

@@ -33,6 +33,7 @@ export interface Video {
   id: string;
   org_id: string;
   uploaded_by: string;
+  slug: string;
   title: string;
   spaces_url: string;
   file_size: number;

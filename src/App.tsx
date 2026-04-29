@@ -16,6 +16,7 @@ import NewCampaignPage from "./pages/campaigns/NewCampaignPage";
 import CampaignDetailPage from "./pages/campaigns/CampaignDetailPage";
 import BlogComposerPage from "./pages/blog/BlogComposerPage";
 import VideoLibraryPage from "./pages/videos/VideoLibraryPage";
+import VideoPublicPage from "./pages/videos/VideoPublicPage";
 import AppLayout from "./components/layout/AppLayout";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/linkedin/callback" element={<LinkedInCallbackPage />} />
+        <Route path="/v/:slug" element={<VideoPublicPage />} />
 
         {/* Onboarding — authenticated but no org yet */}
         <Route
