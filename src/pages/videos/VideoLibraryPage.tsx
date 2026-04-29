@@ -143,17 +143,37 @@ export default function VideoLibraryPage() {
     setError(null);
     setProgress(0);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", file.name.replace(/\.[^/.]+$/, ""));
-
     try {
-      await api.post("/videos", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (e) => {
-          if (e.total) setProgress(Math.round((e.loaded / e.total) * 100));
-        },
+      // Step 1: get a presigned URL from the backend (fast)
+      const { data: presign } = await api.post("/videos/presign", {
+        filename: file.name,
+        content_type: file.type,
+        file_size: file.size,
       });
+
+      // Step 2: PUT directly to Spaces (bypasses backend timeout)
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", presign.upload_url);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("x-amz-acl", "public-read");
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Spaces upload failed: ${xhr.status}`)));
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
+      });
+
+      // Step 3: tell the backend to record the video
+      await api.post("/videos/confirm", {
+        key: presign.key,
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        filename: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+      });
+
       qc.invalidateQueries({ queryKey: ["videos"] });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
