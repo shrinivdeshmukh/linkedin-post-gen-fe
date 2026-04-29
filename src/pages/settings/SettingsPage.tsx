@@ -23,7 +23,14 @@ const PLAN_LABELS: Record<string, string> = {
   agency: "Agency — $499/mo",
 };
 
-function UsageMeter({ label, used, limit }: { label: string; used: number; limit: number | null }) {
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+function UsageMeter({ label, used, limit, display }: { label: string; used: number; limit: number | null; display?: string }) {
   const pct = limit === null ? 0 : Math.min(100, Math.round((used / limit) * 100));
   const warn = limit !== null && pct >= 80;
   return (
@@ -31,7 +38,7 @@ function UsageMeter({ label, used, limit }: { label: string; used: number; limit
       <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-slate-700">{label}</span>
         <span className={warn ? "text-amber-600 font-semibold" : "text-slate-500"}>
-          {used} / {limit === null ? "∞" : limit}
+          {display ?? `${used} / ${limit === null ? "∞" : limit}`}
         </span>
       </div>
       {limit !== null && (
@@ -253,13 +260,18 @@ export default function SettingsPage() {
               used={plan.image_generations_used}
               limit={plan.image_generations_limit}
             />
-            {videoLibrary && (
-              <UsageMeter
-                label="Video storage"
-                used={Math.round((videoLibrary.total_storage_bytes) / (1024 * 1024))}
-                limit={videoLibrary.storage_limit_bytes !== null ? Math.round(videoLibrary.storage_limit_bytes / (1024 * 1024)) : null}
-              />
-            )}
+            <UsageMeter
+              label="Video storage"
+              used={videoLibrary?.total_storage_bytes ?? 0}
+              limit={videoLibrary?.storage_limit_bytes ?? null}
+              display={
+                !videoLibrary
+                  ? "Loading…"
+                  : videoLibrary.storage_limit_bytes === null
+                  ? "Not included on this plan"
+                  : `${formatBytes(videoLibrary.total_storage_bytes)} / ${formatBytes(videoLibrary.storage_limit_bytes)}`
+              }
+            />
           </div>
 
           <p className="text-xs text-slate-400">Post &amp; image usage resets monthly. Video storage is cumulative.</p>
