@@ -55,7 +55,6 @@ export function VideoUploadPanel({ videoId, onChange }: VideoUploadPanelProps) {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", presign.upload_url);
         xhr.setRequestHeader("Content-Type", file.type);
-        xhr.setRequestHeader("x-amz-acl", "public-read");
         xhr.upload.onprogress = (evt) => {
           if (evt.lengthComputable) setProgress(Math.round((evt.loaded / evt.total) * 100));
         };

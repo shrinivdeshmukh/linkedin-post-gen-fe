@@ -156,7 +156,6 @@ export default function VideoLibraryPage() {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", presign.upload_url);
         xhr.setRequestHeader("Content-Type", file.type);
-        xhr.setRequestHeader("x-amz-acl", "public-read");
         xhr.upload.onprogress = (ev) => {
           if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
         };
