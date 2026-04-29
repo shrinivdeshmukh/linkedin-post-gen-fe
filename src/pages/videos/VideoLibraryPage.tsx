@@ -36,9 +36,10 @@ function StorageBar({ used, limit }: { used: number; limit: number | null }) {
   );
 }
 
-function VideoCard({ video, onDelete }: { video: Video; onDelete: () => void }) {
+function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () => void; deleting: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   function handleCopyUrl() {
     navigator.clipboard.writeText(video.spaces_url);
@@ -51,23 +52,11 @@ function VideoCard({ video, onDelete }: { video: Video; onDelete: () => void }) 
       {/* Video preview */}
       <div className="relative bg-slate-900 aspect-video">
         {playing ? (
-          <video
-            src={video.spaces_url}
-            controls
-            autoPlay
-            className="w-full h-full object-contain"
-          />
+          <video src={video.spaces_url} controls autoPlay className="w-full h-full object-contain" />
         ) : (
           <>
-            <video
-              src={video.spaces_url}
-              className="w-full h-full object-cover opacity-70"
-              preload="metadata"
-            />
-            <button
-              onClick={() => setPlaying(true)}
-              className="absolute inset-0 flex items-center justify-center"
-            >
+            <video src={video.spaces_url} className="w-full h-full object-cover opacity-70" preload="metadata" />
+            <button onClick={() => setPlaying(true)} className="absolute inset-0 flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <svg className="w-5 h-5 text-slate-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
@@ -80,36 +69,59 @@ function VideoCard({ video, onDelete }: { video: Video; onDelete: () => void }) 
 
       {/* Info + actions */}
       <div className="p-3 space-y-2">
-        <p className="text-sm font-medium text-slate-800 truncate" title={video.title}>
-          {video.title}
-        </p>
+        <p className="text-sm font-medium text-slate-800 truncate" title={video.title}>{video.title}</p>
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <span>{formatBytes(video.file_size)}</span>
-          {video.linkedin_asset_urn && (
-            <span className="text-emerald-500 font-medium">· LinkedIn ready</span>
-          )}
+          {video.linkedin_asset_urn && <span className="text-emerald-500 font-medium">· LinkedIn ready</span>}
         </div>
-        <div className="flex items-center gap-1.5 pt-1">
-          <button
-            onClick={handleCopyUrl}
-            className="flex-1 text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-          >
-            {copied ? "Copied!" : "Copy URL"}
-          </button>
-          <a
-            href={video.spaces_url}
-            download
-            className="text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-          >
-            ↓
-          </a>
-          <button
-            onClick={onDelete}
-            className="text-xs text-red-400 border border-red-100 rounded-lg px-2.5 py-1.5 hover:bg-red-50 hover:border-red-200 transition-colors"
-          >
-            Delete
-          </button>
-        </div>
+
+        {confirmDelete ? (
+          <div className="flex items-center gap-2 pt-1">
+            <p className="text-xs text-red-600 flex-1">Delete this video?</p>
+            <button
+              onClick={() => { onDelete(); setConfirmDelete(false); }}
+              disabled={deleting}
+              className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-lg px-2.5 py-1.5 transition-colors flex items-center gap-1"
+            >
+              {deleting && (
+                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {deleting ? "Deleting…" : "Yes, delete"}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+              className="text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 pt-1">
+            <button
+              onClick={handleCopyUrl}
+              className="flex-1 text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+            >
+              {copied ? "Copied!" : "Copy URL"}
+            </button>
+            <a
+              href={video.spaces_url}
+              download
+              className="text-xs text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+            >
+              ↓
+            </a>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-xs text-red-400 border border-red-100 rounded-lg px-2.5 py-1.5 hover:bg-red-50 hover:border-red-200 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -278,6 +290,7 @@ export default function VideoLibraryPage() {
               key={video.id}
               video={video}
               onDelete={() => deleteVideo.mutate(video.id)}
+              deleting={deleteVideo.isPending && deleteVideo.variables === video.id}
             />
           ))}
         </div>
