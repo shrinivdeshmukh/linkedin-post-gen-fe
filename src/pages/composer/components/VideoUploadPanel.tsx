@@ -42,17 +42,37 @@ export function VideoUploadPanel({ videoId, onChange }: VideoUploadPanelProps) {
     setError(null);
     setProgress(0);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", file.name.replace(/\.[^/.]+$/, ""));
-
     try {
-      const { data: video } = await api.post<Video>("/videos", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (evt) => {
-          if (evt.total) setProgress(Math.round((evt.loaded / evt.total) * 100));
-        },
+      // Step 1: get presigned URL
+      const { data: presign } = await api.post("/videos/presign", {
+        filename: file.name,
+        content_type: file.type,
+        file_size: file.size,
       });
+
+      // Step 2: upload directly to Spaces
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", presign.upload_url);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("x-amz-acl", "public-read");
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable) setProgress(Math.round((evt.loaded / evt.total) * 100));
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`)));
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
+      });
+
+      // Step 3: confirm and get video record
+      const { data: video } = await api.post<Video>("/videos/confirm", {
+        key: presign.key,
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        filename: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+      });
+
       qc.invalidateQueries({ queryKey: ["videos"] });
       onChange(video);
     } catch (err: unknown) {
