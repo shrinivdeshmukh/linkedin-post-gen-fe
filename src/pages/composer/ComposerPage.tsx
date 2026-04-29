@@ -159,14 +159,19 @@ export default function ComposerPage() {
       await updatePost.mutateAsync({ id: postId, content, ai_model_used: selectedModel ?? undefined });
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
-    } catch {
+    } catch (err) {
       setSaveStatus("error");
+      throw err;
     }
   }
 
   async function handleSubmitForApproval() {
     if (!postId) return;
-    await handleSaveDraft();
+    try {
+      await handleSaveDraft();
+    } catch {
+      return; // save failed — don't submit stale content
+    }
     await submitPost.mutateAsync(postId);
     navigate("/approvals");
   }
@@ -178,7 +183,11 @@ export default function ComposerPage() {
 
   async function handlePublishToLinkedIn() {
     if (!postId) return;
-    await handleSaveDraft();
+    try {
+      await handleSaveDraft();
+    } catch {
+      return; // save failed — don't publish stale content
+    }
     await publishPost.mutateAsync(postId);
     navigate("/dashboard");
   }
