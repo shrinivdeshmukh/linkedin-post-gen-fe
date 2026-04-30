@@ -21,6 +21,64 @@ const WORD_COUNT_OPTIONS = [800, 1200, 1500, 2000, 2500];
 
 const td = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" });
 
+function htmlToRtf(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const header =
+    "{\\rtf1\\ansi\\ansicpg1252\\cocoartf2639\n" +
+    "{\\fonttbl\\f0\\froman\\fcharset0 Times-Roman;\\f1\\fswiss\\fcharset0 Helvetica;}\n" +
+    "{\\colortbl;\\red0\\green0\\blue0;}\n" +
+    "\\paperw11900\\paperh16840\\margl1440\\margr1440\\viewkind0\n" +
+    "\\pard\\f0\\fs24\\cf0\n";
+
+  function esc(text: string): string {
+    return text
+      .replace(/\\/g, "\\\\")
+      .replace(/\{/g, "\\{")
+      .replace(/\}/g, "\\}")
+      .replace(/[^\x00-\x7F]/g, (ch) => `\\uc1\\u${ch.charCodeAt(0)}?`);
+  }
+
+  function walk(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return esc(node.textContent ?? "");
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+    const inner = () => Array.from(el.childNodes).map(walk).join("");
+
+    switch (tag) {
+      case "h1": return `\\pard\\f0\\b\\fs48 ${inner()}\\b0\\fs24\\par\n`;
+      case "h2": return `\\pard\\f0\\b\\fs40 ${inner()}\\b0\\fs24\\par\n`;
+      case "h3": return `\\pard\\f0\\b\\fs32 ${inner()}\\b0\\fs24\\par\n`;
+      case "h4": return `\\pard\\f0\\b\\fs28 ${inner()}\\b0\\fs24\\par\n`;
+      case "p":  return `\\pard\\f0\\fs24 ${inner()}\\par\n`;
+      case "strong": case "b": return `\\b ${inner()}\\b0 `;
+      case "em":     case "i": return `\\i ${inner()}\\i0 `;
+      case "u":  return `\\ul ${inner()}\\ulnone `;
+      case "br": return "\\line\n";
+      case "hr": return "\\pard\\brdrb\\brdrs\\brdrw10\\brsp20 \\par\n";
+      case "blockquote": return `\\pard\\li720\\f0\\fs24\\i ${inner()}\\i0\\par\n`;
+      case "code": return `\\f1 ${inner()}\\f0 `;
+      case "pre":  return `\\pard\\f1\\fs20 ${inner()}\\f0\\fs24\\par\n`;
+      case "ul": {
+        return Array.from(el.children)
+          .map((li) => `\\pard\\tx360\\li360\\fi-360\\f0\\fs24 \\uc0\\u8226  ${Array.from(li.childNodes).map(walk).join("")}\\par\n`)
+          .join("");
+      }
+      case "ol": {
+        return Array.from(el.children)
+          .map((li, i) => `\\pard\\tx360\\li360\\fi-360\\f0\\fs24 ${i + 1}. ${Array.from(li.childNodes).map(walk).join("")}\\par\n`)
+          .join("");
+      }
+      default: return inner();
+    }
+  }
+
+  const body = Array.from(doc.body.childNodes).map(walk).join("");
+  return header + body + "}";
+}
+
 function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   if (!editor) return null;
   const btn = (active: boolean, onClick: () => void, label: string) => (
@@ -123,6 +181,18 @@ export default function BlogComposerPage() {
     setTimeout(() => setCopyStatus("idle"), 2000);
   }
 
+  function handleDownloadRtf() {
+    if (!editor) return;
+    const rtf = htmlToRtf(editor.getHTML());
+    const blob = new Blob([rtf], { type: "application/rtf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${post?.title ?? "blog-article"}.rtf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleGenerateOutline() {
     if (!postId || !cj?.primary_keyword) return;
     await generateOutline.mutateAsync({
@@ -221,6 +291,9 @@ export default function BlogComposerPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleCopyMarkdown}>
             Copy Markdown
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleDownloadRtf}>
+            Download RTF
           </Button>
           <Button size="sm" onClick={handleCopyFormatted}>
             {copyStatus === "copied" ? "Copied!" : "Copy formatted"}
