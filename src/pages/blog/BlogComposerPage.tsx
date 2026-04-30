@@ -173,6 +173,23 @@ export default function BlogComposerPage() {
     setTimeout(() => setCopyStatus("idle"), 2000);
   }
 
+  async function handleDownloadDocx() {
+    if (!editor || !post) return;
+    // @ts-expect-error — html-to-docx has no bundled types
+    const HTMLtoDOCX = (await import("html-to-docx")).default;
+    const html = `<!DOCTYPE html><html><body>${editor.getHTML()}</body></html>`;
+    const blob = await HTMLtoDOCX(html, null, {
+      title: post.title ?? "blog-article",
+      margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${post.title ?? "blog-article"}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleCopyMarkdown() {
     if (!editor) return;
     const markdown = td.turndown(editor.getHTML());
@@ -295,6 +312,9 @@ export default function BlogComposerPage() {
           <Button variant="outline" size="sm" onClick={handleDownloadRtf}>
             Download RTF
           </Button>
+          <Button variant="outline" size="sm" onClick={handleDownloadDocx}>
+            Download .docx
+          </Button>
           <Button size="sm" onClick={handleCopyFormatted}>
             {copyStatus === "copied" ? "Copied!" : "Copy formatted"}
           </Button>
@@ -317,6 +337,26 @@ export default function BlogComposerPage() {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-3 right-3 flex items-center gap-1">
+                  {/* Regenerate */}
+                  <div className="relative group/tip">
+                    <button
+                      onClick={handleGenerateHeroImage}
+                      disabled={generateImage.isPending || !post?.title}
+                      className="w-8 h-8 flex items-center justify-center bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-colors disabled:opacity-50"
+                    >
+                      {generateImage.isPending ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      )}
+                    </button>
+                    <span className="pointer-events-none absolute top-full right-0 mt-1.5 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs text-white opacity-0 group-hover/tip:opacity-100 transition-opacity">Regenerate image</span>
+                  </div>
                   {/* Copy image to clipboard */}
                   <div className="relative group/tip">
                     <button
