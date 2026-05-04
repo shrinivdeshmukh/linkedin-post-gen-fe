@@ -444,13 +444,19 @@ export function useGenerateAI() {
       postId,
       topic,
       document_context,
+      raw_context,
     }: {
       postId: string;
       topic: string;
       document_context?: string | null;
+      raw_context?: string | null;
     }) =>
       api
-        .post<{ results: AIResult[] }>(`/posts/${postId}/generate`, { topic, document_context: document_context ?? undefined })
+        .post<{ results: AIResult[] }>(`/posts/${postId}/generate`, {
+          topic,
+          document_context: document_context ?? undefined,
+          raw_context: raw_context ?? undefined,
+        })
         .then((r) => r.data.results),
   });
 }

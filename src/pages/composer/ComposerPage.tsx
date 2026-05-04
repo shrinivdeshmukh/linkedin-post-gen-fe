@@ -93,6 +93,8 @@ export default function ComposerPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [documentContext, setDocumentContext] = useState<string | null>(null);
+  const [rawContext, setRawContext] = useState("");
+  const [showRawContext, setShowRawContext] = useState(false);
   const [pollData, setPollData] = useState<PollData>(DEFAULT_POLL);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [hydrated, setHydrated] = useState(!urlPostId);
@@ -143,7 +145,7 @@ export default function ComposerPage() {
         id = post.id;
         setPostId(id);
       }
-      const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext });
+      const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext, raw_context: rawContext.trim() || null });
       setAiResults(results);
       const fallback = results.find((r) => !r.error);
       setActiveModel(fallback?.model ?? "claude");
@@ -307,6 +309,29 @@ export default function ComposerPage() {
               <span className="text-xs text-slate-400">· ⌘+Enter to generate</span>
             </div>
             <ContextAttachmentPanel onContext={setDocumentContext} />
+
+            {/* Raw brain dump */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowRawContext((v) => !v)}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium"
+              >
+                <svg className={`w-3 h-3 transition-transform ${showRawContext ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                What actually happened? <span className="font-normal text-slate-300">(optional — makes posts more personal)</span>
+              </button>
+              {showRawContext && (
+                <textarea
+                  value={rawContext}
+                  onChange={(e) => setRawContext(e.target.value)}
+                  placeholder="Dump it raw — what really happened? A specific moment, a number, a mistake, a realisation. The messier and more specific the better. e.g. 'We missed our Q3 target by 40%. I blamed the market for 2 weeks before I realised it was our onboarding that was broken…'"
+                  rows={4}
+                  className="w-full px-3.5 py-3 text-sm text-slate-900 bg-amber-50 border border-amber-200 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
+                />
+              )}
+            </div>
           </div>
 
           {/* Generating skeleton */}
