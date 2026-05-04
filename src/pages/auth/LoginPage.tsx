@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +22,8 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? "/dashboard";
   const [serverError, setServerError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [linkedInLoading, setLinkedInLoading] = useState(false);
@@ -36,7 +38,7 @@ export default function LoginPage() {
     setServerError(null);
     try {
       await signInWithEmail(data.email, data.password);
-      navigate("/dashboard");
+      navigate(redirectTo);
     } catch (err: unknown) {
       const code = (err as { code?: string }).code;
       if (
@@ -55,7 +57,7 @@ export default function LoginPage() {
     setServerError(null);
     try {
       await signInWithGoogle();
-      navigate("/dashboard");
+      navigate(redirectTo);
     } catch {
       setServerError("Google sign-in failed. Please try again.");
     } finally {
@@ -68,7 +70,7 @@ export default function LoginPage() {
     setServerError(null);
     try {
       await signInWithLinkedIn();
-      navigate("/dashboard");
+      navigate(redirectTo);
     } catch {
       setServerError("LinkedIn sign-in failed. Please try again.");
     } finally {

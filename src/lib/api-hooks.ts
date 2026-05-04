@@ -567,6 +567,83 @@ export function useUploadLogo() {
   });
 }
 
+// ─── Team Management ─────────────────────────────────────────────────────────
+
+export interface OrgMember {
+  id: string;
+  email: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: string;
+}
+
+export interface OrgInvite {
+  id: string;
+  email: string;
+  role: string;
+  invited_by: string;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export function useOrgMembers() {
+  return useQuery<OrgMember[]>({
+    queryKey: ["org-members"],
+    queryFn: async () => (await api.get("/orgs/members")).data,
+  });
+}
+
+export function useOrgInvites() {
+  return useQuery<OrgInvite[]>({
+    queryKey: ["org-invites"],
+    queryFn: async () => (await api.get("/orgs/invites")).data,
+  });
+}
+
+export function useInviteMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { email: string; role: string }) =>
+      api.post("/orgs/invite", payload).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-invites"] }),
+  });
+}
+
+export function useRevokeInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (inviteId: string) => api.delete(`/orgs/invites/${inviteId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-invites"] }),
+  });
+}
+
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: string) => api.delete(`/orgs/members/${memberId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-members"] }),
+  });
+}
+
+export function useUpdateMemberRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: string }) =>
+      api.patch<OrgMember>(`/orgs/members/${memberId}`, { role }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["org-members"] }),
+  });
+}
+
+export function useAcceptInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { token: string; display_name?: string }) =>
+      api.post<MeResponse>("/auth/accept-invite", payload).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
+  });
+}
+
 // ─── Billing ─────────────────────────────────────────────────────────────────
 
 export type BillingPeriod = "monthly" | "annual";

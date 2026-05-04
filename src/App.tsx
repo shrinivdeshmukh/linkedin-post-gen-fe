@@ -18,6 +18,7 @@ import BlogComposerPage from "./pages/blog/BlogComposerPage";
 import VideoLibraryPage from "./pages/videos/VideoLibraryPage";
 import VideoPublicPage from "./pages/videos/VideoPublicPage";
 import AppLayout from "./components/layout/AppLayout";
+import AcceptInvitePage from "./pages/auth/AcceptInvitePage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/linkedin/callback" element={<LinkedInCallbackPage />} />
         <Route path="/v/:slug" element={<VideoPublicPage />} />
+        <Route path="/invite/:token" element={<AcceptInvitePage />} />
 
         {/* Onboarding — authenticated but no org yet */}
         <Route

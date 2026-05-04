@@ -13,6 +13,13 @@ import {
   useVoiceProfile,
   useUpsertVoiceProfile,
   useVideos,
+  useMe,
+  useOrgMembers,
+  useOrgInvites,
+  useInviteMember,
+  useRevokeInvite,
+  useRemoveMember,
+  useUpdateMemberRole,
   type BillingPeriod,
 } from "../../lib/api-hooks";
 
@@ -137,6 +144,17 @@ export default function SettingsPage() {
   const [description, setDescription] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: me } = useMe();
+  const { data: members } = useOrgMembers();
+  const { data: invites } = useOrgInvites();
+  const inviteMember = useInviteMember();
+  const revokeInvite = useRevokeInvite();
+  const removeMember = useRemoveMember();
+  const updateRole = useUpdateMemberRole();
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [inviteMsg, setInviteMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const { data: voiceProfile } = useVoiceProfile();
   const upsertVoice = useUpsertVoiceProfile();
@@ -539,6 +557,132 @@ export default function SettingsPage() {
         >
           {upsertVoice.isPending ? "Saving…" : "Save samples"}
         </button>
+      </div>
+
+      {/* Team card — visible to all but invite/remove only for owners */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Team</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Manage members and pending invites.</p>
+        </div>
+
+        {/* Members list */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Members</p>
+          {(members ?? []).map((m) => (
+            <div key={m.id} className="flex items-center justify-between py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  {(m.display_name ?? m.email).charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">{m.display_name ?? m.email}</p>
+                  <p className="text-xs text-slate-400 truncate">{m.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {me?.role === "owner" && m.id !== me?.id ? (
+                  <select
+                    value={m.role}
+                    onChange={(e) => updateRole.mutate({ memberId: m.id, role: e.target.value })}
+                    className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  >
+                    <option value="owner">Owner</option>
+                    <option value="editor">Editor</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                ) : (
+                  <span className="text-xs text-slate-400 capitalize">{m.role}</span>
+                )}
+                {me?.role === "owner" && m.id !== me?.id && (
+                  <button
+                    type="button"
+                    onClick={() => { if (confirm(`Remove ${m.display_name ?? m.email} from the team?`)) removeMember.mutate(m.id); }}
+                    className="text-slate-300 hover:text-red-400 transition-colors"
+                    title="Remove member"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pending invites */}
+        {(invites ?? []).length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Pending invites</p>
+            {(invites ?? []).map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between py-2.5 px-3 bg-amber-50 rounded-xl border border-amber-100">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">{inv.email}</p>
+                  <p className="text-xs text-slate-400 capitalize">{inv.role} · expires {new Date(inv.expires_at).toLocaleDateString()}</p>
+                </div>
+                {me?.role === "owner" && (
+                  <button
+                    type="button"
+                    onClick={() => revokeInvite.mutate(inv.id)}
+                    className="text-xs text-slate-400 hover:text-red-500 transition-colors font-medium"
+                  >
+                    Revoke
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Invite form — owners only */}
+        {me?.role === "owner" && (
+          <div className="space-y-3 pt-2 border-t border-slate-100">
+            <p className="text-sm font-medium text-slate-700">Invite someone</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="colleague@company.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder:text-slate-300"
+              />
+              <select
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value)}
+                className="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              >
+                <option value="editor">Editor</option>
+                <option value="viewer">Viewer</option>
+                <option value="owner">Owner</option>
+              </select>
+              <button
+                type="button"
+                disabled={inviteMember.isPending || !inviteEmail.trim()}
+                onClick={async () => {
+                  try {
+                    await inviteMember.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
+                    setInviteEmail("");
+                    setInviteMsg({ type: "ok", text: `Invite sent to ${inviteEmail.trim()}` });
+                    setTimeout(() => setInviteMsg(null), 4000);
+                  } catch (e: unknown) {
+                    const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to send invite";
+                    setInviteMsg({ type: "err", text: msg });
+                    setTimeout(() => setInviteMsg(null), 6000);
+                  }
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap"
+              >
+                {inviteMember.isPending ? "Sending…" : "Send invite"}
+              </button>
+            </div>
+            {inviteMsg && (
+              <p className={`text-xs font-medium ${inviteMsg.type === "ok" ? "text-emerald-600" : "text-red-500"}`}>
+                {inviteMsg.text}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* LinkedIn integration card */}
