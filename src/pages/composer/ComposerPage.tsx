@@ -30,11 +30,10 @@ const DEFAULT_POLL: PollData = {
   duration_days: 7,
 };
 
-const MODEL_ORDER = ["openai", "claude", "gemini"] as const;
+const MODEL_ORDER = ["claude", "gemini"] as const;
 const MODEL_LABELS: Record<string, string> = {
-  openai: "GPT-4o",
-  claude: "Claude",
-  gemini: "Gemini",
+  claude: "Option 1",
+  gemini: "Option 2",
 };
 
 const POST_TYPE_OPTIONS: { type: PostType; label: string; icon: React.ReactNode }[] = [
@@ -146,10 +145,8 @@ export default function ComposerPage() {
       }
       const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext });
       setAiResults(results);
-      // Default to openai if available, otherwise first successful result
-      const openaiResult = results.find((r) => r.model === "openai" && !r.error);
       const fallback = results.find((r) => !r.error);
-      setActiveModel(openaiResult?.model ?? fallback?.model ?? "openai");
+      setActiveModel(fallback?.model ?? "claude");
       setPhase("results");
     } catch {
       setPhase("setup");
@@ -320,11 +317,11 @@ export default function ComposerPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Running Claude, GPT-4o & Gemini in parallel…
+                Running Claude & Gemini in parallel…
               </div>
               <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 animate-pulse">
                 <div className="flex gap-2">
-                  {["GPT-4o", "Claude", "Gemini"].map((m) => (
+                  {["Option 1", "Option 2"].map((m) => (
                     <div key={m} className="h-7 w-16 bg-slate-200 rounded-lg" />
                   ))}
                 </div>
