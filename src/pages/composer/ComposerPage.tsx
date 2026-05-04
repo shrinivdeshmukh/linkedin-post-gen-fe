@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { AIResultCard } from "./components/AIResultCard";
 import { PostEditor } from "./components/PostEditor";
 import { LinkedInPreview } from "./components/LinkedInPreview";
@@ -78,6 +78,8 @@ const POST_TYPE_OPTIONS: { type: PostType; label: string; icon: React.ReactNode 
 export default function ComposerPage() {
   const navigate = useNavigate();
   const { postId: urlPostId } = useParams<{ postId: string }>();
+  const location = useLocation();
+  const locationState = location.state as { rawContext?: string } | null;
   const { data: me } = useMe();
   const { data: existingPost } = usePost(urlPostId ?? null);
   const { data: liAccount } = useLinkedInStatus();
@@ -93,8 +95,8 @@ export default function ComposerPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [documentContext, setDocumentContext] = useState<string | null>(null);
-  const [rawContext, setRawContext] = useState("");
-  const [showRawContext, setShowRawContext] = useState(false);
+  const [rawContext, setRawContext] = useState(locationState?.rawContext ?? "");
+  const [showRawContext, setShowRawContext] = useState(!!locationState?.rawContext);
   const [pollData, setPollData] = useState<PollData>(DEFAULT_POLL);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [hydrated, setHydrated] = useState(!urlPostId);

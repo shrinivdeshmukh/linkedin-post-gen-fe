@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   useMediaCollections,
   useMediaCollection,
@@ -224,45 +225,62 @@ function CollectionDetail({
 const VIDEO_ACCEPTED = ".mp4,.mov,.avi,.mkv,.webm";
 const VIDEO_MAX_BYTES = 500 * 1024 * 1024;
 
-function VideoCard({ video, onDelete, deleting, onRename }: { video: Video; onDelete: () => void; deleting: boolean; onRename: (t: string) => void }) {
-  const [playing, setPlaying] = useState(false);
+function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () => void; deleting: boolean }) {
+  const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(video.title);
-  const shareUrl = `${window.location.origin}/v/${video.slug}`;
   const [copied, setCopied] = useState(false);
+  const shareUrl = `${window.location.origin}/v/${video.slug}`;
 
-  function handleRenameSubmit() {
-    const t = editTitle.trim();
-    if (t && t !== video.title) onRename(t);
-    setEditing(false);
-  }
+  const statusColors: Record<string, string> = {
+    done: "bg-green-100 text-green-700",
+    processing: "bg-blue-100 text-blue-600",
+    pending: "bg-amber-100 text-amber-600",
+    failed: "bg-red-100 text-red-600",
+    none: "bg-slate-100 text-slate-400",
+  };
+  const statusLabels: Record<string, string> = {
+    done: "Transcribed",
+    processing: "Transcribing…",
+    pending: "Queued…",
+    failed: "Failed",
+    none: "",
+  };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-      <div className="aspect-video bg-slate-900 relative">
-        {playing ? (
-          <video src={video.spaces_url} controls autoPlay className="w-full h-full object-contain" />
-        ) : (
-          <button type="button" onClick={() => setPlaying(true)} className="w-full h-full flex items-center justify-center group">
-            <div className="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
-              <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-            </div>
-          </button>
-        )}
-      </div>
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-200 hover:shadow-sm transition-all">
+      {/* Thumbnail / play area — clicking opens detail page */}
+      <button
+        type="button"
+        onClick={() => navigate(`/media/videos/${video.id}`)}
+        className="w-full aspect-video bg-slate-900 flex items-center justify-center group"
+      >
+        <div className="w-12 h-12 bg-white/20 group-hover:bg-white/30 rounded-full flex items-center justify-center transition-colors">
+          <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+        </div>
+      </button>
+
       <div className="p-3 space-y-2">
-        {editing ? (
-          <input autoFocus value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
-            onBlur={handleRenameSubmit} onKeyDown={(e) => { if (e.key === "Enter") handleRenameSubmit(); if (e.key === "Escape") setEditing(false); }}
-            className="w-full text-sm font-medium text-slate-900 border-b border-indigo-400 bg-transparent outline-none pb-0.5" />
-        ) : (
-          <p className="text-sm font-medium text-slate-800 truncate cursor-pointer hover:text-indigo-600 transition-colors" onClick={() => setEditing(true)}>{video.title}</p>
-        )}
-        <p className="text-xs text-slate-400">{formatBytes(video.file_size)}</p>
+        <button
+          type="button"
+          onClick={() => navigate(`/media/videos/${video.id}`)}
+          className="w-full text-left text-sm font-medium text-slate-800 truncate hover:text-indigo-600 transition-colors"
+        >
+          {video.title}
+        </button>
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-slate-400">{formatBytes(video.file_size)}</p>
+          {video.transcript_status !== "none" && (
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusColors[video.transcript_status]}`}>
+              {statusLabels[video.transcript_status]}
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => { navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-            className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors">
+          <button
+            type="button"
+            onClick={() => { navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+            className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
+          >
             {copied ? "Copied!" : "Copy link"}
           </button>
           {!confirmDelete ? (
@@ -292,7 +310,6 @@ export default function MediaLibraryPage() {
   // Videos
   const { data: videoLibrary } = useVideos();
   const deleteVideo = useDeleteVideo();
-  const updateVideo = useUpdateVideo();
   const videoUploadRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
   const [videoUploading, setVideoUploading] = useState(false);
@@ -438,8 +455,7 @@ export default function MediaLibraryPage() {
               {videoLibrary.videos.map((v) => (
                 <VideoCard key={v.id} video={v}
                   onDelete={() => deleteVideo.mutate(v.id)}
-                  deleting={deleteVideo.isPending}
-                  onRename={(title) => updateVideo.mutate({ id: v.id, title })} />
+                  deleting={deleteVideo.isPending} />
               ))}
             </div>
           )}

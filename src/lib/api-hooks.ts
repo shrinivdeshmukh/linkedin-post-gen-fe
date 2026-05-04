@@ -41,6 +41,10 @@ export interface Video {
   duration_seconds: number | null;
   linkedin_asset_urn: string | null;
   linkedin_uploaded_at: string | null;
+  transcript: string | null;
+  transcript_status: "none" | "pending" | "processing" | "done" | "failed";
+  detected_language: string | null;
+  language_confirmed: boolean;
   created_at: string;
 }
 
@@ -54,6 +58,18 @@ export function useVideos() {
   return useQuery<VideoLibrary>({
     queryKey: ["videos"],
     queryFn: async () => (await api.get("/videos")).data,
+  });
+}
+
+export function useVideo(id: string | null) {
+  return useQuery<Video>({
+    queryKey: ["video", id],
+    queryFn: async () => (await api.get(`/videos/${id}`)).data,
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const status = query.state.data?.transcript_status;
+      return status === "pending" || status === "processing" ? 5000 : false;
+    },
   });
 }
 
@@ -71,6 +87,29 @@ export function useUpdateVideo() {
     mutationFn: ({ id, title }: { id: string; title: string }) =>
       api.patch(`/videos/${id}`, { title }).then((r) => r.data as Video),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["videos"] }),
+  });
+}
+
+export function useRetriggerTranscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<Video>(`/videos/${id}/transcribe`).then((r) => r.data),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["video", data.id] });
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+  });
+}
+
+export function useConfirmLanguage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, detected_language }: { id: string; detected_language?: string }) =>
+      api.patch<Video>(`/videos/${id}/confirm-language`, { detected_language }).then((r) => r.data),
+    onSuccess: (data) => {
+      qc.setQueryData(["video", data.id], data);
+    },
   });
 }
 

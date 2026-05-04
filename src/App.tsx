@@ -18,6 +18,7 @@ import BlogComposerPage from "./pages/blog/BlogComposerPage";
 import VideoLibraryPage from "./pages/videos/VideoLibraryPage";
 import MediaLibraryPage from "./pages/media/MediaLibraryPage";
 import VideoPublicPage from "./pages/videos/VideoPublicPage";
+import VideoDetailPage from "./pages/videos/VideoDetailPage";
 import AppLayout from "./components/layout/AppLayout";
 import AcceptInvitePage from "./pages/auth/AcceptInvitePage";
 
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="blog/:postId" element={<BlogComposerPage />} />
           <Route path="videos" element={<MediaLibraryPage />} />
           <Route path="media" element={<MediaLibraryPage />} />
+          <Route path="media/videos/:videoId" element={<VideoDetailPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
