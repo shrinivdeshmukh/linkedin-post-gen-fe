@@ -367,6 +367,7 @@ export interface CampaignCreatePayload {
   tone_override?: string;
   target_word_count?: number;
   document_context?: string;
+  raw_context?: string;
 }
 
 export function useCampaigns() {

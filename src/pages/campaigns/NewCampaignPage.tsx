@@ -113,6 +113,8 @@ export default function NewCampaignPage() {
   const createCampaign = useCreateCampaign();
   const [step, setStep] = useState<Step>(1);
   const [documentContext, setDocumentContext] = useState<string | null>(null);
+  const [rawContext, setRawContext] = useState("");
+  const [showRawContext, setShowRawContext] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -157,6 +159,7 @@ export default function NewCampaignPage() {
       tone_override: form.tone_override.trim() || undefined,
       target_word_count: form.medium === "blog" ? form.target_word_count : undefined,
       document_context: documentContext ?? undefined,
+      raw_context: rawContext.trim() || undefined,
     };
     const campaign = await createCampaign.mutateAsync(payload);
     navigate(`/campaigns/${campaign.id}`);
@@ -259,6 +262,28 @@ export default function NewCampaignPage() {
               </label>
               <ContextAttachmentPanel onContext={setDocumentContext} />
               <p className="text-xs text-slate-400">Attach a PDF or image to give the AI additional context — e.g. a report, strategy doc, or screenshot.</p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setShowRawContext(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-600 transition-colors font-medium"
+              >
+                <svg className={`w-3 h-3 transition-transform ${showRawContext ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                What actually happened? <span className="font-normal text-slate-300">(optional — makes posts more personal)</span>
+              </button>
+              {showRawContext && (
+                <textarea
+                  value={rawContext}
+                  onChange={(e) => setRawContext(e.target.value)}
+                  placeholder="Dump it raw — the real story behind this campaign. A specific event, a turning point, a surprising result. The AI will build every post from this real material."
+                  rows={4}
+                  className="w-full px-3.5 py-3 text-sm text-slate-900 bg-amber-50 border border-amber-200 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none"
+                />
+              )}
             </div>
           </div>
         )}
