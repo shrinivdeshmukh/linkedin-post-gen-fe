@@ -10,7 +10,6 @@ import {
   useDeleteMediaItem,
   useVideos,
   useDeleteVideo,
-  useUpdateVideo,
   type MediaCollection,
   type MediaItem,
   type Video,
