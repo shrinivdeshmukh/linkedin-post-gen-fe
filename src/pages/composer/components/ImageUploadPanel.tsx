@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useGenerateImage } from "../../../lib/api-hooks";
+import { useGenerateImage, useMediaCollections, useMediaCollection, type MediaCollection as MediaCollectionType } from "../../../lib/api-hooks";
 
 interface ImageUploadPanelProps {
   postId: string | null;
@@ -23,10 +23,70 @@ const ASPECT_RATIOS = [
 
 const DEFAULT_COLOR = "#6366F1";
 
+function LibraryPicker({ onSelect }: { onSelect: (url: string) => void }) {
+  const { data: collections, isLoading } = useMediaCollections();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const { data: detail, isLoading: detailLoading } = useMediaCollection(openId);
+
+  if (isLoading) return <div className="h-32 flex items-center justify-center"><svg className="w-5 h-5 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg></div>;
+
+  if (openId) {
+    return (
+      <div className="space-y-3">
+        <button type="button" onClick={() => setOpenId(null)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-indigo-600 font-medium transition-colors">
+          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          All collections
+        </button>
+        {detailLoading ? (
+          <div className="grid grid-cols-3 gap-2">{[...Array(6)].map((_, i) => <div key={i} className="aspect-square bg-slate-100 rounded-xl animate-pulse"/>)}</div>
+        ) : !detail?.items.length ? (
+          <p className="text-sm text-slate-400 text-center py-6">No images in this collection.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {detail.items.map((item) => (
+              <button key={item.id} type="button" onClick={() => onSelect(item.spaces_url)}
+                className="aspect-square rounded-xl overflow-hidden border-2 border-transparent hover:border-indigo-400 transition-all">
+                <img src={item.spaces_url} alt={item.title} className="w-full h-full object-cover"/>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!collections?.length) {
+    return <p className="text-sm text-slate-400 text-center py-6">No collections yet. Create one in <strong>Media</strong>.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {collections.map((c) => (
+        <button key={c.id} type="button" onClick={() => setOpenId(c.id)}
+          className="group rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-300 transition-all text-left">
+          <div className="aspect-video bg-slate-100 relative overflow-hidden">
+            {c.thumbnail_url ? (
+              <img src={c.thumbnail_url} alt={c.name} className="w-full h-full object-cover"/>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+            )}
+          </div>
+          <div className="px-2 py-1.5">
+            <p className="text-xs font-medium text-slate-700 truncate">{c.name}</p>
+            <p className="text-[10px] text-slate-400">{c.item_count} image{c.item_count !== 1 ? "s" : ""}</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const [mode, setMode] = useState<"ai" | "upload">("ai");
+  const [mode, setMode] = useState<"ai" | "upload" | "library">("ai");
 
   // AI generation state
   const [colors, setColors] = useState<string[]>([DEFAULT_COLOR]);
@@ -112,7 +172,7 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
         <label className="text-sm font-semibold text-slate-700">Image</label>
         {/* Mode toggle */}
         <div className="flex gap-0.5 p-0.5 bg-slate-100 rounded-lg">
-          {(["ai", "upload"] as const).map((m) => (
+          {(["ai", "upload", "library"] as const).map((m) => (
             <button
               key={m}
               type="button"
@@ -122,7 +182,7 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
                 mode === m ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700",
               ].join(" ")}
             >
-              {m === "ai" ? "✦ Generate" : "↑ Upload"}
+              {m === "ai" ? "✦ Generate" : m === "upload" ? "↑ Upload" : "⊞ Library"}
             </button>
           ))}
         </div>
@@ -259,7 +319,7 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
             <p className="text-xs text-red-500 text-center">Generation failed. Try again.</p>
           )}
         </div>
-      ) : (
+      ) : mode === "upload" ? (
         /* Manual upload */
         <>
           <div
@@ -285,6 +345,11 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
           </div>
           <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
         </>
+      ) : (
+        /* Library picker */
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+          <LibraryPicker onSelect={(url) => { onChange(url, null); }} />
+        </div>
       )}
     </div>
   );

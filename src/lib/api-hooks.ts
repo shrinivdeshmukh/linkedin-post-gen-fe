@@ -574,6 +574,105 @@ export function useUploadLogo() {
   });
 }
 
+// ─── Media Library ───────────────────────────────────────────────────────────
+
+export interface MediaItem {
+  id: string;
+  collection_id: string;
+  org_id: string;
+  title: string;
+  spaces_url: string;
+  mime_type: string;
+  file_size: number;
+  source: "uploaded" | "generated";
+  created_at: string;
+}
+
+export interface MediaCollection {
+  id: string;
+  org_id: string;
+  name: string;
+  campaign_id: string | null;
+  created_at: string;
+  item_count: number;
+  thumbnail_url: string | null;
+}
+
+export interface MediaCollectionWithItems extends MediaCollection {
+  items: MediaItem[];
+}
+
+export function useMediaCollections() {
+  return useQuery<MediaCollection[]>({
+    queryKey: ["media-collections"],
+    queryFn: async () => (await api.get("/media/collections")).data,
+  });
+}
+
+export function useMediaCollection(id: string | null) {
+  return useQuery<MediaCollectionWithItems>({
+    queryKey: ["media-collection", id],
+    queryFn: async () => (await api.get(`/media/collections/${id}`)).data,
+    enabled: !!id,
+  });
+}
+
+export function useCreateMediaCollection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      api.post<MediaCollection>("/media/collections", { name }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["media-collections"] }),
+  });
+}
+
+export function useRenameMediaCollection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      api.patch<MediaCollection>(`/media/collections/${id}`, { name }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["media-collections"] }),
+  });
+}
+
+export function useDeleteMediaCollection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/media/collections/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["media-collections"] }),
+  });
+}
+
+export function useUploadToCollection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ collectionId, file }: { collectionId: string; file: File }) => {
+      const form = new FormData();
+      form.append("file", file);
+      return api
+        .post<MediaItem>(`/media/collections/${collectionId}/upload`, form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        })
+        .then((r) => r.data);
+    },
+    onSuccess: (_, { collectionId }) => {
+      qc.invalidateQueries({ queryKey: ["media-collections"] });
+      qc.invalidateQueries({ queryKey: ["media-collection", collectionId] });
+    },
+  });
+}
+
+export function useDeleteMediaItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) => api.delete(`/media/items/${itemId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["media-collections"] });
+      qc.invalidateQueries({ queryKey: ["media-collection"] });
+    },
+  });
+}
+
 // ─── Team Management ─────────────────────────────────────────────────────────
 
 export interface OrgMember {

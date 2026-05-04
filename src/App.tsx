@@ -16,6 +16,7 @@ import NewCampaignPage from "./pages/campaigns/NewCampaignPage";
 import CampaignDetailPage from "./pages/campaigns/CampaignDetailPage";
 import BlogComposerPage from "./pages/blog/BlogComposerPage";
 import VideoLibraryPage from "./pages/videos/VideoLibraryPage";
+import MediaLibraryPage from "./pages/media/MediaLibraryPage";
 import VideoPublicPage from "./pages/videos/VideoPublicPage";
 import AppLayout from "./components/layout/AppLayout";
 import AcceptInvitePage from "./pages/auth/AcceptInvitePage";
@@ -71,7 +72,8 @@ export default function App() {
           <Route path="campaigns/new" element={<NewCampaignPage />} />
           <Route path="campaigns/:campaignId" element={<CampaignDetailPage />} />
           <Route path="blog/:postId" element={<BlogComposerPage />} />
-          <Route path="videos" element={<VideoLibraryPage />} />
+          <Route path="videos" element={<MediaLibraryPage />} />
+          <Route path="media" element={<MediaLibraryPage />} />
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
