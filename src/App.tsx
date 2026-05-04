@@ -15,7 +15,6 @@ import CampaignsPage from "./pages/campaigns/CampaignsPage";
 import NewCampaignPage from "./pages/campaigns/NewCampaignPage";
 import CampaignDetailPage from "./pages/campaigns/CampaignDetailPage";
 import BlogComposerPage from "./pages/blog/BlogComposerPage";
-import VideoLibraryPage from "./pages/videos/VideoLibraryPage";
 import MediaLibraryPage from "./pages/media/MediaLibraryPage";
 import VideoPublicPage from "./pages/videos/VideoPublicPage";
 import VideoDetailPage from "./pages/videos/VideoDetailPage";

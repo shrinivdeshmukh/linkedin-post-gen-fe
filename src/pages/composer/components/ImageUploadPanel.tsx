@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useGenerateImage, useMediaCollections, useMediaCollection, type MediaCollection as MediaCollectionType } from "../../../lib/api-hooks";
+import { useGenerateImage, useMediaCollections, useMediaCollection } from "../../../lib/api-hooks";
 
 interface ImageUploadPanelProps {
   postId: string | null;
