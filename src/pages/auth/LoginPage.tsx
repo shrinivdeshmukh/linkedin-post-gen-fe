@@ -12,6 +12,7 @@ import {
   signInWithGoogle,
   signInWithLinkedIn,
 } from "../../lib/firebase";
+import api from "../../lib/api";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -57,7 +58,8 @@ export default function LoginPage() {
     setServerError(null);
     try {
       await signInWithGoogle();
-      navigate(redirectTo);
+      const { data } = await api.get<{ needs_onboarding: boolean }>("/auth/me");
+      navigate(data.needs_onboarding ? "/onboarding" : redirectTo);
     } catch {
       setServerError("Google sign-in failed. Please try again.");
     } finally {
@@ -70,7 +72,8 @@ export default function LoginPage() {
     setServerError(null);
     try {
       await signInWithLinkedIn();
-      navigate(redirectTo);
+      const { data } = await api.get<{ needs_onboarding: boolean }>("/auth/me");
+      navigate(data.needs_onboarding ? "/onboarding" : redirectTo);
     } catch {
       setServerError("LinkedIn sign-in failed. Please try again.");
     } finally {

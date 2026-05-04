@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { logout } from "../../lib/firebase";
 import { useMe, usePlanStatus } from "../../lib/api-hooks";
@@ -78,6 +78,13 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [composeOpen, setComposeOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Safety net: if the user somehow lands in the app without completing onboarding, redirect them
+  useEffect(() => {
+    if (me && me.needs_onboarding) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [me, navigate]);
 
   async function handleLogout() {
     await logout();
