@@ -395,8 +395,10 @@ export default function ComposerPage() {
           {postType === "video" && (
             <VideoUploadPanel
               videoId={selectedVideo?.id ?? null}
+              onContext={setDocumentContext}
               onChange={(video) => {
                 setSelectedVideo(video);
+                if (!video) setDocumentContext(null);
                 if (postId) {
                   updatePost.mutate({
                     id: postId,

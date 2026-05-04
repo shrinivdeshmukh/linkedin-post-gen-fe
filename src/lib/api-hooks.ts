@@ -455,6 +455,15 @@ export function useGenerateAI() {
   });
 }
 
+export function useExtractVideoContext() {
+  return useMutation({
+    mutationFn: (videoId: string) =>
+      api
+        .post<{ text: string; char_count: number }>("/context/extract-video", { video_id: videoId })
+        .then((r) => r.data),
+  });
+}
+
 // ─── Blog / SEO ───────────────────────────────────────────────────────────────
 
 export interface SeoResearchResult {

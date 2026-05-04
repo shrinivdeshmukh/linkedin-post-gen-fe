@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { useVideos, type Video } from "../../../lib/api-hooks";
+import { useVideos, useExtractVideoContext, type Video } from "../../../lib/api-hooks";
 import api from "../../../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface VideoUploadPanelProps {
   videoId: string | null;
   onChange: (video: Video | null) => void;
+  onContext?: (text: string | null) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -13,7 +14,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function VideoUploadPanel({ videoId, onChange }: VideoUploadPanelProps) {
+export function VideoUploadPanel({ videoId, onChange, onContext }: VideoUploadPanelProps) {
   const { data: library } = useVideos();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,6 +22,8 @@ export function VideoUploadPanel({ videoId, onChange }: VideoUploadPanelProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [contextStatus, setContextStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const extractVideoContext = useExtractVideoContext();
 
   const selected = library?.videos.find((v) => v.id === videoId) ?? null;
 
@@ -91,7 +94,7 @@ export function VideoUploadPanel({ videoId, onChange }: VideoUploadPanelProps) {
         {selected && (
           <button
             type="button"
-            onClick={() => onChange(null)}
+            onClick={() => { onChange(null); setContextStatus("idle"); onContext?.(null); }}
             className="text-xs text-slate-400 hover:text-red-500 transition-colors"
           >
             Remove
@@ -101,17 +104,75 @@ export function VideoUploadPanel({ videoId, onChange }: VideoUploadPanelProps) {
 
       {/* Selected video preview */}
       {selected ? (
-        <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-900">
-          <video
-            src={selected.spaces_url}
-            controls
-            className="w-full max-h-56 object-contain"
-          />
-          <div className="px-4 py-2.5 bg-white border-t border-slate-100 flex items-center justify-between">
-            <p className="text-xs font-medium text-slate-700 truncate">{selected.title}</p>
-            <span className="text-xs text-slate-400 flex-shrink-0 ml-2">{formatBytes(selected.file_size)}</span>
+        <>
+          <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-900">
+            <video
+              src={selected.spaces_url}
+              controls
+              className="w-full max-h-56 object-contain"
+            />
+            <div className="px-4 py-2.5 bg-white border-t border-slate-100 flex items-center justify-between">
+              <p className="text-xs font-medium text-slate-700 truncate">{selected.title}</p>
+              <span className="text-xs text-slate-400 flex-shrink-0 ml-2">{formatBytes(selected.file_size)}</span>
+            </div>
           </div>
-        </div>
+
+          {/* Use video as context for AI generation */}
+          {onContext && (
+            contextStatus === "done" ? (
+              <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm">
+                <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-emerald-700 font-medium flex-1 text-xs">Video analysed — AI will use it as context</span>
+                <button
+                  type="button"
+                  onClick={() => { setContextStatus("idle"); onContext(null); }}
+                  className="text-emerald-400 hover:text-emerald-600"
+                  title="Remove context"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : contextStatus === "loading" ? (
+              <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-600">
+                <svg className="w-4 h-4 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+                Analysing video with Gemini… this takes ~20s
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  setContextStatus("loading");
+                  try {
+                    const result = await extractVideoContext.mutateAsync(selected.id);
+                    onContext(result.text);
+                    setContextStatus("done");
+                  } catch {
+                    setContextStatus("error");
+                    onContext(null);
+                  }
+                }}
+                className={[
+                  "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all w-full",
+                  contextStatus === "error"
+                    ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
+                    : "bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600",
+                ].join(" ")}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                {contextStatus === "error" ? "Analysis failed — try again" : "Use video as context for AI"}
+              </button>
+            )
+          )}
+        </>
       ) : (
         <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 space-y-3 text-center">
           <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mx-auto">
