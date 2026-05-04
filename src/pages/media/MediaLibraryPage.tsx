@@ -15,6 +15,7 @@ import {
   type Video,
 } from "../../lib/api-hooks";
 import api from "../../lib/api";
+import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 
 function formatBytes(bytes: number): string {
@@ -318,15 +319,32 @@ export default function MediaLibraryPage() {
     if (file.size > VIDEO_MAX_BYTES) { alert("File too large (max 500 MB)"); return; }
     setVideoUploading(true);
     setVideoUploadProgress(0);
-    const form = new FormData();
-    form.append("file", file);
-    form.append("title", file.name.replace(/\.[^.]+$/, ""));
     try {
-      await api.post("/videos", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (e) => setVideoUploadProgress(e.total ? Math.round((e.loaded / e.total) * 100) : null),
+      // 1. Get presigned upload URL from our API
+      const { data: presign } = await api.post<{ upload_url: string; key: string; public_url: string }>(
+        "/videos/presign",
+        { filename: file.name, content_type: file.type || "video/mp4", file_size: file.size }
+      );
+
+      // 2. Upload directly to Spaces with progress tracking (no auth headers)
+      await axios.put(presign.upload_url, file, {
+        headers: { "Content-Type": file.type || "video/mp4" },
+        onUploadProgress: (e) =>
+          setVideoUploadProgress(e.total ? Math.round((e.loaded / e.total) * 100) : null),
       });
+
+      // 3. Confirm the upload — creates DB record + triggers transcription
+      await api.post("/videos/confirm", {
+        key: presign.key,
+        title: file.name.replace(/\.[^.]+$/, ""),
+        filename: file.name,
+        file_size: file.size,
+        mime_type: file.type || "video/mp4",
+      });
+
       qc.invalidateQueries({ queryKey: ["videos"] });
+    } catch {
+      alert("Upload failed. Please try again.");
     } finally {
       setVideoUploading(false);
       setVideoUploadProgress(null);
@@ -377,6 +395,16 @@ export default function MediaLibraryPage() {
           </button>
         )}
       </div>
+
+      {/* Upload progress bar */}
+      {videoUploading && videoUploadProgress !== null && (
+        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+          <div
+            className="bg-indigo-500 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${videoUploadProgress}%` }}
+          />
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-0.5 p-0.5 bg-slate-100 rounded-xl w-fit">
