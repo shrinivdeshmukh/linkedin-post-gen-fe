@@ -5,7 +5,33 @@ import {
   useUpdateVideo,
   useRetriggerTranscription,
   useConfirmLanguage,
+  useTranslations,
+  useTranslate,
 } from "../../lib/api-hooks";
+
+const LANGUAGES = [
+  { code: "ar", name: "Arabic" },
+  { code: "zh", name: "Chinese (Simplified)" },
+  { code: "zh-TW", name: "Chinese (Traditional)" },
+  { code: "nl", name: "Dutch" },
+  { code: "en", name: "English" },
+  { code: "fr", name: "French" },
+  { code: "de", name: "German" },
+  { code: "hi", name: "Hindi" },
+  { code: "id", name: "Indonesian" },
+  { code: "it", name: "Italian" },
+  { code: "ja", name: "Japanese" },
+  { code: "ko", name: "Korean" },
+  { code: "ms", name: "Malay" },
+  { code: "mr", name: "Marathi" },
+  { code: "pt", name: "Portuguese" },
+  { code: "ru", name: "Russian" },
+  { code: "es", name: "Spanish" },
+  { code: "sw", name: "Swahili" },
+  { code: "ta", name: "Tamil" },
+  { code: "tr", name: "Turkish" },
+  { code: "vi", name: "Vietnamese" },
+];
 
 function TranscriptStatusBadge({ status }: { status: string }) {
   if (status === "done") return null;
@@ -38,11 +64,18 @@ export default function VideoDetailPage() {
   const retrigger = useRetriggerTranscription();
   const confirmLanguage = useConfirmLanguage();
 
+  const { data: translations } = useTranslations(videoId ?? null);
+  const translate = useTranslate();
+
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [copied, setCopied] = useState(false);
   const [correctingLang, setCorrectingLang] = useState(false);
   const [langDraft, setLangDraft] = useState("");
+  const [selectedLangCode, setSelectedLangCode] = useState(LANGUAGES[5].code); // French default
+  const [copiedTranscript, setCopiedTranscript] = useState(false);
+  const [copiedTranslation, setCopiedTranslation] = useState(false);
+  const [upgradeError, setUpgradeError] = useState(false);
 
   if (isLoading) {
     return (
@@ -88,6 +121,34 @@ export default function VideoDetailPage() {
     confirmLanguage.mutate({ id: video!.id, detected_language: lang });
     setCorrectingLang(false);
   }
+
+  function handleCopyTranscript() {
+    navigator.clipboard.writeText(video!.transcript ?? "");
+    setCopiedTranscript(true);
+    setTimeout(() => setCopiedTranscript(false), 2000);
+  }
+
+  function handleCopyTranslation(text: string) {
+    navigator.clipboard.writeText(text);
+    setCopiedTranslation(true);
+    setTimeout(() => setCopiedTranslation(false), 2000);
+  }
+
+  function handleTranslate() {
+    setUpgradeError(false);
+    const lang = LANGUAGES.find((l) => l.code === selectedLangCode)!;
+    translate.mutate(
+      { videoId: video!.id, language_code: lang.code, language_name: lang.name },
+      {
+        onError: (err: unknown) => {
+          const status = (err as { response?: { status?: number } }).response?.status;
+          if (status === 402) setUpgradeError(true);
+        },
+      }
+    );
+  }
+
+  const activeTranslation = translations?.find((t) => t.language_code === selectedLangCode) ?? null;
 
   return (
     <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7">
@@ -245,20 +306,97 @@ export default function VideoDetailPage() {
           {/* Transcript body */}
           {video.transcript_status === "done" && video.transcript ? (
             <div className="space-y-3">
+              {/* Transcript panel */}
               <div className="bg-white border border-slate-200 rounded-2xl p-4 max-h-[55vh] overflow-y-auto">
                 <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-sans">
                   {video.transcript}
                 </pre>
               </div>
-              <button
-                onClick={handleGeneratePost}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Generate LinkedIn post from this transcript
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopyTranscript}
+                  className="flex items-center gap-1.5 text-sm text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl px-3 py-1.5 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  {copiedTranscript ? "Copied!" : "Copy transcript"}
+                </button>
+                <button
+                  onClick={handleGeneratePost}
+                  className="flex items-center gap-1.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Generate LinkedIn post
+                </button>
+              </div>
+
+              {/* Translation panel */}
+              <div className="mt-2 pt-4 border-t border-slate-100 space-y-3">
+                <h3 className="text-sm font-semibold text-slate-900">Translate</h3>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedLangCode}
+                    onChange={(e) => { setSelectedLangCode(e.target.value); setUpgradeError(false); }}
+                    className="flex-1 text-sm border border-slate-200 rounded-xl px-3 py-1.5 bg-white text-slate-700 outline-none focus:ring-2 focus:ring-indigo-300"
+                  >
+                    {LANGUAGES.map((l) => (
+                      <option key={l.code} value={l.code}>{l.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleTranslate}
+                    disabled={translate.isPending}
+                    className="flex items-center gap-1.5 text-sm font-medium px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {translate.isPending ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                        Translating…
+                      </>
+                    ) : activeTranslation ? "Re-translate" : "Translate"}
+                  </button>
+                </div>
+
+                {upgradeError && (
+                  <div className="flex items-center justify-between gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl">
+                    <p className="text-sm text-indigo-800">Translation is available on paid plans.</p>
+                    <Link
+                      to="/settings/billing"
+                      className="text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      Upgrade
+                    </Link>
+                  </div>
+                )}
+
+                {activeTranslation && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-slate-500">{activeTranslation.language_name}</span>
+                      <button
+                        onClick={() => handleCopyTranslation(activeTranslation.translated_text)}
+                        className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        {copiedTranslation ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-h-[45vh] overflow-y-auto">
+                      <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-sans">
+                        {activeTranslation.translated_text}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : video.transcript_status === "none" ? (
             <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-slate-200 rounded-2xl text-center">

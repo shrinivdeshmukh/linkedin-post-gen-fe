@@ -501,6 +501,34 @@ export function useGenerateAI() {
   });
 }
 
+export interface Translation {
+  id: string;
+  video_id: string;
+  language_code: string;
+  language_name: string;
+  translated_text: string;
+  created_at: string;
+}
+
+export function useTranslations(videoId: string | null) {
+  return useQuery<Translation[]>({
+    queryKey: ["translations", videoId],
+    queryFn: async () => (await api.get(`/videos/${videoId}/translations`)).data,
+    enabled: !!videoId,
+  });
+}
+
+export function useTranslate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ videoId, language_code, language_name }: { videoId: string; language_code: string; language_name: string }) =>
+      api.post<Translation>(`/videos/${videoId}/translations`, { language_code, language_name }).then((r) => r.data),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["translations", data.video_id] });
+    },
+  });
+}
+
 export function useExtractVideoContext() {
   return useMutation({
     mutationFn: (videoId: string) =>
