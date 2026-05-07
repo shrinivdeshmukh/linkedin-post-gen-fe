@@ -7,6 +7,8 @@ interface PublicVideo {
   title: string;
   spaces_url: string;
   mime_type: string;
+  transcript: string | null;
+  detected_language: string | null;
   created_at: string;
 }
 
@@ -134,6 +136,25 @@ export default function VideoPublicPage() {
             </a>
           </div>
         </div>
+
+        {/* Transcript */}
+        {video.transcript && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900">Transcript</h2>
+              {video.detected_language && (
+                <span className="text-xs font-medium px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">
+                  {video.detected_language}
+                </span>
+              )}
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-h-80 overflow-y-auto">
+              <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-sans">
+                {video.transcript}
+              </pre>
+            </div>
+          </div>
+        )}
 
         {/* CTA banner */}
         <div className="mt-6 rounded-2xl bg-indigo-50 border border-indigo-100 px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
