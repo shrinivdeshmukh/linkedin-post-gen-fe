@@ -336,6 +336,28 @@ export default function VideoDetailPage() {
               {/* Translation panel */}
               <div className="mt-2 pt-4 border-t border-slate-100 space-y-3">
                 <h3 className="text-sm font-semibold text-slate-900">Translate</h3>
+
+                {/* Cached translation chips */}
+                {translations && translations.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs text-slate-400 mr-0.5">Done:</span>
+                    {translations.map((t) => (
+                      <button
+                        key={t.language_code}
+                        onClick={() => { setSelectedLangCode(t.language_code); setUpgradeError(false); }}
+                        className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                          selectedLangCode === t.language_code
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                        }`}
+                      >
+                        {t.language_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* New language selector */}
                 <div className="flex items-center gap-2">
                   <select
                     value={selectedLangCode}
