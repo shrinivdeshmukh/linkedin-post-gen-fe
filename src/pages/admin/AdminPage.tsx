@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { adminApi, AdminOrgSummary, getAdminKey, setAdminKey } from "../../lib/admin-api";
+import { useNavigate } from "react-router-dom";
+import { adminApi, getAdminKey, setAdminKey } from "../../lib/admin-api";
+import type { AdminOrgSummary } from "../../lib/admin-api";
 
 function fmt(bytes: number) {
   if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`;

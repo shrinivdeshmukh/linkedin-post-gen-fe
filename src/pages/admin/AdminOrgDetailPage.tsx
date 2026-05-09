@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { adminApi, AdminOrgDetail, GrantPlanPayload } from "../../lib/admin-api";
+import { adminApi } from "../../lib/admin-api";
+import type { AdminOrgDetail, GrantPlanPayload } from "../../lib/admin-api";
 
 function fmt(bytes: number) {
   if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
