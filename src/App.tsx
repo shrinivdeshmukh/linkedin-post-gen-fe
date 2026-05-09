@@ -20,6 +20,8 @@ import VideoPublicPage from "./pages/videos/VideoPublicPage";
 import VideoDetailPage from "./pages/videos/VideoDetailPage";
 import AppLayout from "./components/layout/AppLayout";
 import AcceptInvitePage from "./pages/auth/AcceptInvitePage";
+import AdminPage from "./pages/admin/AdminPage";
+import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -37,6 +39,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Internal admin — no Firebase auth, key-gated on client + server */}
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin/orgs/:orgId" element={<AdminOrgDetailPage />} />
+
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
