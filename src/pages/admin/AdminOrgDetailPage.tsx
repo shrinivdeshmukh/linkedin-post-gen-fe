@@ -37,6 +37,8 @@ export default function AdminOrgDetailPage() {
   const [gImgGen, setGImgGen] = useState<string>("");
   const [gStorage, setGStorage] = useState<string>("");
   const [gSeats, setGSeats] = useState<string>("");
+  const [gTranscriptionMin, setGTranscriptionMin] = useState<string>("");
+  const [gTranslations, setGTranslations] = useState<string>("");
   const [gTranslate, setGTranslate] = useState(true);
 
   // Revoke form state
@@ -61,6 +63,8 @@ export default function AdminOrgDetailPage() {
         image_generations: gImgGen !== "" ? parseInt(gImgGen) : null,
         video_storage_mb: gStorage !== "" ? parseInt(gStorage) : null,
         seats: gSeats !== "" ? parseInt(gSeats) : null,
+        transcription_minutes: gTranscriptionMin !== "" ? parseInt(gTranscriptionMin) : null,
+        translations: gTranslations !== "" ? parseInt(gTranslations) : null,
         translate: gTranslate,
       };
       const updated = await adminApi.grantPlan(org.id, payload);
@@ -183,6 +187,8 @@ export default function AdminOrgDetailPage() {
                 { label: "Image generations / mo", val: gImgGen, set: setGImgGen },
                 { label: "Video storage (MB)", val: gStorage, set: setGStorage },
                 { label: "Seats", val: gSeats, set: setGSeats },
+                { label: "Transcription minutes / mo", val: gTranscriptionMin, set: setGTranscriptionMin },
+                { label: "Translations / mo", val: gTranslations, set: setGTranslations },
               ].map(({ label, val, set }) => (
                 <div key={label}>
                   <label className="text-xs font-medium text-slate-500 block mb-1">{label}</label>

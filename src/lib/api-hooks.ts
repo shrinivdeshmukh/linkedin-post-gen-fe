@@ -25,6 +25,10 @@ export interface PlanStatus {
   post_generations_limit: number | null;
   image_generations_used: number;
   image_generations_limit: number | null;
+  transcription_minutes_used: number;
+  transcription_minutes_limit: number | null;
+  translations_used: number;
+  translations_limit: number | null;
 }
 
 // ─── Videos ──────────────────────────────────────────────────────────────────
@@ -590,6 +594,16 @@ export interface OrgProfile {
   company_description?: string | null;
   company_context?: string | null;
   logo_url?: string | null;
+  auto_transcribe: boolean;
+}
+
+export function useUpdateOrgSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { auto_transcribe?: boolean }) =>
+      api.patch<OrgProfile>("/orgs/me", payload).then((r) => r.data),
+    onSuccess: (data) => qc.setQueryData(["org-profile"], data),
+  });
 }
 
 export function useOrgProfile() {

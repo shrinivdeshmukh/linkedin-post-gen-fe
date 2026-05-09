@@ -60,6 +60,8 @@ export interface GrantPlanPayload {
   image_generations: number | null;
   video_storage_mb: number | null;
   seats: number | null;
+  transcription_minutes: number | null;
+  translations: number | null;
   translate: boolean;
 }
 

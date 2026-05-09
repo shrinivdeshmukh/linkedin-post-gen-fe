@@ -315,11 +315,24 @@ export default function MediaLibraryPage() {
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoUploadProgress, setVideoUploadProgress] = useState<number | null>(null);
 
+  async function getVideoDuration(file: File): Promise<number | null> {
+    return new Promise((resolve) => {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.onloadedmetadata = () => { URL.revokeObjectURL(video.src); resolve(isFinite(video.duration) ? video.duration : null); };
+      video.onerror = () => resolve(null);
+      video.src = URL.createObjectURL(file);
+    });
+  }
+
   async function handleVideoUpload(file: File) {
     if (file.size > VIDEO_MAX_BYTES) { alert("File too large (max 500 MB)"); return; }
     setVideoUploading(true);
     setVideoUploadProgress(0);
     try {
+      // 0. Read duration client-side before upload
+      const duration_seconds = await getVideoDuration(file);
+
       // 1. Get presigned upload URL from our API
       const { data: presign } = await api.post<{ upload_url: string; key: string; public_url: string }>(
         "/videos/presign",
@@ -340,6 +353,7 @@ export default function MediaLibraryPage() {
         filename: file.name,
         file_size: file.size,
         mime_type: file.type || "video/mp4",
+        duration_seconds,
       });
 
       qc.invalidateQueries({ queryKey: ["videos"] });

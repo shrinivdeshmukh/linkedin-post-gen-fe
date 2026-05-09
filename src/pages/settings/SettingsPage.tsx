@@ -8,6 +8,7 @@ import {
   useCreatePortal,
   useOrgProfile,
   useUpdateCompanyContext,
+  useUpdateOrgSettings,
   useUploadCompanyDoc,
   useUploadLogo,
   useVoiceProfile,
@@ -139,6 +140,7 @@ export default function SettingsPage() {
 
   const { data: orgProfile } = useOrgProfile();
   const updateContext = useUpdateCompanyContext();
+  const updateSettings = useUpdateOrgSettings();
   const uploadDoc = useUploadCompanyDoc();
   const uploadLogo = useUploadLogo();
   const [description, setDescription] = useState("");
@@ -290,9 +292,55 @@ export default function SettingsPage() {
                   : `${formatBytes(videoLibrary.total_storage_bytes)} / ${formatBytes(videoLibrary.storage_limit_bytes)}`
               }
             />
+            <UsageMeter
+              label="Transcription minutes"
+              used={plan.transcription_minutes_used}
+              limit={plan.transcription_minutes_limit}
+              display={
+                plan.transcription_minutes_limit === null
+                  ? `${plan.transcription_minutes_used.toFixed(1)} min / ∞`
+                  : `${plan.transcription_minutes_used.toFixed(1)} / ${plan.transcription_minutes_limit} min`
+              }
+            />
+            {plan.plan !== "trial" && (
+              <UsageMeter
+                label="Translations"
+                used={plan.translations_used}
+                limit={plan.translations_limit}
+              />
+            )}
           </div>
 
-          <p className="text-xs text-slate-400">Post &amp; image usage resets monthly. Video storage is cumulative.</p>
+          <p className="text-xs text-slate-400">All usage counters reset monthly. Video storage is cumulative.</p>
+        </div>
+      )}
+
+      {/* Video settings */}
+      {orgProfile && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">Video settings</h2>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-800">Auto-transcribe on upload</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Automatically transcribe every video when uploaded. Turn off to transcribe manually and conserve your monthly quota.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => updateSettings.mutate({ auto_transcribe: !orgProfile.auto_transcribe })}
+              disabled={updateSettings.isPending}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                orgProfile.auto_transcribe ? "bg-indigo-600" : "bg-slate-200"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  orgProfile.auto_transcribe ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
         </div>
       )}
 
