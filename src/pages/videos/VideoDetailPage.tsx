@@ -425,7 +425,14 @@ export default function VideoDetailPage() {
               <svg className="w-10 h-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
-              <p className="text-sm text-slate-500 font-medium">No transcript yet</p>
+              {(video.duration_seconds ?? 0) > 600 ? (
+                <>
+                  <p className="text-sm text-slate-500 font-medium">Transcription not started</p>
+                  <p className="text-xs text-slate-400 mt-1 max-w-xs">This video is over 10 minutes — transcription was skipped automatically to preserve your quota.</p>
+                </>
+              ) : (
+                <p className="text-sm text-slate-500 font-medium">No transcript yet</p>
+              )}
               <button
                 onClick={() => retrigger.mutate(video.id)}
                 disabled={retrigger.isPending}

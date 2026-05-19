@@ -269,11 +269,15 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
         </button>
         <div className="flex items-center gap-2">
           <p className="text-xs text-slate-400">{formatBytes(video.file_size)}</p>
-          {video.transcript_status !== "none" && (
+          {video.transcript_status !== "none" ? (
             <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusColors[video.transcript_status]}`}>
               {statusLabels[video.transcript_status]}
             </span>
-          )}
+          ) : (video.duration_seconds ?? 0) > 600 ? (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-400">
+              Transcribe manually
+            </span>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <button
