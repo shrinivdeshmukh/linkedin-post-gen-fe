@@ -223,7 +223,9 @@ function CollectionDetail({
 // ─── Videos tab (reused from VideoLibraryPage) ────────────────────────────────
 
 const VIDEO_ACCEPTED = ".mp4,.mov,.avi,.mkv,.webm";
-const VIDEO_MAX_BYTES = 500 * 1024 * 1024;
+const VIDEO_MAX_BYTES = 5 * 1024 * 1024 * 1024;
+const MULTIPART_THRESHOLD = 100 * 1024 * 1024;
+const MULTIPART_PART_SIZE = 100 * 1024 * 1024;
 
 function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () => void; deleting: boolean }) {
   const navigate = useNavigate();
@@ -330,38 +332,76 @@ export default function MediaLibraryPage() {
   }
 
   async function handleVideoUpload(file: File) {
-    if (file.size > VIDEO_MAX_BYTES) { alert("File too large (max 500 MB)"); return; }
+    if (file.size > VIDEO_MAX_BYTES) { alert("File too large (max 5 GB)"); return; }
     setVideoUploading(true);
     setVideoUploadProgress(0);
+
+    const mimeType = file.type || "video/mp4";
+    let key = "";
+    let uploadId: string | null = null;
+
     try {
-      // 0. Read duration client-side before upload
       const duration_seconds = await getVideoDuration(file);
 
-      // 1. Get presigned upload URL from our API
-      const { data: presign } = await api.post<{ upload_url: string; key: string; public_url: string }>(
-        "/videos/presign",
-        { filename: file.name, content_type: file.type || "video/mp4", file_size: file.size }
-      );
+      if (file.size > MULTIPART_THRESHOLD) {
+        // ── Multipart upload (>100 MB) ──────────────────────────────────────
+        const { data: mp } = await api.post<{
+          upload_id: string; key: string; public_url: string;
+          parts: { part_number: number; upload_url: string }[];
+        }>("/videos/presign-multipart", { filename: file.name, content_type: mimeType, file_size: file.size });
 
-      // 2. Upload directly to Spaces with progress tracking (no auth headers)
-      await axios.put(presign.upload_url, file, {
-        headers: { "Content-Type": file.type || "video/mp4" },
-        onUploadProgress: (e) =>
-          setVideoUploadProgress(e.total ? Math.round((e.loaded / e.total) * 100) : null),
-      });
+        key = mp.key;
+        uploadId = mp.upload_id;
+        const totalParts = mp.parts.length;
+        let done = 0;
 
-      // 3. Confirm the upload — creates DB record + triggers transcription
+        // Upload in batches of 3 concurrent parts
+        for (let i = 0; i < mp.parts.length; i += 3) {
+          await Promise.all(
+            mp.parts.slice(i, i + 3).map(async (part) => {
+              const start = (part.part_number - 1) * MULTIPART_PART_SIZE;
+              const chunk = file.slice(start, start + MULTIPART_PART_SIZE);
+              await axios.put(part.upload_url, chunk, { headers: { "Content-Type": mimeType } });
+              done++;
+              setVideoUploadProgress(Math.round((done / totalParts) * 95));
+            })
+          );
+        }
+
+        await api.post("/videos/complete-multipart", { key, upload_id: uploadId });
+        uploadId = null; // successfully completed — no need to abort
+      } else {
+        // ── Single PUT upload (≤100 MB) ─────────────────────────────────────
+        const { data: presign } = await api.post<{ upload_url: string; key: string }>(
+          "/videos/presign",
+          { filename: file.name, content_type: mimeType, file_size: file.size }
+        );
+        key = presign.key;
+
+        await axios.put(presign.upload_url, file, {
+          headers: { "Content-Type": mimeType },
+          onUploadProgress: (e) =>
+            setVideoUploadProgress(e.total ? Math.round((e.loaded / e.total) * 95) : null),
+        });
+      }
+
+      setVideoUploadProgress(98);
+
       await api.post("/videos/confirm", {
-        key: presign.key,
+        key,
         title: file.name.replace(/\.[^.]+$/, ""),
         filename: file.name,
         file_size: file.size,
-        mime_type: file.type || "video/mp4",
+        mime_type: mimeType,
         duration_seconds,
       });
 
       qc.invalidateQueries({ queryKey: ["videos"] });
     } catch {
+      // Abort any in-progress multipart upload to avoid orphaned storage
+      if (uploadId && key) {
+        api.post("/videos/abort-multipart", { key, upload_id: uploadId }).catch(() => {});
+      }
       alert("Upload failed. Please try again.");
     } finally {
       setVideoUploading(false);
@@ -493,7 +533,7 @@ export default function MediaLibraryPage() {
               onClick={() => videoUploadRef.current?.click()}>
               <svg className="w-12 h-12 text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.677V15.32a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
               <p className="text-base font-medium text-slate-600">No videos yet</p>
-              <p className="text-sm text-slate-400 mt-1">Upload MP4, MOV, or WebM — up to 500 MB</p>
+              <p className="text-sm text-slate-400 mt-1">Upload MP4, MOV, or WebM — up to 5 GB</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
