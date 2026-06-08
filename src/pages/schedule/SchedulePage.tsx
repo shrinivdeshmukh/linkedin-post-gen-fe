@@ -265,7 +265,8 @@ function Group({
 
 export default function SchedulePage() {
   const navigate = useNavigate();
-  const { data: allPosts = [], isLoading } = usePosts("scheduled");
+  const { data: allPostsRaw = [], isLoading } = usePosts();
+  const allPosts = allPostsRaw.filter((p) => p.status === "scheduled");
   const schedulePost = useSchedulePost();
   const unschedulePost = useUnschedulePost();
   const publishPost = usePublishPost();
