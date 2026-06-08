@@ -277,6 +277,14 @@ export function useSchedulePost() {
   });
 }
 
+export function useUnschedulePost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (postId: string) => api.delete(`/schedule/${postId}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
+  });
+}
+
 export function useApprovePost() {
   const qc = useQueryClient();
   return useMutation({
