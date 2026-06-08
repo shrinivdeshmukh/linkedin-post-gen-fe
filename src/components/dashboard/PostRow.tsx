@@ -52,9 +52,10 @@ interface PostRowProps {
   post: Post;
   onCopy: (content: string) => void;
   onDelete?: (id: string) => void;
+  onSchedule?: (id: string) => void;
 }
 
-export function PostRow({ post, onCopy, onDelete }: PostRowProps) {
+export function PostRow({ post, onCopy, onDelete, onSchedule }: PostRowProps) {
   const navigate = useNavigate();
   const excerpt = post.content
     ? post.content.slice(0, 80) + (post.content.length > 80 ? "…" : "")
@@ -120,6 +121,17 @@ export function PostRow({ post, onCopy, onDelete }: PostRowProps) {
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+        )}
+        {post.status === "approved" && onSchedule && (
+          <button
+            title="Schedule"
+            onClick={() => onSchedule(post.id)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </button>
         )}

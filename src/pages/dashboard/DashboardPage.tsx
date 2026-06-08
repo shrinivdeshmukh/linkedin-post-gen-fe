@@ -1,10 +1,27 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMe, usePosts, useDeletePost, type PostStatus } from "../../lib/api-hooks";
+import { useMe, usePosts, useDeletePost, useSchedulePost, type PostStatus } from "../../lib/api-hooks";
 import { StatCard } from "../../components/dashboard/StatCard";
 import { PostRow } from "../../components/dashboard/PostRow";
 import { EmptyState } from "../../components/dashboard/EmptyState";
 import { Button } from "../../components/ui/Button";
+
+const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+function localMinDatetime() {
+  const d = new Date(Date.now() + 2 * 60 * 1000); // now + 2 min
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+}
+
+function formatPreview(localDatetimeValue: string) {
+  if (!localDatetimeValue) return "";
+  const d = new Date(localDatetimeValue);
+  return d.toLocaleString(undefined, {
+    weekday: "short", day: "numeric", month: "short", year: "numeric",
+    hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  });
+}
 
 type FilterTab = PostStatus | "all";
 
@@ -29,8 +46,12 @@ export default function DashboardPage() {
   const { data: me } = useMe();
   const { data: posts = [], isLoading } = usePosts();
   const deletePost = useDeletePost();
+  const schedulePost = useSchedulePost();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [copied, setCopied] = useState(false);
+  const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
+  const [scheduleValue, setScheduleValue] = useState("");
+  const [scheduleError, setScheduleError] = useState("");
 
   // Compute stats
   const stats = {
@@ -54,6 +75,27 @@ export default function DashboardPage() {
     navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function openSchedule(postId: string) {
+    setSchedulingPostId(postId);
+    setScheduleValue("");
+    setScheduleError("");
+  }
+
+  async function handleScheduleSubmit() {
+    if (!schedulingPostId || !scheduleValue) return;
+    setScheduleError("");
+    try {
+      await schedulePost.mutateAsync({
+        postId: schedulingPostId,
+        publishAt: new Date(scheduleValue).toISOString(),
+      });
+      setSchedulingPostId(null);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setScheduleError(msg ?? "Failed to schedule. Please try again.");
+    }
   }
 
   return (
@@ -182,11 +224,56 @@ export default function DashboardPage() {
                 post={post}
                 onCopy={handleCopy}
                 onDelete={(id) => deletePost.mutate(id)}
+                onSchedule={openSchedule}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Schedule modal */}
+      {schedulingPostId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setSchedulingPostId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Schedule post</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Pick a date and time — we'll post automatically.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-600 block">Date & time</label>
+              <input
+                type="datetime-local"
+                min={localMinDatetime()}
+                value={scheduleValue}
+                onChange={(e) => { setScheduleValue(e.target.value); setScheduleError(""); }}
+                className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
+              />
+              <p className="text-[11px] text-slate-400">Your timezone: {userTz}</p>
+              {scheduleValue && (
+                <p className="text-[11px] text-indigo-600 font-medium">Will post: {formatPreview(scheduleValue)}</p>
+              )}
+            </div>
+
+            {scheduleError && (
+              <p className="text-xs text-red-500">{scheduleError}</p>
+            )}
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={handleScheduleSubmit}
+                disabled={!scheduleValue || schedulePost.isPending}
+                className="flex-1 text-sm font-semibold py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors disabled:opacity-50"
+              >
+                {schedulePost.isPending ? "Scheduling…" : "Confirm schedule"}
+              </button>
+              <button onClick={() => setSchedulingPostId(null)} className="text-sm text-slate-500 hover:text-slate-800">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tip banner — only when no posts */}
       {stats.total === 0 && !isLoading && (
