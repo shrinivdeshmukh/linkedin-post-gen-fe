@@ -85,6 +85,7 @@ export default function ComposerPage() {
   const { data: liAccount } = useLinkedInStatus();
 
   const [postType, setPostType] = useState<PostType>("text");
+  const [postLength, setPostLength] = useState<"short" | "medium" | "long">("medium");
   const [topic, setTopic] = useState("");
   const [postId, setPostId] = useState<string | null>(urlPostId ?? null);
   const [content, setContent] = useState("");
@@ -147,7 +148,7 @@ export default function ComposerPage() {
         id = post.id;
         setPostId(id);
       }
-      const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext, raw_context: rawContext.trim() || null });
+      const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext, raw_context: rawContext.trim() || null, post_length: postLength });
       setAiResults(results);
       const fallback = results.find((r) => !r.error);
       setActiveModel(fallback?.model ?? "claude");
@@ -310,6 +311,31 @@ export default function ComposerPage() {
               })}
               <span className="text-xs text-slate-400">· ⌘+Enter to generate</span>
             </div>
+
+            {/* Post length selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 font-medium">Length:</span>
+              {(["short", "medium", "long"] as const).map((len) => (
+                <button
+                  key={len}
+                  type="button"
+                  disabled={phase === "generating"}
+                  onClick={() => setPostLength(len)}
+                  className={[
+                    "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 capitalize disabled:opacity-50 disabled:cursor-not-allowed",
+                    postLength === len
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600",
+                  ].join(" ")}
+                >
+                  {len}
+                </button>
+              ))}
+              <span className="text-xs text-slate-400">
+                {postLength === "short" ? "~300–600 chars" : postLength === "medium" ? "~600–1200 chars" : "~1500–2500 chars"}
+              </span>
+            </div>
+
             <ContextAttachmentPanel onContext={setDocumentContext} />
 
             {/* Raw brain dump */}

@@ -498,17 +498,20 @@ export function useGenerateAI() {
       topic,
       document_context,
       raw_context,
+      post_length,
     }: {
       postId: string;
       topic: string;
       document_context?: string | null;
       raw_context?: string | null;
+      post_length?: "short" | "medium" | "long";
     }) =>
       api
         .post<{ results: AIResult[] }>(`/posts/${postId}/generate`, {
           topic,
           document_context: document_context ?? undefined,
           raw_context: raw_context ?? undefined,
+          post_length: post_length ?? "medium",
         })
         .then((r) => r.data.results),
   });
