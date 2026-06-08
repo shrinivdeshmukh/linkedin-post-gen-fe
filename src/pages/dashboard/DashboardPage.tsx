@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMe, usePosts, useDeletePost, useSchedulePost, type PostStatus } from "../../lib/api-hooks";
 import { StatCard } from "../../components/dashboard/StatCard";

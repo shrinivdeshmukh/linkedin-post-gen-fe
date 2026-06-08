@@ -178,7 +178,7 @@ export function useUpsertVoiceProfile() {
 
 // ─── Posts ────────────────────────────────────────────────────────────────────
 
-export type PostType = "text" | "image" | "carousel" | "poll" | "video";
+export type PostType = "text" | "image" | "carousel" | "poll" | "video" | "link";
 export type PostStatus =
   | "draft"
   | "pending_approval"
