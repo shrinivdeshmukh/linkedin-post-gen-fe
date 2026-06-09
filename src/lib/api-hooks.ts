@@ -902,6 +902,48 @@ export function useAcceptInvite() {
   });
 }
 
+// ─── Add-ons ─────────────────────────────────────────────────────────────────
+
+export interface AddonInfo {
+  addon_type: string;
+  label: string;
+  block_size: number;
+  unit_label: string;
+  block_display: string;
+  price_per_block: number;
+  current_blocks: number;
+  extra_units: number;
+  monthly_cost: number;
+  available: boolean;
+}
+
+export interface ApplyAddonsPayload {
+  post_generations: number;
+  image_generations: number;
+  media_storage: number;
+  transcription: number;
+  translations: number;
+}
+
+export function useAddons() {
+  return useQuery<AddonInfo[]>({
+    queryKey: ["addons"],
+    queryFn: () => api.get<AddonInfo[]>("/addons").then((r) => r.data),
+  });
+}
+
+export function useApplyAddons() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ApplyAddonsPayload) =>
+      api.post<AddonInfo[]>("/addons/apply", payload).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["addons"] });
+      qc.invalidateQueries({ queryKey: ["plan"] });
+    },
+  });
+}
+
 // ─── Billing ─────────────────────────────────────────────────────────────────
 
 export type BillingPeriod = "monthly" | "annual";

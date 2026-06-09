@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import AddonsSection from "./AddonsSection";
 import {
   useLinkedInStatus,
   useLinkedInDisconnect,
@@ -88,7 +89,7 @@ const PLAN_PRICING = [
     features: [
       "150 post generations / mo",
       "30 image generations / mo",
-      "2 GB video storage",
+      "2 GB media storage",
       "LinkedIn + Blog mediums",
       "Campaigns (series & collections)",
       "Voice profile & company context",
@@ -104,7 +105,7 @@ const PLAN_PRICING = [
     features: [
       "500 post generations / mo",
       "75 image generations / mo",
-      "10 GB video storage",
+      "10 GB media storage",
       "Up to 5 seats",
       "Approval workflows",
       "Everything in Solo",
@@ -119,7 +120,7 @@ const PLAN_PRICING = [
     features: [
       "Unlimited post generations",
       "200 image generations / mo",
-      "50 GB video storage",
+      "50 GB media storage",
       "Up to 15 seats",
       "Priority support",
       "Everything in Team",
@@ -281,7 +282,7 @@ export default function SettingsPage() {
               limit={plan.image_generations_limit}
             />
             <UsageMeter
-              label="Video storage"
+              label="Media storage"
               used={videoLibrary?.total_storage_bytes ?? 0}
               limit={videoLibrary?.storage_limit_bytes ?? null}
               display={
@@ -314,6 +315,9 @@ export default function SettingsPage() {
           <p className="text-xs text-slate-400">All usage counters reset monthly. Video storage is cumulative.</p>
         </div>
       )}
+
+      {/* Add-ons */}
+      {plan && !["trial", "locked"].includes(plan.plan) && <AddonsSection />}
 
       {/* Video settings */}
       {orgProfile && (

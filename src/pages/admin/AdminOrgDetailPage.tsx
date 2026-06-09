@@ -61,7 +61,7 @@ export default function AdminOrgDetailPage() {
         plan_source: gSource,
         post_generations: gPostGen !== "" ? parseInt(gPostGen) : null,
         image_generations: gImgGen !== "" ? parseInt(gImgGen) : null,
-        video_storage_mb: gStorage !== "" ? parseInt(gStorage) : null,
+        media_storage_mb: gStorage !== "" ? parseInt(gStorage) : null,
         seats: gSeats !== "" ? parseInt(gSeats) : null,
         transcription_minutes: gTranscriptionMin !== "" ? parseInt(gTranscriptionMin) : null,
         translations: gTranslations !== "" ? parseInt(gTranslations) : null,
@@ -185,7 +185,7 @@ export default function AdminOrgDetailPage() {
               {[
                 { label: "Post generations / mo", val: gPostGen, set: setGPostGen },
                 { label: "Image generations / mo", val: gImgGen, set: setGImgGen },
-                { label: "Video storage (MB)", val: gStorage, set: setGStorage },
+                { label: "Media storage (MB)", val: gStorage, set: setGStorage },
                 { label: "Seats", val: gSeats, set: setGSeats },
                 { label: "Transcription minutes / mo", val: gTranscriptionMin, set: setGTranscriptionMin },
                 { label: "Translations / mo", val: gTranslations, set: setGTranslations },
@@ -280,7 +280,7 @@ export default function AdminOrgDetailPage() {
             <Row label="Posts generated" value={`${org.post_generations_used} / ${org.post_generations_limit ?? "∞"}`} />
             <Row label="Images generated" value={`${org.image_generations_used} / ${org.image_generations_limit ?? "∞"}`} />
             <Row label="Videos" value={`${org.video_count}`} />
-            <Row label="Video storage" value={fmt(org.video_storage_used_bytes)} />
+            <Row label="Media storage" value={fmt(org.media_storage_used_bytes)} />
             <Row label="Posts (total)" value={org.post_count} />
             <Row label="Seats used" value={org.user_count} />
             <Row label="Created" value={new Date(org.created_at).toLocaleDateString()} />

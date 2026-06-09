@@ -19,7 +19,7 @@ function StorageBar({ used, limit }: { used: number; limit: number | null }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-medium text-slate-700">Video storage</span>
+        <span className="font-medium text-slate-700">Media storage</span>
         <span className={warn ? "text-amber-600 font-semibold" : "text-slate-500"}>
           {formatBytes(used)} / {limit === null ? "∞" : formatBytes(limit)}
         </span>

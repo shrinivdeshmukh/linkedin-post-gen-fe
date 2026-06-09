@@ -38,7 +38,7 @@ export interface AdminOrgSummary {
   post_generations_limit: number | null;
   image_generations_used: number;
   image_generations_limit: number | null;
-  video_storage_used_bytes: number;
+  media_storage_used_bytes: number;
   video_count: number;
   post_count: number;
   user_count: number;
@@ -58,7 +58,7 @@ export interface GrantPlanPayload {
   plan_source: string;
   post_generations: number | null;
   image_generations: number | null;
-  video_storage_mb: number | null;
+  media_storage_mb: number | null;
   seats: number | null;
   transcription_minutes: number | null;
   translations: number | null;

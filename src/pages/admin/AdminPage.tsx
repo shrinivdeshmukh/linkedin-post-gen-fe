@@ -165,7 +165,7 @@ export default function AdminPage() {
                       {org.post_generations_limit !== null ? ` / ${org.post_generations_limit}` : " / ∞"}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {org.video_count} · {fmt(org.video_storage_used_bytes)}
+                      {org.video_count} · {fmt(org.media_storage_used_bytes)}
                     </td>
                     <td className="px-4 py-3 text-slate-600">{org.user_count}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">
