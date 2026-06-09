@@ -344,7 +344,12 @@ export default function SparkPage() {
     }
   }, [session?.status, refetch]);
 
-  const isRunning = session?.status === "pending" || session?.status === "running";
+  const isInProgress = session?.status === "pending" || session?.status === "running";
+  // Treat as stale/failed if stuck for more than 3 minutes
+  const isStale = isInProgress && session?.created_at
+    ? Date.now() - new Date(session.created_at).getTime() > 3 * 60 * 1000
+    : false;
+  const isRunning = isInProgress && !isStale;
   const result = session?.result as SparkResult | null | undefined;
 
   async function handleTrigger(mode = "auto_pulse", topic?: string, url?: string) {
@@ -489,8 +494,24 @@ export default function SparkPage() {
           </div>
         )}
 
+        {/* Stale session (worker not running) */}
+        {!isLoading && isStale && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+            <p className="text-sm font-semibold text-amber-800">Research is taking longer than expected</p>
+            <p className="text-xs text-amber-700">The background worker may not be running. Try again — it will run inline this time.</p>
+            <button
+              type="button"
+              onClick={() => handleTrigger("auto_pulse")}
+              disabled={triggerResearch.isPending}
+              className="text-xs font-semibold text-amber-800 underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Failed session */}
-        {!isLoading && session?.status === "failed" && (
+        {!isLoading && !isStale && session?.status === "failed" && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2">
             <p className="text-sm font-semibold text-red-700">Research failed</p>
             <p className="text-xs text-red-600">{session.error ?? "Unknown error"}</p>
