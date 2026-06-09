@@ -16,6 +16,8 @@ import NewCampaignPage from "./pages/campaigns/NewCampaignPage";
 import CampaignDetailPage from "./pages/campaigns/CampaignDetailPage";
 import BlogComposerPage from "./pages/blog/BlogComposerPage";
 import MediaLibraryPage from "./pages/media/MediaLibraryPage";
+import MediaCollectionDetailPage from "./pages/media/MediaCollectionDetailPage";
+import PublicCollectionPage from "./pages/media/PublicCollectionPage";
 import VideoPublicPage from "./pages/videos/VideoPublicPage";
 import VideoDetailPage from "./pages/videos/VideoDetailPage";
 import AppLayout from "./components/layout/AppLayout";
@@ -48,6 +50,7 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/linkedin/callback" element={<LinkedInCallbackPage />} />
         <Route path="/v/:slug" element={<VideoPublicPage />} />
+        <Route path="/shared/collections/:token" element={<PublicCollectionPage />} />
         <Route path="/invite/:token" element={<AcceptInvitePage />} />
 
         {/* Onboarding — authenticated but no org yet */}
@@ -80,6 +83,7 @@ export default function App() {
           <Route path="blog/:postId" element={<BlogComposerPage />} />
           <Route path="videos" element={<MediaLibraryPage />} />
           <Route path="media" element={<MediaLibraryPage />} />
+          <Route path="media/collections/:collectionId" element={<MediaCollectionDetailPage />} />
           <Route path="media/videos/:videoId" element={<VideoDetailPage />} />
           <Route path="calendar" element={<ContentCalendarPage />} />
           <Route path="schedule" element={<ContentCalendarPage />} />

@@ -513,7 +513,7 @@ export default function MediaLibraryPage() {
               <CollectionCard
                 key={c.id}
                 collection={c}
-                onOpen={() => setOpenCollectionId(c.id)}
+onOpen={() => navigate(`/media/collections/${c.id}`)}
                 onRename={(name) => renameCollection.mutate({ id: c.id, name })}
                 onDelete={() => deleteCollection.mutate(c.id)}
               />

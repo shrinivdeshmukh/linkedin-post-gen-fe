@@ -58,6 +58,49 @@ export interface VideoLibrary {
   storage_limit_bytes: number | null;
 }
 
+export function useGenerateShareLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (collectionId: string) =>
+      api.post<MediaCollection>(`/media/collections/${collectionId}/share`).then((r) => r.data),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["media-collections"] });
+      qc.invalidateQueries({ queryKey: ["media-collection", id] });
+    },
+  });
+}
+
+export function useRevokeShareLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (collectionId: string) => api.delete(`/media/collections/${collectionId}/share`),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ["media-collections"] });
+      qc.invalidateQueries({ queryKey: ["media-collection", id] });
+    },
+  });
+}
+
+export function useUpdateCollectionSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, allow_download, allow_upload }: { id: string; allow_download?: boolean; allow_upload?: boolean }) =>
+      api.patch<MediaCollection>(`/media/collections/${id}/settings`, { allow_download, allow_upload }).then((r) => r.data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ["media-collections"] });
+      qc.invalidateQueries({ queryKey: ["media-collection", id] });
+    },
+  });
+}
+
+export function usePublicCollection(token: string | null) {
+  return useQuery<MediaCollectionWithItems>({
+    queryKey: ["public-collection", token],
+    queryFn: async () => (await api.get(`/public/collections/${token}`)).data,
+    enabled: !!token,
+  });
+}
+
 export function useVideos() {
   return useQuery<VideoLibrary>({
     queryKey: ["videos"],
@@ -699,10 +742,16 @@ export interface MediaCollection {
   created_at: string;
   item_count: number;
   thumbnail_url: string | null;
+  share_token?: string | null;
+  allow_download?: boolean;
+  allow_upload?: boolean;
 }
 
 export interface MediaCollectionWithItems extends MediaCollection {
   items: MediaItem[];
+  share_token?: string | null;
+  allow_download?: boolean;
+  allow_upload?: boolean;
 }
 
 export function useMediaCollections() {
