@@ -233,7 +233,7 @@ export default function PublicCollectionPage() {
           items={items}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
-          allowDownload={collection.allow_download}
+          allowDownload={collection.allow_download ?? true}
         />
       )}
     </div>

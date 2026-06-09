@@ -303,6 +303,7 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MediaLibraryPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"images" | "videos">("images");
   const [openCollectionId, setOpenCollectionId] = useState<string | null>(null);
   const [newCollectionName, setNewCollectionName] = useState("");
