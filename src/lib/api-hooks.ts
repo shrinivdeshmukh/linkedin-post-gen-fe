@@ -660,12 +660,15 @@ export interface OrgProfile {
   company_context?: string | null;
   logo_url?: string | null;
   auto_transcribe: boolean;
+  competitors?: string[] | null;
+  timezone?: string;
+  country?: string | null;
 }
 
 export function useUpdateOrgSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { auto_transcribe?: boolean }) =>
+    mutationFn: (payload: { auto_transcribe?: boolean; competitors?: string[]; timezone?: string; country?: string }) =>
       api.patch<OrgProfile>("/orgs/me", payload).then((r) => r.data),
     onSuccess: (data) => qc.setQueryData(["org-profile"], data),
   });
@@ -970,5 +973,73 @@ export function useCreatePortal() {
     onSuccess: (url) => {
       window.location.href = url;
     },
+  });
+}
+
+// ─── Spark Research ───────────────────────────────────────────────────────────
+
+export interface ResearchSession {
+  id: string;
+  org_id: string;
+  mode: string;
+  status: "pending" | "running" | "complete" | "failed";
+  triggered_by: string;
+  topic: string | null;
+  url: string | null;
+  result: Record<string, unknown> | null;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface TriggerResearchPayload {
+  mode: string;
+  topic?: string;
+  url?: string;
+}
+
+export interface ResearchBrief {
+  session_id: string | null;
+  name: string;
+  topic: string;
+  target_outcome: string;
+  key_messages: string[];
+}
+
+export function useLatestResearch() {
+  return useQuery<ResearchSession | null>({
+    queryKey: ["research-latest"],
+    queryFn: async () => {
+      const r = await api.get("/research/latest");
+      return r.data ?? null;
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useResearchSessions() {
+  return useQuery<ResearchSession[]>({
+    queryKey: ["research-sessions"],
+    queryFn: async () => (await api.get("/research/sessions")).data,
+    staleTime: 30_000,
+  });
+}
+
+export function useTriggerResearch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: TriggerResearchPayload) =>
+      api.post<ResearchSession>("/research/trigger", payload).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["research-latest"] });
+      qc.invalidateQueries({ queryKey: ["research-sessions"] });
+    },
+  });
+}
+
+export function useGetResearchBrief() {
+  return useMutation({
+    mutationFn: () =>
+      api.post<ResearchBrief>("/research/brief").then((r) => r.data),
   });
 }

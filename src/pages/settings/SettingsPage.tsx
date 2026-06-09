@@ -62,6 +62,64 @@ function UsageMeter({ label, used, limit, display }: { label: string; used: numb
   );
 }
 
+// ── Spark Settings ─────────────────────────────────────────────────────────────
+
+function SparkSettingsSection({
+  orgProfile,
+  onSave,
+}: {
+  orgProfile: { competitors?: string[] | null; timezone?: string; country?: string | null };
+  onSave: (payload: { competitors?: string[]; timezone?: string; country?: string }) => void;
+}) {
+  const [timezone, setTimezone] = useState(orgProfile.timezone ?? "UTC");
+  const [country, setCountry] = useState(orgProfile.country ?? "");
+  const [dirty, setDirty] = useState(false);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+      <div>
+        <h2 className="text-base font-semibold text-slate-900">Spark settings</h2>
+        <p className="text-sm text-slate-500 mt-0.5">Configure how Spark researches your world.</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-700">Timezone</label>
+          <input
+            type="text"
+            value={timezone}
+            onChange={(e) => { setTimezone(e.target.value); setDirty(true); }}
+            placeholder="e.g. Asia/Kolkata"
+            className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <p className="text-xs text-slate-400">IANA timezone for daily 2 AM auto-refresh</p>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-700">Country</label>
+          <input
+            type="text"
+            value={country}
+            onChange={(e) => { setCountry(e.target.value); setDirty(true); }}
+            placeholder="e.g. India"
+            className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <p className="text-xs text-slate-400">Used to surface locally relevant news</p>
+        </div>
+      </div>
+      {dirty && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => { onSave({ timezone, country }); setDirty(false); }}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Save
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const LINKEDIN_CLIENT_ID = import.meta.env.VITE_LINKEDIN_CLIENT_ID ?? "";
 const LINKEDIN_REDIRECT_URI = import.meta.env.VITE_LINKEDIN_REDIRECT_URI ?? `${window.location.origin}/linkedin/callback`;
 const LINKEDIN_SCOPE = "openid profile email w_member_social";
@@ -346,6 +404,11 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Spark settings */}
+      {orgProfile && (
+        <SparkSettingsSection orgProfile={orgProfile} onSave={(payload) => updateSettings.mutate(payload)} />
       )}
 
       {/* Upgrade modal */}

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useCreateCampaign, type CampaignCreatePayload } from "../../lib/api-hooks";
 import { Button } from "../../components/ui/Button";
 import { ContextAttachmentPanel } from "../composer/components/ContextAttachmentPanel";
@@ -111,6 +111,7 @@ function KeyMessagesInput({ messages, onChange }: { messages: string[]; onChange
 
 export default function NewCampaignPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const createCampaign = useCreateCampaign();
   const [step, setStep] = useState<Step>(1);
   const [documentContext, setDocumentContext] = useState<string | null>(null);
@@ -119,11 +120,14 @@ export default function NewCampaignPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // Prefill from Spark research brief if navigated from /spark
+  const prefill = (location.state as { prefill?: { name?: string; topic?: string; target_outcome?: string; key_messages?: string[] } } | null)?.prefill;
+
   const [form, setForm] = useState<FormState>({
-    name: "",
-    topic: "",
-    target_outcome: TARGET_OUTCOMES[0],
-    key_messages: [],
+    name: prefill?.name ?? "",
+    topic: prefill?.topic ?? "",
+    target_outcome: prefill?.target_outcome ?? TARGET_OUTCOMES[0],
+    key_messages: prefill?.key_messages ?? [],
     medium: "linkedin",
     mode: "series",
     post_count: 4,
