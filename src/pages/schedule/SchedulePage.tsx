@@ -61,6 +61,7 @@ function groupPosts(posts: Post[]): {
   tomorrow: Post[];
   thisWeek: Post[];
   later: Post[];
+  noTime: Post[];
 } {
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -72,10 +73,18 @@ function groupPosts(posts: Post[]): {
   const tomorrow: Post[] = [];
   const thisWeek: Post[] = [];
   const later: Post[] = [];
+  const noTime: Post[] = [];
 
   for (const p of posts) {
-    if (!p.scheduled_at) continue;
+    if (!p.scheduled_at) {
+      noTime.push(p);
+      continue;
+    }
     const d = new Date(p.scheduled_at);
+    if (isNaN(d.getTime())) {
+      noTime.push(p);
+      continue;
+    }
     if (d < now) {
       overdue.push(p);
     } else if (d < tomorrowStart) {
@@ -98,6 +107,7 @@ function groupPosts(posts: Post[]): {
     tomorrow: tomorrow.sort(byTime),
     thisWeek: thisWeek.sort(byTime),
     later: later.sort(byTime),
+    noTime,
   };
 }
 
@@ -265,7 +275,7 @@ function Group({
 
 export default function SchedulePage() {
   const navigate = useNavigate();
-  const { data: allPostsRaw = [], isLoading } = usePosts();
+  const { data: allPostsRaw = [], isLoading, isError } = usePosts();
   const allPosts = allPostsRaw.filter((p) => p.status === "scheduled");
   const schedulePost = useSchedulePost();
   const unschedulePost = useUnschedulePost();
@@ -330,6 +340,12 @@ export default function SchedulePage() {
             <div key={i} className="h-20 bg-white rounded-2xl border border-slate-100 animate-pulse" />
           ))}
         </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+          <p className="text-slate-700 font-semibold">Could not load posts</p>
+          <p className="text-slate-400 text-sm">There was a problem fetching your posts. Check your connection or try refreshing.</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+        </div>
       ) : total === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
@@ -339,7 +355,14 @@ export default function SchedulePage() {
           </div>
           <div>
             <p className="text-slate-700 font-semibold">Nothing scheduled</p>
-            <p className="text-slate-400 text-sm mt-1">Approve a post then hit the calendar icon to schedule it.</p>
+            {allPostsRaw.length > 0 ? (
+              <p className="text-slate-400 text-sm mt-1">
+                {allPostsRaw.length} post{allPostsRaw.length > 1 ? "s" : ""} loaded but none are in scheduled status.
+                Go to the dashboard and use the calendar icon on an approved post.
+              </p>
+            ) : (
+              <p className="text-slate-400 text-sm mt-1">Approve a post then hit the calendar icon to schedule it.</p>
+            )}
           </div>
           <Button variant="outline" onClick={() => navigate("/dashboard")}>Go to dashboard</Button>
         </div>
@@ -377,6 +400,13 @@ export default function SchedulePage() {
           <Group
             label="Later"
             posts={groups.later}
+            onReschedule={openReschedule}
+            onCancel={setCancelConfirmId}
+            onPublishNow={(id) => publishPost.mutate(id)}
+          />
+          <Group
+            label="Needs a time set"
+            posts={groups.noTime}
             onReschedule={openReschedule}
             onCancel={setCancelConfirmId}
             onPublishNow={(id) => publishPost.mutate(id)}
