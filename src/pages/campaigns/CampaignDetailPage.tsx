@@ -12,11 +12,6 @@ import {
 import { Button } from "../../components/ui/Button";
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-function localMinDatetime() {
-  const d = new Date(Date.now() + 2 * 60 * 1000);
-  const off = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - off).toISOString().slice(0, 16);
-}
 function formatPreview(val: string) {
   if (!val) return "";
   return new Date(val).toLocaleString(undefined, {

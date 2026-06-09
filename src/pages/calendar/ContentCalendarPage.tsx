@@ -17,9 +17,6 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   rejected:         { bg: "bg-red-50",      text: "text-red-600",    dot: "bg-red-400" },
 };
 
-const TYPE_ICONS: Record<string, string> = {
-  text: "T", image: "I", carousel: "C", poll: "P", video: "V", link: "L",
-};
 
 function toDateKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
