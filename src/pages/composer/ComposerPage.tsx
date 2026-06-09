@@ -114,6 +114,7 @@ export default function ComposerPage() {
   const [showRawContext, setShowRawContext] = useState(!!locationState?.rawContext);
   const [pollData, setPollData] = useState<PollData>(DEFAULT_POLL);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [plannedDate, setPlannedDate] = useState<string>("");
   const [hydrated, setHydrated] = useState(!urlPostId);
 
   // Load existing post into state
@@ -142,6 +143,11 @@ export default function ComposerPage() {
         setCarouselPdf({ name: savedPdfName ?? "document.pdf", base64: savedPdfB64 });
       }
       if (existingPost.content) setPhase("editing");
+      if (existingPost.scheduled_at) {
+        const d = new Date(existingPost.scheduled_at);
+        const off = d.getTimezoneOffset() * 60000;
+        setPlannedDate(new Date(d.getTime() - off).toISOString().slice(0, 10));
+      }
       setHydrated(true);
     }
   }, [existingPost, hydrated]);
@@ -664,6 +670,26 @@ export default function ComposerPage() {
           {/* Pinned publish actions — desktop only (mobile uses top bar buttons) */}
           {phase === "editing" && (
             <div className="hidden md:block flex-shrink-0 px-5 py-4 border-t border-slate-200 bg-slate-50/80 space-y-2">
+              <div className="space-y-1.5">
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan date</h3>
+                <input
+                  type="date"
+                  value={plannedDate}
+                  onChange={(e) => {
+                    setPlannedDate(e.target.value);
+                    if (postId) {
+                      updatePost.mutate({
+                        id: postId,
+                        scheduled_at: e.target.value ? new Date(e.target.value + "T09:00:00").toISOString() : null,
+                      });
+                    }
+                  }}
+                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                />
+                {plannedDate && (
+                  <p className="text-[11px] text-indigo-500">Added to content calendar</p>
+                )}
+              </div>
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish</h3>
               <Button variant="outline" fullWidth size="md" onClick={() => navigator.clipboard.writeText(content)}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

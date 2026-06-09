@@ -5,7 +5,7 @@ import {
   useApproveCampaign,
   useRegenerateCampaign,
   useRegenerateCampaignPost,
-  useSchedulePost,
+  useUpdatePost,
   useMe,
   type CampaignPost,
 } from "../../lib/api-hooks";
@@ -38,7 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
   draft:            "Draft",
   pending_approval: "Pending",
   approved:         "Approved",
-  scheduled:        "Scheduled",
+  scheduled:        "Planned",
   published:        "Published",
   rejected:         "Rejected",
 };
@@ -214,7 +214,7 @@ export default function CampaignDetailPage() {
   const approveCampaign = useApproveCampaign();
   const regenerateCampaign = useRegenerateCampaign();
   const regeneratePost = useRegenerateCampaignPost();
-  const schedulePost = useSchedulePost();
+  const updatePost = useUpdatePost();
 
   const isOwner = me?.role === "owner";
   const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
@@ -225,12 +225,12 @@ export default function CampaignDetailPage() {
     if (!schedulingPostId || !scheduleValue) return;
     setScheduleError("");
     try {
-      await schedulePost.mutateAsync({ postId: schedulingPostId, publishAt: new Date(scheduleValue).toISOString() });
+      await updatePost.mutateAsync({ id: schedulingPostId, scheduled_at: new Date(scheduleValue).toISOString() });
       setSchedulingPostId(null);
       setScheduleValue("");
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setScheduleError(msg ?? "Failed to schedule. Please try again.");
+      setScheduleError(msg ?? "Failed to save date. Please try again.");
     }
   }
 
@@ -299,12 +299,12 @@ export default function CampaignDetailPage() {
                 disabled={approveCampaign.isPending}
                 onClick={() => approveCampaign.mutate(campaign.id)}
               >
-                Approve & schedule all
+                Approve all
               </Button>
             )}
             {campaign.status === "active" && (
               <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-                ✓ Scheduled
+                ✓ Approved
               </span>
             )}
           </div>
@@ -378,30 +378,29 @@ export default function CampaignDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setSchedulingPostId(null)}>
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Schedule post</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Pick a date and time — we'll post automatically.</p>
+              <h2 className="text-base font-bold text-slate-900">Plan a date</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Pick a date to add this post to your content calendar.</p>
             </div>
             <div className="space-y-1.5">
               <input
                 type="datetime-local"
-                min={localMinDatetime()}
-                value={scheduleValue}
+                  value={scheduleValue}
                 onChange={(e) => { setScheduleValue(e.target.value); setScheduleError(""); }}
                 className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
               />
               <p className="text-[11px] text-slate-400">Timezone: {userTz}</p>
               {scheduleValue && (
-                <p className="text-[11px] text-indigo-600 font-medium">Will post: {formatPreview(scheduleValue)}</p>
+                <p className="text-[11px] text-indigo-600 font-medium">Planned: {formatPreview(scheduleValue)}</p>
               )}
             </div>
             {scheduleError && <p className="text-xs text-red-500">{scheduleError}</p>}
             <div className="flex items-center gap-3">
               <button
                 onClick={handleScheduleSubmit}
-                disabled={!scheduleValue || schedulePost.isPending}
+                disabled={!scheduleValue || updatePost.isPending}
                 className="flex-1 text-sm font-semibold py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors disabled:opacity-50"
               >
-                {schedulePost.isPending ? "Scheduling…" : "Confirm"}
+                {updatePost.isPending ? "Saving…" : "Save date"}
               </button>
               <button onClick={() => setSchedulingPostId(null)} className="text-sm text-slate-500 hover:text-slate-800">
                 Cancel

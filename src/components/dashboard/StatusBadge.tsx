@@ -17,7 +17,7 @@ const CONFIG: Record<PostStatus, { label: string; classes: string; dot: string }
     dot: "bg-emerald-400",
   },
   scheduled: {
-    label: "Scheduled",
+    label: "Planned",
     classes: "bg-blue-50 text-blue-700",
     dot: "bg-blue-400",
   },

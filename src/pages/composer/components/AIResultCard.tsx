@@ -1,9 +1,9 @@
 import type { AIResult } from "../../../lib/api-hooks";
 
 const MODEL_META: Record<string, { label: string; color: string; bg: string }> = {
-  claude:  { label: "Claude",  color: "text-orange-700", bg: "bg-orange-50" },
-  openai:  { label: "GPT-4o",  color: "text-emerald-700", bg: "bg-emerald-50" },
-  gemini:  { label: "Gemini",  color: "text-blue-700",   bg: "bg-blue-50" },
+  claude:  { label: "Option A", color: "text-indigo-700", bg: "bg-indigo-50" },
+  openai:  { label: "Option B", color: "text-violet-700", bg: "bg-violet-50" },
+  gemini:  { label: "Option C", color: "text-sky-700",    bg: "bg-sky-50" },
 };
 
 interface AIResultCardProps {

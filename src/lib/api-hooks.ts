@@ -243,6 +243,7 @@ export function useUpdatePost() {
       content?: string;
       content_json?: Record<string, unknown>;
       ai_model_used?: string;
+      scheduled_at?: string | null;
     }) => api.patch<Post>(`/posts/${id}`, payload).then((r) => r.data),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["posts"] });

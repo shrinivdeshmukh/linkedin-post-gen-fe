@@ -8,7 +8,7 @@ import OnboardingPage from "./pages/onboarding/OnboardingPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import ComposerPage from "./pages/composer/ComposerPage";
 import ApprovalsPage from "./pages/approvals/ApprovalsPage";
-import SchedulePage from "./pages/schedule/SchedulePage";
+import ContentCalendarPage from "./pages/calendar/ContentCalendarPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import LinkedInCallbackPage from "./pages/linkedin/LinkedInCallbackPage";
 import CampaignsPage from "./pages/campaigns/CampaignsPage";
@@ -81,7 +81,8 @@ export default function App() {
           <Route path="videos" element={<MediaLibraryPage />} />
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="media/videos/:videoId" element={<VideoDetailPage />} />
-          <Route path="schedule" element={<SchedulePage />} />
+          <Route path="calendar" element={<ContentCalendarPage />} />
+          <Route path="schedule" element={<ContentCalendarPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

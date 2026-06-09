@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePosts, useApprovePost, useSchedulePost, useMe, type Post } from "../../lib/api-hooks";
+import { usePosts, useApprovePost, useUpdatePost, useMe, type Post } from "../../lib/api-hooks";
 import { StatusBadge } from "../../components/dashboard/StatusBadge";
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -30,18 +30,13 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-const MODEL_LABEL: Record<string, { label: string; color: string }> = {
-  claude: { label: "Claude",  color: "text-orange-600 bg-orange-50" },
-  openai: { label: "GPT-4o",  color: "text-emerald-600 bg-emerald-50" },
-  gemini: { label: "Gemini",  color: "text-blue-600 bg-blue-50" },
-};
 
 export default function ApprovalsPage() {
   const { data: me } = useMe();
   const { data: allPosts = [], isLoading } = usePosts();
   const posts = allPosts.filter((p) => p.status === "pending_approval" || p.status === "approved");
   const approvePost = useApprovePost();
-  const schedulePost = useSchedulePost();
+  const updatePost = useUpdatePost();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rejectMode, setRejectMode] = useState(false);
@@ -65,12 +60,12 @@ export default function ApprovalsPage() {
     setScheduleError("");
     setScheduling(true);
     try {
-      await schedulePost.mutateAsync({ postId: selected.id, publishAt: new Date(scheduleValue).toISOString() });
+      await updatePost.mutateAsync({ id: selected.id, scheduled_at: new Date(scheduleValue).toISOString() });
       setSelectedId(null);
       setScheduleValue("");
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setScheduleError(msg ?? "Failed to schedule. Please try again.");
+      setScheduleError(msg ?? "Failed to save date. Please try again.");
     } finally {
       setScheduling(false);
     }
@@ -161,11 +156,6 @@ export default function ApprovalsPage() {
               {/* Post meta */}
               <div className="flex items-center gap-3 flex-wrap">
                 <StatusBadge status={selected.status} />
-                {selected.ai_model_used && MODEL_LABEL[selected.ai_model_used] && (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-md ${MODEL_LABEL[selected.ai_model_used].color}`}>
-                    {MODEL_LABEL[selected.ai_model_used].label}
-                  </span>
-                )}
                 <span className="text-xs text-slate-400 capitalize">{selected.type} post</span>
                 <span className="text-xs text-slate-400">· Submitted {timeAgo(selected.updated_at)}</span>
               </div>
@@ -189,18 +179,18 @@ export default function ApprovalsPage() {
               {/* Schedule block — shown for approved posts */}
               {isOwner && selected.status === "approved" && (
                 <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 space-y-3">
-                  <p className="text-sm font-semibold text-indigo-800">Schedule this post</p>
+                  <p className="text-sm font-semibold text-indigo-800">Plan a date</p>
                   <div className="space-y-1">
                     <input
                       type="datetime-local"
-                      min={localMinDatetime()}
+                      
                       value={scheduleValue}
                       onChange={(e) => { setScheduleValue(e.target.value); setScheduleError(""); }}
                       className="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
                     />
                     <p className="text-[11px] text-indigo-400">Timezone: {userTz}</p>
                     {scheduleValue && (
-                      <p className="text-[11px] text-indigo-600 font-medium">Will post: {formatPreview(scheduleValue)}</p>
+                      <p className="text-[11px] text-indigo-600 font-medium">Planned: {formatPreview(scheduleValue)}</p>
                     )}
                   </div>
                   {scheduleError && <p className="text-xs text-red-500">{scheduleError}</p>}
@@ -210,7 +200,7 @@ export default function ApprovalsPage() {
                     disabled={!scheduleValue || scheduling}
                     className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
                   >
-                    {scheduling ? "Scheduling…" : "Confirm schedule"}
+                    {scheduling ? "Saving…" : "Save date"}
                   </button>
                 </div>
               )}
