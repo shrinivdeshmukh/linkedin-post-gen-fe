@@ -522,7 +522,7 @@ export default function SparkPage() {
             />
 
             {/* Content opportunities */}
-            {result.topics?.length > 0 && (
+            {result.topics && result.topics.length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Content opportunities</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -534,7 +534,7 @@ export default function SparkPage() {
             )}
 
             {/* Creative connections */}
-            {result.creative_connections?.length > 0 && (
+            {result.creative_connections && result.creative_connections.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Creative connections</h2>
@@ -549,7 +549,7 @@ export default function SparkPage() {
             )}
 
             {/* Competitor updates */}
-            {result.competitor_updates?.length > 0 && (
+            {result.competitor_updates && result.competitor_updates.length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Competitor pulse</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
