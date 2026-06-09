@@ -6,8 +6,44 @@ import {
   useGetResearchBrief,
   useOrgProfile,
   useUpdateOrgSettings,
-  type ResearchSession,
 } from "../../lib/api-hooks";
+
+// ── Result types ──────────────────────────────────────────────────────────────
+
+interface SparkTopic {
+  title: string;
+  summary: string;
+  angle: string;
+  urgency: string;
+  sources?: { title: string; url: string; snippet?: string }[];
+}
+
+interface SparkConnection {
+  event: string;
+  relevance: string;
+  post_idea: string;
+  hook: string;
+}
+
+interface SparkCompetitor {
+  name: string;
+  update: string;
+  opportunity: string;
+}
+
+interface SparkResult {
+  mode?: string;
+  summary?: string;
+  topics?: SparkTopic[];
+  creative_connections?: SparkConnection[];
+  competitor_updates?: SparkCompetitor[];
+  recommended_campaign?: {
+    name: string;
+    topic: string;
+    target_outcome: string;
+    key_messages: string[];
+  };
+}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -25,7 +61,7 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
   );
 }
 
-function TopicCard({ topic }: { topic: { title: string; summary: string; angle: string; urgency: string; sources?: { title: string; url: string }[] } }) {
+function TopicCard({ topic }: { topic: SparkTopic }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
@@ -69,7 +105,7 @@ function TopicCard({ topic }: { topic: { title: string; summary: string; angle: 
   );
 }
 
-function ConnectionCard({ item }: { item: { event: string; relevance: string; post_idea: string; hook: string } }) {
+function ConnectionCard({ item }: { item: SparkConnection }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
       <div className="flex items-start gap-2">
@@ -96,7 +132,7 @@ function ConnectionCard({ item }: { item: { event: string; relevance: string; po
   );
 }
 
-function CompetitorCard({ item }: { item: { name: string; update: string; opportunity: string } }) {
+function CompetitorCard({ item }: { item: SparkCompetitor }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
       <p className="text-sm font-semibold text-slate-900">{item.name}</p>
@@ -309,7 +345,7 @@ export default function SparkPage() {
   }, [session?.status, refetch]);
 
   const isRunning = session?.status === "pending" || session?.status === "running";
-  const result = session?.result;
+  const result = session?.result as SparkResult | null | undefined;
 
   async function handleTrigger(mode = "auto_pulse", topic?: string, url?: string) {
     setDeepDiveOpen(false);
@@ -490,7 +526,7 @@ export default function SparkPage() {
               <div className="space-y-4">
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Content opportunities</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.topics.map((topic: Parameters<typeof TopicCard>[0]["topic"], i: number) => (
+                  {result.topics.map((topic, i) => (
                     <TopicCard key={i} topic={topic} />
                   ))}
                 </div>
@@ -505,7 +541,7 @@ export default function SparkPage() {
                   <span className="text-xs text-slate-400 font-normal normal-case tracking-normal">World events → your content</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.creative_connections.map((item: Parameters<typeof ConnectionCard>[0]["item"], i: number) => (
+                  {result.creative_connections.map((item, i) => (
                     <ConnectionCard key={i} item={item} />
                   ))}
                 </div>
@@ -517,7 +553,7 @@ export default function SparkPage() {
               <div className="space-y-4">
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Competitor pulse</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.competitor_updates.map((item: Parameters<typeof CompetitorCard>[0]["item"], i: number) => (
+                  {result.competitor_updates.map((item, i) => (
                     <CompetitorCard key={i} item={item} />
                   ))}
                 </div>
