@@ -391,6 +391,26 @@ export default function SparkPage() {
     }
   }
 
+  async function handleConnectionClick(item: SparkConnection) {
+    const syntheticTopic: SparkTopic = {
+      title: item.event,
+      summary: item.relevance,
+      angle: item.post_idea,
+      urgency: "medium",
+    };
+    setSelectedTopic(syntheticTopic);
+    setView("detail");
+    try {
+      const session = await triggerResearch.mutateAsync({
+        mode: "deep_dive",
+        topic: `${item.event}: ${item.relevance}. Post idea: ${item.post_idea}`,
+      });
+      setDeepDiveSessionId(session.id);
+    } catch {
+      // error handled in detail view
+    }
+  }
+
   async function handleTopicClick(topic: SparkTopic) {
     setSelectedTopic(topic);
     setView("detail");
@@ -560,18 +580,34 @@ export default function SparkPage() {
             {/* Creative connections */}
             {baseResult.creative_connections && baseResult.creative_connections.length > 0 && (
               <div className="space-y-4">
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Creative connections</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Creative connections</h2>
+                  <p className="text-xs text-slate-400">Click to explore deeper</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {baseResult.creative_connections.map((item, i) => (
-                    <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
-                      <p className="text-sm font-semibold text-slate-900">{item.event}</p>
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleConnectionClick(item)}
+                      className="group text-left bg-white rounded-xl border border-slate-200 p-4 space-y-2 hover:border-violet-300 hover:shadow-md transition-all duration-150"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900">{item.event}</p>
+                        <span className="text-xs font-semibold text-violet-600 group-hover:text-violet-700 flex items-center gap-1 flex-shrink-0">
+                          Explore
+                          <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </span>
+                      </div>
                       <p className="text-sm text-slate-600">{item.relevance}</p>
                       <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-100">
                         <p className="text-xs font-medium text-violet-700 mb-1">Post idea</p>
                         <p className="text-sm text-violet-900">{item.post_idea}</p>
                       </div>
                       <p className="text-sm text-slate-500 italic pl-3 border-l-2 border-slate-200">"{item.hook}"</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
