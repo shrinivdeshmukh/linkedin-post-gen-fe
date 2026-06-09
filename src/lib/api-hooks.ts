@@ -429,6 +429,7 @@ export interface CampaignCreatePayload {
   target_word_count?: number;
   document_context?: string;
   raw_context?: string;
+  post_length?: string;
 }
 
 export function useCampaigns() {

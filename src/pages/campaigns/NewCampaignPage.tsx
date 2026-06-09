@@ -39,6 +39,7 @@ interface FormState {
   // Step 3
   post_type: "text" | "image";
   tone_override: string;
+  post_length: "short" | "medium" | "long";
 }
 
 const STEP_TITLES = ["Campaign brief", "Format & schedule", "Style & generate"];
@@ -131,6 +132,7 @@ export default function NewCampaignPage() {
     target_word_count: 1200,
     post_type: "text",
     tone_override: "",
+    post_length: "medium",
   });
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -157,6 +159,7 @@ export default function NewCampaignPage() {
       post_type: form.post_type,
       include_images: form.post_type === "image",
       tone_override: form.tone_override.trim() || undefined,
+      post_length: form.post_length,
       target_word_count: form.medium === "blog" ? form.target_word_count : undefined,
       document_context: documentContext ?? undefined,
       raw_context: rawContext.trim() || undefined,
@@ -425,6 +428,34 @@ export default function NewCampaignPage() {
                 </div>
               </div>
 
+              {form.medium !== "blog" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Post length</label>
+                  <div className="flex gap-3">
+                    {([
+                      { value: "short", label: "Short", desc: "~300–600 chars" },
+                      { value: "medium", label: "Medium", desc: "~600–1200 chars" },
+                      { value: "long", label: "Long", desc: "~1500–2500 chars" },
+                    ] as const).map(({ value, label, desc }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => set("post_length", value)}
+                        className={[
+                          "flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all text-center",
+                          form.post_length === value
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300",
+                        ].join(" ")}
+                      >
+                        <span className="block">{label}</span>
+                        <span className={`text-[10px] ${form.post_length === value ? "text-indigo-200" : "text-slate-400"}`}>{desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">
                   Tone override <span className="font-normal text-slate-400">(optional)</span>
@@ -458,6 +489,9 @@ export default function NewCampaignPage() {
                   <div className="flex justify-between"><span className="text-slate-500">Words per article</span><span className="font-medium text-slate-800">{form.target_word_count.toLocaleString()}</span></div>
                 )}
                 <div className="flex justify-between"><span className="text-slate-500">Format</span><span className="font-medium text-slate-800 capitalize">{form.post_type}</span></div>
+                {form.medium !== "blog" && (
+                  <div className="flex justify-between"><span className="text-slate-500">Post length</span><span className="font-medium text-slate-800 capitalize">{form.post_length}</span></div>
+                )}
               </div>
             </div>
           </div>
