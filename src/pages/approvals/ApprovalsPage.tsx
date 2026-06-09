@@ -1,6 +1,22 @@
 import { useState } from "react";
-import { usePosts, useApprovePost, useMe, type Post } from "../../lib/api-hooks";
+import { usePosts, useApprovePost, useSchedulePost, useMe, type Post } from "../../lib/api-hooks";
 import { StatusBadge } from "../../components/dashboard/StatusBadge";
+
+const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+function localMinDatetime() {
+  const d = new Date(Date.now() + 2 * 60 * 1000);
+  const off = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - off).toISOString().slice(0, 16);
+}
+
+function formatPreview(val: string) {
+  if (!val) return "";
+  return new Date(val).toLocaleString(undefined, {
+    weekday: "short", day: "numeric", month: "short",
+    hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  });
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -22,19 +38,42 @@ const MODEL_LABEL: Record<string, { label: string; color: string }> = {
 
 export default function ApprovalsPage() {
   const { data: me } = useMe();
-  const { data: posts = [], isLoading } = usePosts("pending_approval");
+  const { data: allPosts = [], isLoading } = usePosts();
+  const posts = allPosts.filter((p) => p.status === "pending_approval" || p.status === "approved");
   const approvePost = useApprovePost();
+  const schedulePost = useSchedulePost();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rejectMode, setRejectMode] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [scheduleValue, setScheduleValue] = useState("");
+  const [scheduleError, setScheduleError] = useState("");
+  const [scheduling, setScheduling] = useState(false);
 
   const isOwner = me?.role === "owner";
+  const pendingCount = posts.filter((p) => p.status === "pending_approval").length;
+  const approvedCount = posts.filter((p) => p.status === "approved").length;
   const selected = posts.find((p) => p.id === selectedId) ?? posts[0] ?? null;
 
   // Auto-select first post
   if (!selectedId && posts.length > 0 && !selected) {
     setSelectedId(posts[0].id);
+  }
+
+  async function handleSchedule() {
+    if (!selected || !scheduleValue) return;
+    setScheduleError("");
+    setScheduling(true);
+    try {
+      await schedulePost.mutateAsync({ postId: selected.id, publishAt: new Date(scheduleValue).toISOString() });
+      setSelectedId(null);
+      setScheduleValue("");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setScheduleError(msg ?? "Failed to schedule. Please try again.");
+    } finally {
+      setScheduling(false);
+    }
   }
 
   async function handleApprove() {
@@ -62,8 +101,11 @@ export default function ApprovalsPage() {
             <h1 className="text-lg font-bold text-slate-900">Approvals</h1>
             <p className="text-sm text-slate-500 mt-0.5">
               {isLoading ? "Loading…" : posts.length === 0
-                ? "No posts pending review"
-                : `${posts.length} post${posts.length !== 1 ? "s" : ""} awaiting review`}
+                ? "No posts pending review or awaiting scheduling"
+                : [
+                    pendingCount > 0 ? `${pendingCount} pending review` : "",
+                    approvedCount > 0 ? `${approvedCount} approved` : "",
+                  ].filter(Boolean).join(" · ")}
             </p>
           </div>
           {!isOwner && (
@@ -144,8 +186,37 @@ export default function ApprovalsPage() {
                 </p>
               </div>
 
+              {/* Schedule block — shown for approved posts */}
+              {isOwner && selected.status === "approved" && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-indigo-800">Schedule this post</p>
+                  <div className="space-y-1">
+                    <input
+                      type="datetime-local"
+                      min={localMinDatetime()}
+                      value={scheduleValue}
+                      onChange={(e) => { setScheduleValue(e.target.value); setScheduleError(""); }}
+                      className="w-full text-sm border border-indigo-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                    />
+                    <p className="text-[11px] text-indigo-400">Timezone: {userTz}</p>
+                    {scheduleValue && (
+                      <p className="text-[11px] text-indigo-600 font-medium">Will post: {formatPreview(scheduleValue)}</p>
+                    )}
+                  </div>
+                  {scheduleError && <p className="text-xs text-red-500">{scheduleError}</p>}
+                  <button
+                    type="button"
+                    onClick={handleSchedule}
+                    disabled={!scheduleValue || scheduling}
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+                  >
+                    {scheduling ? "Scheduling…" : "Confirm schedule"}
+                  </button>
+                </div>
+              )}
+
               {/* Owner actions */}
-              {isOwner && (
+              {isOwner && selected.status === "pending_approval" && (
                 <div className="space-y-3">
                   {!rejectMode ? (
                     <div className="flex gap-3">
