@@ -1006,14 +1006,26 @@ export interface ResearchBrief {
   key_messages: string[];
 }
 
-export function useLatestResearch() {
+export function useLatestResearch(mode?: string) {
   return useQuery<ResearchSession | null>({
-    queryKey: ["research-latest"],
+    queryKey: ["research-latest", mode ?? "all"],
     queryFn: async () => {
-      const r = await api.get("/research/latest");
+      const r = await api.get("/research/latest", { params: mode ? { mode } : {} });
       return r.data ?? null;
     },
     staleTime: 30_000,
+  });
+}
+
+export function useResearchSession(id: string | null) {
+  return useQuery<ResearchSession>({
+    queryKey: ["research-session", id],
+    queryFn: async () => (await api.get(`/research/sessions/${id}`)).data,
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "pending" || status === "running" ? 3000 : false;
+    },
   });
 }
 
