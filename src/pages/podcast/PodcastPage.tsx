@@ -214,10 +214,12 @@ export default function PodcastPage() {
   }
 
   // Show player when active job completes
-  if (activeJob?.status === "complete" && activeJob.audio_url && playingUrl !== activeJob.audio_url) {
-    setPlayingUrl(activeJob.audio_url);
-    setPlayingTitle(`${activeJob.config.host1_name} & ${activeJob.config.host2_name}`);
-  }
+  useEffect(() => {
+    if (activeJob?.status === "complete" && activeJob.audio_url) {
+      setPlayingUrl(activeJob.audio_url);
+      setPlayingTitle(`${activeJob.config.host1_name} & ${activeJob.config.host2_name}`);
+    }
+  }, [activeJob?.status, activeJob?.audio_url]);
 
   const toneOptions: { value: PodcastConfig["tone"]; label: string; desc: string }[] = [
     { value: "conversational", label: "Conversational", desc: "Friendly chat" },
@@ -410,8 +412,8 @@ export default function PodcastPage() {
           <StatusBanner status={activeJob.status} error={activeJob.error} />
         )}
 
-        {/* Player */}
-        {playingUrl && (
+        {/* Player — shown when a new job just completed */}
+        {playingUrl && !jobs.some((j) => j.audio_url === playingUrl) && (
           <PodcastPlayer url={playingUrl} title={playingTitle} />
         )}
 
@@ -421,17 +423,23 @@ export default function PodcastPage() {
             <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Past podcasts</h2>
             <div className="space-y-2">
               {jobs.map((job) => (
-                <HistoryItem
-                  key={job.id}
-                  job={job}
-                  onPlay={() => {
-                    if (job.audio_url) {
-                      setPlayingUrl(job.audio_url);
-                      setPlayingTitle(`${job.config.host1_name} & ${job.config.host2_name}`);
-                    }
-                  }}
-                  onDelete={() => deleteJob.mutate(job.id)}
-                />
+                <div key={job.id}>
+                  <HistoryItem
+                    job={job}
+                    onPlay={() => {
+                      if (job.audio_url) {
+                        setPlayingUrl(job.audio_url);
+                        setPlayingTitle(`${job.config.host1_name} & ${job.config.host2_name}`);
+                      }
+                    }}
+                    onDelete={() => deleteJob.mutate(job.id)}
+                  />
+                  {playingUrl === job.audio_url && (
+                    <div className="mt-2">
+                      <PodcastPlayer url={playingUrl} title={playingTitle} />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
