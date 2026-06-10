@@ -10,9 +10,12 @@ import {
   useDeleteMediaItem,
   useVideos,
   useDeleteVideo,
+  usePodcastJobs,
+  useDeletePodcastJob,
   type MediaCollection,
   type MediaItem,
   type Video,
+  type PodcastJob,
 } from "../../lib/api-hooks";
 import api from "../../lib/api";
 import axios from "axios";
@@ -300,11 +303,110 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
   );
 }
 
+// ─── Podcast card ─────────────────────────────────────────────────────────────
+
+function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: () => void; deleting: boolean }) {
+  const [playing, setPlaying] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  function formatDuration(s: number | null) {
+    if (!s) return "";
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  }
+
+  function togglePlay() {
+    if (!audioRef.current) return;
+    if (playing) { audioRef.current.pause(); setPlaying(false); }
+    else { audioRef.current.play(); setPlaying(true); }
+  }
+
+  const title = job.config?.host1_name && job.config?.host2_name
+    ? `${job.config.host1_name} & ${job.config.host2_name}`
+    : "Podcast";
+  const date = new Date(job.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+  const statusColors: Record<string, string> = {
+    complete: "bg-green-100 text-green-700",
+    scripting: "bg-blue-100 text-blue-600",
+    generating: "bg-indigo-100 text-indigo-600",
+    pending: "bg-amber-100 text-amber-600",
+    failed: "bg-red-100 text-red-600",
+  };
+  const statusLabels: Record<string, string> = {
+    complete: "Ready",
+    scripting: "Writing script…",
+    generating: "Synthesising…",
+    pending: "Queued…",
+    failed: "Failed",
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-200 hover:shadow-sm transition-all">
+      {/* Waveform / play area */}
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 px-4 py-5 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={togglePlay}
+          disabled={job.status !== "complete"}
+          className="w-10 h-10 flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-full flex items-center justify-center transition-colors"
+        >
+          {playing ? (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          ) : (
+            <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          )}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-800 truncate">{title}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs text-slate-400">{date}</span>
+            {job.duration_seconds && <span className="text-xs text-slate-400">{formatDuration(job.duration_seconds)}</span>}
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusColors[job.status]}`}>
+              {statusLabels[job.status]}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {job.audio_url && (
+        <audio ref={audioRef} src={job.audio_url} onEnded={() => setPlaying(false)} preload="none" />
+      )}
+
+      {/* Footer actions */}
+      <div className="px-3 py-2.5 flex items-center gap-2">
+        {job.audio_url && (
+          <a
+            href={job.audio_url}
+            download
+            className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors text-center"
+          >
+            Download
+          </a>
+        )}
+        {!confirmDelete ? (
+          <button type="button" onClick={() => setConfirmDelete(true)}
+            className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:border-red-200 hover:text-red-500 text-slate-400 transition-colors">
+            Delete
+          </button>
+        ) : (
+          <button type="button" onClick={onDelete} disabled={deleting}
+            className="text-xs font-medium px-3 py-1.5 bg-red-500 text-white rounded-xl disabled:opacity-50 transition-colors">
+            {deleting ? "…" : "Confirm"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function MediaLibraryPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"images" | "videos">("images");
+  const [tab, setTab] = useState<"images" | "videos" | "podcasts">("images");
   const [openCollectionId, setOpenCollectionId] = useState<string | null>(null);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [showNewCollection, setShowNewCollection] = useState(false);
@@ -316,6 +418,10 @@ export default function MediaLibraryPage() {
 
   // Videos
   const { data: videoLibrary } = useVideos();
+
+  // Podcasts
+  const { data: podcastJobs } = usePodcastJobs();
+  const deletePodcast = useDeletePodcastJob();
   const deleteVideo = useDeleteVideo();
   const videoUploadRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
@@ -424,7 +530,7 @@ export default function MediaLibraryPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Media</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Images and videos for your posts.</p>
+          <p className="text-sm text-slate-500 mt-0.5">Images, videos and podcasts for your posts.</p>
         </div>
 
         {tab === "images" && (
@@ -453,6 +559,17 @@ export default function MediaLibraryPage() {
             )}
           </button>
         )}
+
+        {tab === "podcasts" && (
+          <button
+            type="button"
+            onClick={() => navigate("/podcast")}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+            Podcast studio
+          </button>
+        )}
       </div>
 
       {/* Upload progress bar */}
@@ -467,7 +584,7 @@ export default function MediaLibraryPage() {
 
       {/* Tabs */}
       <div className="flex gap-0.5 p-0.5 bg-slate-100 rounded-xl w-fit">
-        {(["images", "videos"] as const).map((t) => (
+        {(["images", "videos", "podcasts"] as const).map((t) => (
           <button key={t} type="button" onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
             {t}
@@ -546,6 +663,31 @@ onOpen={() => navigate(`/media/collections/${c.id}`)}
             </div>
           )}
         </div>
+      )}
+
+      {/* Podcasts tab */}
+      {tab === "podcasts" && (
+        !podcastJobs?.length ? (
+          <div
+            className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:border-indigo-300 transition-colors"
+            onClick={() => navigate("/podcast")}
+          >
+            <svg className="w-12 h-12 text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+            <p className="text-base font-medium text-slate-600">No podcasts yet</p>
+            <p className="text-sm text-slate-400 mt-1">Go to Podcast Studio to generate your first episode</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {podcastJobs.map((job) => (
+              <PodcastCard
+                key={job.id}
+                job={job}
+                onDelete={() => deletePodcast.mutate(job.id)}
+                deleting={deletePodcast.isPending}
+              />
+            ))}
+          </div>
+        )
       )}
 
       {/* Collection detail drawer */}
