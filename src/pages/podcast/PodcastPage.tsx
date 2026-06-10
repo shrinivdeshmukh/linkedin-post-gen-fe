@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   usePodcastVoices,
   usePodcastJob,
@@ -436,7 +436,7 @@ export default function PodcastPage() {
                   />
                   {playingUrl === job.audio_url && (
                     <div className="mt-2">
-                      <PodcastPlayer url={playingUrl} title={playingTitle} />
+                      <PodcastPlayer url={playingUrl!} title={playingTitle} />
                     </div>
                   )}
                 </div>
