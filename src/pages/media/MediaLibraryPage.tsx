@@ -308,6 +308,7 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
 function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: () => void; deleting: boolean }) {
   const [playing, setPlaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [copied, setCopied] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   function formatDuration(s: number | null) {
@@ -378,13 +379,22 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
       {/* Footer actions */}
       <div className="px-3 py-2.5 flex items-center gap-2">
         {job.audio_url && (
-          <a
-            href={job.audio_url}
-            download
-            className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors text-center"
-          >
-            Download
-          </a>
+          <>
+            <button
+              type="button"
+              onClick={() => { navigator.clipboard.writeText(job.audio_url!); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+              className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
+            >
+              {copied ? "Copied!" : "Copy link"}
+            </button>
+            <a
+              href={job.audio_url}
+              download
+              className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
+            >
+              Download
+            </a>
+          </>
         )}
         {!confirmDelete ? (
           <button type="button" onClick={() => setConfirmDelete(true)}
