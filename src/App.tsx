@@ -25,6 +25,7 @@ import AcceptInvitePage from "./pages/auth/AcceptInvitePage";
 import AdminPage from "./pages/admin/AdminPage";
 import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 import SparkPage from "./pages/spark/SparkPage";
+import PodcastPage from "./pages/podcast/PodcastPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="schedule" element={<ContentCalendarPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="spark" element={<SparkPage />} />
+          <Route path="podcast" element={<PodcastPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

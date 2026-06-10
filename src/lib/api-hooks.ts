@@ -1055,3 +1055,86 @@ export function useGetResearchBrief() {
       api.post<ResearchBrief>("/research/brief").then((r) => r.data),
   });
 }
+
+// ─── Podcast ─────────────────────────────────────────────────────────────────
+
+export interface PodcastVoice {
+  id: string;
+  gender: "M" | "F";
+  style: string;
+}
+
+export interface PodcastConfig {
+  host1_name: string;
+  host1_voice: string;
+  host2_name: string;
+  host2_voice: string;
+  tone: "conversational" | "interview" | "debate" | "educational";
+  length: "short" | "medium" | "long";
+  creativity: number;
+}
+
+export interface PodcastJob {
+  id: string;
+  org_id: string;
+  status: "pending" | "scripting" | "generating" | "complete" | "failed";
+  config: PodcastConfig;
+  blog_source_url: string | null;
+  script: string | null;
+  audio_url: string | null;
+  duration_seconds: number | null;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface GeneratePodcastPayload {
+  blog_content: string;
+  blog_source_url?: string;
+  config: PodcastConfig;
+}
+
+export function usePodcastVoices() {
+  return useQuery<PodcastVoice[]>({
+    queryKey: ["podcast-voices"],
+    queryFn: async () => (await api.get("/podcast/voices")).data,
+    staleTime: Infinity,
+  });
+}
+
+export function usePodcastJob(id: string | null) {
+  return useQuery<PodcastJob>({
+    queryKey: ["podcast-job", id],
+    queryFn: async () => (await api.get(`/podcast/jobs/${id}`)).data,
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const s = query.state.data?.status;
+      return s === "pending" || s === "scripting" || s === "generating" ? 3000 : false;
+    },
+  });
+}
+
+export function usePodcastJobs() {
+  return useQuery<PodcastJob[]>({
+    queryKey: ["podcast-jobs"],
+    queryFn: async () => (await api.get("/podcast/jobs")).data,
+    staleTime: 30_000,
+  });
+}
+
+export function useGeneratePodcast() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: GeneratePodcastPayload) =>
+      api.post<PodcastJob>("/podcast/generate", payload).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["podcast-jobs"] }),
+  });
+}
+
+export function useDeletePodcastJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/podcast/jobs/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["podcast-jobs"] }),
+  });
+}
