@@ -298,7 +298,7 @@ export default function PodcastPage() {
               </div>
               {config.language === "hi-en" && (
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Script uses natural Hindi expressions (yaar, matlab, accha, bohot) with English for technical terms — just like real Indian podcasts.
+                  Hindi is the main language — English words slip in naturally, just like how people actually talk in Indian cities today.
                 </p>
               )}
             </div>
