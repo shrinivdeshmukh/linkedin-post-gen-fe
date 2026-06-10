@@ -89,14 +89,15 @@ export default function ComposerPage() {
   const navigate = useNavigate();
   const { postId: urlPostId } = useParams<{ postId: string }>();
   const location = useLocation();
-  const locationState = location.state as { rawContext?: string } | null;
+  const locationState = location.state as { rawContext?: string; spark?: { topic?: string; rawContext?: string } } | null;
+  const sparkState = locationState?.spark;
   const { data: me } = useMe();
   const { data: existingPost } = usePost(urlPostId ?? null);
   const { data: liAccount } = useLinkedInStatus();
 
   const [postType, setPostType] = useState<PostType>("text");
   const [postLength, setPostLength] = useState<"short" | "medium" | "long">("medium");
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(sparkState?.topic ?? "");
   const [postId, setPostId] = useState<string | null>(urlPostId ?? null);
   const [content, setContent] = useState("");
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
@@ -110,8 +111,9 @@ export default function ComposerPage() {
   const [carouselMode, setCarouselMode] = useState<"builder" | "upload">("builder");
   const [carouselPdf, setCarouselPdf] = useState<{ name: string; base64: string } | null>(null);
   const [documentContext, setDocumentContext] = useState<string | null>(null);
-  const [rawContext, setRawContext] = useState(locationState?.rawContext ?? "");
-  const [showRawContext, setShowRawContext] = useState(!!locationState?.rawContext);
+  const initialRawContext = sparkState?.rawContext ?? locationState?.rawContext ?? "";
+  const [rawContext, setRawContext] = useState(initialRawContext);
+  const [showRawContext, setShowRawContext] = useState(!!initialRawContext);
   const [pollData, setPollData] = useState<PollData>(DEFAULT_POLL);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [plannedDate, setPlannedDate] = useState<string>("");

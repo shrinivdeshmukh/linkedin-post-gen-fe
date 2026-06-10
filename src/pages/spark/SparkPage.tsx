@@ -16,6 +16,7 @@ interface SparkTopic {
   summary: string;
   angle: string;
   urgency: string;
+  why_now?: string;
   sources?: { title: string; url: string; snippet?: string }[];
 }
 
@@ -35,6 +36,7 @@ interface SparkCompetitor {
 interface SparkResult {
   mode?: string;
   summary?: string;
+  daily_pick?: { topic_index: number; why_now: string; hook: string };
   topics?: SparkTopic[];
   creative_connections?: SparkConnection[];
   competitor_updates?: SparkCompetitor[];
@@ -164,35 +166,46 @@ function DeepDiveModal({ onSubmit, onClose }: { onSubmit: (mode: string, topic?:
 
 // ── Grid view ─────────────────────────────────────────────────────────────────
 
-function TopicGridCard({ topic, onClick }: { topic: SparkTopic; onClick: () => void }) {
+function TopicGridCard({ topic, onClick, onWritePost }: { topic: SparkTopic; onClick: () => void; onWritePost: () => void }) {
   const urgencyDot =
     topic.urgency === "high" ? "bg-red-400" :
     topic.urgency === "medium" ? "bg-amber-400" : "bg-slate-300";
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group text-left bg-white rounded-2xl border border-slate-200 p-5 hover:border-indigo-300 hover:shadow-md transition-all duration-150 space-y-3"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${urgencyDot}`} />
-          <p className="text-sm font-semibold text-slate-900 leading-snug">{topic.title}</p>
+    <div className="group bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all duration-150 space-y-0 overflow-hidden">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left p-5 space-y-3"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${urgencyDot}`} />
+            <p className="text-sm font-semibold text-slate-900 leading-snug">{topic.title}</p>
+          </div>
+          <UrgencyBadge urgency={topic.urgency} />
         </div>
-        <UrgencyBadge urgency={topic.urgency} />
+        <p className="text-sm text-slate-500 line-clamp-2">{topic.summary}</p>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-slate-400">{topic.sources?.length ?? 0} source{(topic.sources?.length ?? 0) !== 1 ? "s" : ""}</span>
+          <span className="text-xs font-semibold text-indigo-600 group-hover:text-indigo-700 flex items-center gap-1">
+            Explore deeper
+            <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
+        </div>
+      </button>
+      <div className="px-5 pb-4">
+        <button
+          type="button"
+          onClick={onWritePost}
+          className="w-full py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl transition-colors"
+        >
+          Write post →
+        </button>
       </div>
-      <p className="text-sm text-slate-500 line-clamp-2">{topic.summary}</p>
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-400">{topic.sources?.length ?? 0} source{(topic.sources?.length ?? 0) !== 1 ? "s" : ""}</span>
-        <span className="text-xs font-semibold text-indigo-600 group-hover:text-indigo-700 flex items-center gap-1">
-          Explore deeper
-          <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </span>
-      </div>
-    </button>
+    </div>
   );
 }
 
@@ -203,11 +216,13 @@ function DeepDiveDetail({
   sessionId,
   onBack,
   onCreateCampaign,
+  onWritePost,
 }: {
   topic: SparkTopic;
   sessionId: string;
   onBack: () => void;
   onCreateCampaign: () => void;
+  onWritePost: (topic: string, rawContext: string) => void;
 }) {
   const { data: session } = useResearchSession(sessionId);
   const result = session?.result as SparkResult | null | undefined;
@@ -290,6 +305,13 @@ function DeepDiveDetail({
                       ))}
                     </div>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => onWritePost(t.title, t.angle)}
+                    className="w-full py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl transition-colors"
+                  >
+                    Write post →
+                  </button>
                 </div>
               ))}
             </div>
@@ -431,6 +453,10 @@ export default function SparkPage() {
     setDeepDiveSessionId(null);
   }
 
+  function handleWritePost(topic: string, rawContext: string) {
+    navigate("/composer", { state: { spark: { topic, rawContext } } });
+  }
+
   async function handleCreateCampaign() {
     setBriefLoading(true);
     try {
@@ -548,6 +574,37 @@ export default function SparkPage() {
         {!isLoading && !isRunning && baseSession?.status === "complete" && baseResult && view === "grid" && (
           <div className="space-y-8">
 
+            {/* Hero: Post this today */}
+            {baseResult.daily_pick && baseResult.topics && baseResult.topics[baseResult.daily_pick.topic_index] && (() => {
+              const pick = baseResult.daily_pick!;
+              const pickTopic = baseResult.topics![pick.topic_index];
+              return (
+                <div className="bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl p-6 text-white space-y-4">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Post this today</span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold">{pickTopic.title}</h3>
+                    <p className="text-sm text-indigo-100 mt-1">{pick.why_now}</p>
+                  </div>
+                  <div className="p-3 bg-white/10 rounded-xl border border-white/20">
+                    <p className="text-xs font-medium text-indigo-200 mb-1">Opening hook</p>
+                    <p className="text-sm text-white italic">"{pick.hook}"</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleWritePost(pickTopic.title, `${pick.hook}\n\n${pickTopic.angle}`)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-50 transition-colors"
+                  >
+                    Write this post →
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* Summary */}
             {baseResult.summary && (
               <div className="p-4 bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100 rounded-xl">
@@ -571,6 +628,7 @@ export default function SparkPage() {
                       key={i}
                       topic={topic}
                       onClick={() => handleTopicClick(topic)}
+                      onWritePost={() => handleWritePost(topic.title, topic.angle)}
                     />
                   ))}
                 </div>
@@ -586,28 +644,41 @@ export default function SparkPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {baseResult.creative_connections.map((item, i) => (
-                    <button
+                    <div
                       key={i}
-                      type="button"
-                      onClick={() => handleConnectionClick(item)}
-                      className="group text-left bg-white rounded-xl border border-slate-200 p-4 space-y-2 hover:border-violet-300 hover:shadow-md transition-all duration-150"
+                      className="group bg-white rounded-xl border border-slate-200 hover:border-violet-300 hover:shadow-md transition-all duration-150 overflow-hidden"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-900">{item.event}</p>
-                        <span className="text-xs font-semibold text-violet-600 group-hover:text-violet-700 flex items-center gap-1 flex-shrink-0">
-                          Explore
-                          <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                          </svg>
-                        </span>
+                      <button
+                        type="button"
+                        onClick={() => handleConnectionClick(item)}
+                        className="w-full text-left p-4 space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-900">{item.event}</p>
+                          <span className="text-xs font-semibold text-violet-600 group-hover:text-violet-700 flex items-center gap-1 flex-shrink-0">
+                            Explore
+                            <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600">{item.relevance}</p>
+                        <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-100">
+                          <p className="text-xs font-medium text-violet-700 mb-1">Post idea</p>
+                          <p className="text-sm text-violet-900">{item.post_idea}</p>
+                        </div>
+                        <p className="text-sm text-slate-500 italic pl-3 border-l-2 border-slate-200">"{item.hook}"</p>
+                      </button>
+                      <div className="px-4 pb-4">
+                        <button
+                          type="button"
+                          onClick={() => handleWritePost(item.event, `${item.hook}\n\n${item.post_idea}`)}
+                          className="w-full py-2 text-xs font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-100 rounded-xl transition-colors"
+                        >
+                          Write post →
+                        </button>
                       </div>
-                      <p className="text-sm text-slate-600">{item.relevance}</p>
-                      <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-100">
-                        <p className="text-xs font-medium text-violet-700 mb-1">Post idea</p>
-                        <p className="text-sm text-violet-900">{item.post_idea}</p>
-                      </div>
-                      <p className="text-sm text-slate-500 italic pl-3 border-l-2 border-slate-200">"{item.hook}"</p>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -662,6 +733,7 @@ export default function SparkPage() {
             sessionId={deepDiveSessionId}
             onBack={handleBack}
             onCreateCampaign={handleCreateCampaign}
+            onWritePost={handleWritePost}
           />
         )}
 
