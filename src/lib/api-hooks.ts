@@ -1072,6 +1072,7 @@ export interface PodcastConfig {
   tone: "conversational" | "interview" | "debate" | "educational";
   length: "short" | "medium" | "long";
   creativity: number;
+  language: "en" | "hi-en";
 }
 
 export interface PodcastJob {

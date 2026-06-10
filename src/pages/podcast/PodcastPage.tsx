@@ -176,6 +176,7 @@ const DEFAULT_CONFIG: PodcastConfig = {
   tone: "conversational",
   length: "medium",
   creativity: 0.5,
+  language: "en",
 };
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -269,6 +270,37 @@ export default function PodcastPage() {
                 className="w-full text-sm border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-slate-400"
               />
               <p className="text-xs text-slate-400">{blogContent.trim().length} characters</p>
+            </div>
+
+            {/* Language */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Language</label>
+              <div className="flex gap-2">
+                {([
+                  { value: "en",    label: "English",  desc: "Standard English" },
+                  { value: "hi-en", label: "Hinglish", desc: "Hindi + English mix" },
+                ] as { value: PodcastConfig["language"]; label: string; desc: string }[]).map((l) => (
+                  <button
+                    key={l.value}
+                    type="button"
+                    onClick={() => updateConfig("language", l.value)}
+                    className={[
+                      "flex-1 py-2.5 px-3 rounded-xl border text-left transition-all",
+                      config.language === l.value
+                        ? "bg-indigo-600 border-indigo-600 text-white"
+                        : "bg-white border-slate-200 text-slate-700 hover:border-indigo-300",
+                    ].join(" ")}
+                  >
+                    <p className="text-xs font-semibold">{l.label}</p>
+                    <p className={`text-[11px] mt-0.5 ${config.language === l.value ? "text-indigo-200" : "text-slate-400"}`}>{l.desc}</p>
+                  </button>
+                ))}
+              </div>
+              {config.language === "hi-en" && (
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Script uses natural Hindi expressions (yaar, matlab, accha, bohot) with English for technical terms — just like real Indian podcasts.
+                </p>
+              )}
             </div>
 
             {/* Tone */}
