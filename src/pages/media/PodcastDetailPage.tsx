@@ -256,9 +256,10 @@ export default function PodcastDetailPage() {
               )}
             </div>
 
-            {job.transcript_status === "done" && job.video_status === "none" && (
+            {/* Generate / Regenerate / Retry — shown whenever transcript is ready and not currently processing */}
+            {job.transcript_status === "done" &&
+              !["pending", "generating_visuals", "rendering"].includes(job.video_status) && (
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Mode toggle */}
                 <div className="flex items-center bg-slate-100 rounded-xl p-0.5 text-xs font-medium">
                   {(["static", "animated", "cinematic"] as const).map((mode) => (
                     <button
@@ -282,26 +283,25 @@ export default function PodcastDetailPage() {
                     cinematic: videoMode === "cinematic",
                   })}
                   disabled={generateVideo.isPending}
-                  className="flex items-center gap-2 text-sm font-medium px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white rounded-xl transition-all shadow-sm"
+                  className={`flex items-center gap-2 text-sm font-medium px-4 py-2 disabled:opacity-50 text-white rounded-xl transition-all shadow-sm ${
+                    job.video_status === "failed"
+                      ? "bg-red-500 hover:bg-red-600"
+                      : job.video_status === "complete"
+                      ? "bg-slate-600 hover:bg-slate-700"
+                      : "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700"
+                  }`}
                 >
                   {generateVideo.isPending ? (
                     <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Starting…</>
+                  ) : job.video_status === "failed" ? (
+                    <>Retry video generation</>
+                  ) : job.video_status === "complete" ? (
+                    <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Regenerate video</>
                   ) : (
                     <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.677V15.32a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>Generate AI video</>
                   )}
                 </button>
               </div>
-            )}
-
-            {job.video_status === "failed" && (
-              <button
-                type="button"
-                onClick={() => jobId && generateVideo.mutate({ jobId, animated: videoMode === "animated", cinematic: videoMode === "cinematic" })}
-                disabled={generateVideo.isPending}
-                className="text-sm font-medium px-3 py-1.5 border border-red-200 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-              >
-                Retry video generation
-              </button>
             )}
 
             {job.transcript_status !== "done" && job.video_status === "none" && (
