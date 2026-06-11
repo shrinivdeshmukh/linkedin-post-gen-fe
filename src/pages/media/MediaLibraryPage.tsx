@@ -306,6 +306,7 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
 // ─── Podcast card ─────────────────────────────────────────────────────────────
 
 function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: () => void; deleting: boolean }) {
+  const navigate = useNavigate();
   const [playing, setPlaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -347,10 +348,13 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-200 hover:shadow-sm transition-all">
       {/* Waveform / play area */}
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 px-4 py-5 flex items-center gap-3">
+      <div
+        className="bg-gradient-to-br from-indigo-50 to-purple-50 px-4 py-5 flex items-center gap-3 cursor-pointer hover:from-indigo-100 hover:to-purple-100 transition-colors"
+        onClick={() => job.status === "complete" && navigate(`/p/${job.id}`)}
+      >
         <button
           type="button"
-          onClick={togglePlay}
+          onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           disabled={job.status !== "complete"}
           className="w-10 h-10 flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-full flex items-center justify-center transition-colors"
         >
@@ -378,22 +382,24 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
 
       {/* Footer actions */}
       <div className="px-3 py-2.5 flex items-center gap-2">
-        {job.audio_url && (
+        {job.status === "complete" && (
           <>
             <button
               type="button"
-              onClick={() => { navigator.clipboard.writeText(job.audio_url!); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/p/${job.id}`); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
               className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
             >
               {copied ? "Copied!" : "Copy link"}
             </button>
-            <a
-              href={job.audio_url}
-              download
-              className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
-            >
-              Download
-            </a>
+            {job.audio_url && (
+              <a
+                href={job.audio_url}
+                download
+                className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
+              >
+                Download
+              </a>
+            )}
           </>
         )}
         {!confirmDelete ? (

@@ -26,6 +26,7 @@ import AdminPage from "./pages/admin/AdminPage";
 import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 import SparkPage from "./pages/spark/SparkPage";
 import PodcastPage from "./pages/podcast/PodcastPage";
+import PodcastPublicPage from "./pages/podcast/PodcastPublicPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/linkedin/callback" element={<LinkedInCallbackPage />} />
         <Route path="/v/:slug" element={<VideoPublicPage />} />
+        <Route path="/p/:jobId" element={<PodcastPublicPage />} />
         <Route path="/shared/collections/:token" element={<PublicCollectionPage />} />
         <Route path="/invite/:token" element={<AcceptInvitePage />} />
 
