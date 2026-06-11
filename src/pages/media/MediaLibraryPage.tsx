@@ -303,6 +303,21 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
   );
 }
 
+// ─── Podcast transcript helpers ───────────────────────────────────────────────
+
+interface TranscriptLine { speaker: string; text: string; }
+
+function parseTranscript(script: string): TranscriptLine[] {
+  return script.split("\n").map((line) => {
+    const colon = line.indexOf(":");
+    if (colon === -1) return null;
+    const speaker = line.slice(0, colon).trim();
+    const text = line.slice(colon + 1).trim().replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
+    if (!speaker || !text) return null;
+    return { speaker, text };
+  }).filter((l): l is TranscriptLine => l !== null);
+}
+
 // ─── Podcast card ─────────────────────────────────────────────────────────────
 
 function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: () => void; deleting: boolean }) {
@@ -310,6 +325,7 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
   const [playing, setPlaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   function formatDuration(s: number | null) {
@@ -380,6 +396,25 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
         <audio ref={audioRef} src={job.audio_url} onEnded={() => setPlaying(false)} preload="none" />
       )}
 
+      {/* Transcript panel */}
+      {showTranscript && job.script && (() => {
+        const lines = parseTranscript(job.script);
+        const speakers = [...new Set(lines.map((l) => l.speaker))];
+        const colors = ["text-indigo-600", "text-violet-600"];
+        return lines.length ? (
+          <div className="px-3 pb-3 max-h-48 overflow-y-auto space-y-2 border-t border-slate-100 pt-2">
+            {lines.map((line, i) => (
+              <div key={i} className="flex gap-2">
+                <span className={`text-[10px] font-bold flex-shrink-0 w-12 truncate pt-0.5 ${colors[speakers.indexOf(line.speaker) % colors.length]}`}>
+                  {line.speaker}
+                </span>
+                <p className="text-xs text-slate-600 leading-relaxed">{line.text}</p>
+              </div>
+            ))}
+          </div>
+        ) : null;
+      })()}
+
       {/* Footer actions */}
       <div className="px-3 py-2.5 flex items-center gap-2">
         {job.status === "complete" && (
@@ -401,6 +436,12 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
               </a>
             )}
           </>
+        )}
+        {job.script && (
+          <button type="button" onClick={() => setShowTranscript((v) => !v)}
+            className={`text-xs font-medium px-3 py-1.5 border rounded-xl transition-colors ${showTranscript ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "border-slate-200 text-slate-400 hover:text-slate-600"}`}>
+            {showTranscript ? "Hide" : "Transcript"}
+          </button>
         )}
         {!confirmDelete ? (
           <button type="button" onClick={() => setConfirmDelete(true)}

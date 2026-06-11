@@ -3,6 +3,29 @@ import { useParams, Link } from "react-router-dom";
 import api from "../../lib/api";
 import type { PodcastJob } from "../../lib/api-hooks";
 
+// ── Script → transcript ───────────────────────────────────────────────────────
+
+interface TranscriptLine {
+  speaker: string;
+  text: string;
+}
+
+function parseTranscript(script: string): TranscriptLine[] {
+  return script
+    .split("\n")
+    .map((line) => {
+      const colon = line.indexOf(":");
+      if (colon === -1) return null;
+      const speaker = line.slice(0, colon).trim();
+      const raw = line.slice(colon + 1).trim();
+      // Strip [emotion] tags
+      const text = raw.replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
+      if (!speaker || !text) return null;
+      return { speaker, text };
+    })
+    .filter((l): l is TranscriptLine => l !== null);
+}
+
 export default function PodcastPublicPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const [job, setJob] = useState<PodcastJob | null>(null);
@@ -117,6 +140,30 @@ export default function PodcastPublicPage() {
             </a>
           )}
         </div>
+
+        {/* Transcript */}
+        {job.script && (() => {
+          const lines = parseTranscript(job.script);
+          if (!lines.length) return null;
+          const speakers = [...new Set(lines.map((l) => l.speaker))];
+          const colors = ["text-indigo-600", "text-violet-600"];
+          const speakerColor = (s: string) => colors[speakers.indexOf(s) % colors.length];
+          return (
+            <div className="space-y-3">
+              <h2 className="text-base font-semibold text-slate-900">Transcript</h2>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-h-96 overflow-y-auto space-y-3">
+                {lines.map((line, i) => (
+                  <div key={i} className="flex gap-2.5">
+                    <span className={`text-xs font-bold flex-shrink-0 w-16 pt-0.5 truncate ${speakerColor(line.speaker)}`}>
+                      {line.speaker}
+                    </span>
+                    <p className="text-sm text-slate-700 leading-relaxed">{line.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* CTA banner */}
         <div className="rounded-2xl bg-indigo-50 border border-indigo-100 px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
