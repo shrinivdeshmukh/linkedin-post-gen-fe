@@ -1138,8 +1138,8 @@ export function useTranscribePodcast() {
 export function useGeneratePodcastVideo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (jobId: string) =>
-      api.post<PodcastJob>(`/podcast/jobs/${jobId}/generate-video`).then((r) => r.data),
+    mutationFn: ({ jobId, animated }: { jobId: string; animated: boolean }) =>
+      api.post<PodcastJob>(`/podcast/jobs/${jobId}/generate-video`, { animated }).then((r) => r.data),
     onSuccess: (data) => {
       qc.setQueryData(["podcast-job", data.id], data);
       qc.invalidateQueries({ queryKey: ["podcast-jobs"] });
