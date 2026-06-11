@@ -28,7 +28,7 @@ export default function PodcastDetailPage() {
   const generateVideo = useGeneratePodcastVideo();
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [animatedVideo, setAnimatedVideo] = useState(false);
+  const [videoMode, setVideoMode] = useState<"static" | "animated" | "cinematic">("static");
 
   function copyShareLink() {
     navigator.clipboard.writeText(`${window.location.origin}/p/${jobId}`);
@@ -258,26 +258,29 @@ export default function PodcastDetailPage() {
 
             {job.transcript_status === "done" && job.video_status === "none" && (
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Static / Animated toggle */}
+                {/* Mode toggle */}
                 <div className="flex items-center bg-slate-100 rounded-xl p-0.5 text-xs font-medium">
-                  <button
-                    type="button"
-                    onClick={() => setAnimatedVideo(false)}
-                    className={`px-3 py-1.5 rounded-lg transition-colors ${!animatedVideo ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                  >
-                    Static
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAnimatedVideo(true)}
-                    className={`px-3 py-1.5 rounded-lg transition-colors ${animatedVideo ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
-                  >
-                    Animated
-                  </button>
+                  {(["static", "animated", "cinematic"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setVideoMode(mode)}
+                      className={`px-3 py-1.5 rounded-lg capitalize transition-colors ${videoMode === mode ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                      {mode === "cinematic" ? "✦ Cinematic" : mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    </button>
+                  ))}
                 </div>
+                {videoMode === "cinematic" && (
+                  <span className="text-xs text-violet-500 font-medium">Real scenes via Veo · 15–30 min</span>
+                )}
                 <button
                   type="button"
-                  onClick={() => jobId && generateVideo.mutate({ jobId, animated: animatedVideo })}
+                  onClick={() => jobId && generateVideo.mutate({
+                    jobId,
+                    animated: videoMode === "animated",
+                    cinematic: videoMode === "cinematic",
+                  })}
                   disabled={generateVideo.isPending}
                   className="flex items-center gap-2 text-sm font-medium px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white rounded-xl transition-all shadow-sm"
                 >
@@ -293,7 +296,7 @@ export default function PodcastDetailPage() {
             {job.video_status === "failed" && (
               <button
                 type="button"
-                onClick={() => jobId && generateVideo.mutate({ jobId, animated: animatedVideo })}
+                onClick={() => jobId && generateVideo.mutate({ jobId, animated: videoMode === "animated", cinematic: videoMode === "cinematic" })}
                 disabled={generateVideo.isPending}
                 className="text-sm font-medium px-3 py-1.5 border border-red-200 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
               >
