@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { usePodcastJob, useDeletePodcastJob, useTranscribePodcast } from "../../lib/api-hooks";
+import { usePodcastJob, useDeletePodcastJob, useTranscribePodcast, useGeneratePodcastVideo } from "../../lib/api-hooks";
 
 // ── Transcript helpers ────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ export default function PodcastDetailPage() {
   const { data: job, isLoading } = usePodcastJob(jobId ?? null);
   const deleteJob = useDeletePodcastJob();
   const transcribeJob = useTranscribePodcast();
+  const generateVideo = useGeneratePodcastVideo();
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -233,6 +234,101 @@ export default function PodcastDetailPage() {
                   <p className="text-sm text-slate-700 leading-relaxed">{line.text}</p>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* AI Video */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900">AI Video</h2>
+              {(job.video_status === "pending" || job.video_status === "generating_visuals" || job.video_status === "rendering") && (
+                <span className="flex items-center gap-1.5 text-xs text-indigo-600">
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                  {{
+                    pending: "Queued…",
+                    generating_visuals: "Generating visuals…",
+                    rendering: "Rendering video…",
+                  }[job.video_status]}
+                </span>
+              )}
+            </div>
+
+            {job.transcript_status === "done" && job.video_status === "none" && (
+              <button
+                type="button"
+                onClick={() => jobId && generateVideo.mutate(jobId)}
+                disabled={generateVideo.isPending}
+                className="flex items-center gap-2 text-sm font-medium px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white rounded-xl transition-all shadow-sm"
+              >
+                {generateVideo.isPending ? (
+                  <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Starting…</>
+                ) : (
+                  <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.677V15.32a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>Generate AI video</>
+                )}
+              </button>
+            )}
+
+            {job.video_status === "failed" && (
+              <button
+                type="button"
+                onClick={() => jobId && generateVideo.mutate(jobId)}
+                disabled={generateVideo.isPending}
+                className="text-sm font-medium px-3 py-1.5 border border-red-200 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+              >
+                Retry video generation
+              </button>
+            )}
+
+            {job.transcript_status !== "done" && job.video_status === "none" && (
+              <p className="text-xs text-slate-400">Generate a transcript first to enable video generation.</p>
+            )}
+          </div>
+
+          {job.video_status === "complete" && job.video_url && (
+            <div className="space-y-3">
+              <div className="rounded-2xl overflow-hidden bg-slate-950 shadow-xl">
+                <video src={job.video_url} controls className="w-full" style={{ maxHeight: "60vh" }} />
+              </div>
+              <div className="flex gap-3">
+                <a
+                  href={job.video_url}
+                  download
+                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Download MP4
+                </a>
+              </div>
+            </div>
+          )}
+
+          {(job.video_status === "generating_visuals" || job.video_status === "rendering" || job.video_status === "pending") && (
+            <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-3">
+              <div className="flex gap-3">
+                {[
+                  { key: "pending",            label: "Queued" },
+                  { key: "generating_visuals", label: "Generating visuals" },
+                  { key: "rendering",          label: "Rendering video" },
+                  { key: "complete",           label: "Done" },
+                ].map((step, i, arr) => {
+                  const order = ["pending", "generating_visuals", "rendering", "complete"];
+                  const cur = order.indexOf(job.video_status);
+                  const me = order.indexOf(step.key);
+                  return (
+                    <div key={step.key} className={`h-1.5 flex-1 rounded-full transition-colors ${me < cur ? "bg-indigo-500" : me === cur ? "bg-indigo-400 animate-pulse" : "bg-indigo-100"}`} />
+                  );
+                })}
+              </div>
+              <p className="text-xs text-indigo-600 font-medium">
+                {{
+                  pending: "Waiting to start…",
+                  generating_visuals: "Claude is writing visual descriptions, then generating images with Gemini…",
+                  rendering: "FFmpeg is assembling your video…",
+                }[job.video_status as string] ?? ""}
+              </p>
+              <p className="text-xs text-indigo-400">This takes 5–15 minutes depending on podcast length. You can leave and come back.</p>
             </div>
           )}
         </div>

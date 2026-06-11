@@ -1088,6 +1088,8 @@ export interface PodcastJob {
   transcript_status: "none" | "pending" | "processing" | "done" | "failed";
   transcript: string | null;
   detected_language: string | null;
+  video_status: "none" | "pending" | "generating_visuals" | "rendering" | "complete" | "failed";
+  video_url: string | null;
   created_at: string;
   completed_at: string | null;
 }
@@ -1115,7 +1117,8 @@ export function usePodcastJob(id: string | null) {
       const d = query.state.data;
       const generatingAudio = d?.status === "pending" || d?.status === "scripting" || d?.status === "generating";
       const transcribing = d?.transcript_status === "pending" || d?.transcript_status === "processing";
-      return generatingAudio || transcribing ? 3000 : false;
+      const generatingVideo = d?.video_status === "pending" || d?.video_status === "generating_visuals" || d?.video_status === "rendering";
+      return generatingAudio || transcribing || generatingVideo ? 3000 : false;
     },
   });
 }
@@ -1125,6 +1128,18 @@ export function useTranscribePodcast() {
   return useMutation({
     mutationFn: (jobId: string) =>
       api.post<PodcastJob>(`/podcast/jobs/${jobId}/transcribe`).then((r) => r.data),
+    onSuccess: (data) => {
+      qc.setQueryData(["podcast-job", data.id], data);
+      qc.invalidateQueries({ queryKey: ["podcast-jobs"] });
+    },
+  });
+}
+
+export function useGeneratePodcastVideo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) =>
+      api.post<PodcastJob>(`/podcast/jobs/${jobId}/generate-video`).then((r) => r.data),
     onSuccess: (data) => {
       qc.setQueryData(["podcast-job", data.id], data);
       qc.invalidateQueries({ queryKey: ["podcast-jobs"] });
