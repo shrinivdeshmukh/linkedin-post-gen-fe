@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { usePodcastJob, useDeletePodcastJob } from "../../lib/api-hooks";
+import { usePodcastJob, useDeletePodcastJob, useTranscribePodcast } from "../../lib/api-hooks";
 
 // ── Transcript helpers ────────────────────────────────────────────────────────
 
@@ -24,6 +24,7 @@ export default function PodcastDetailPage() {
   const navigate = useNavigate();
   const { data: job, isLoading } = usePodcastJob(jobId ?? null);
   const deleteJob = useDeletePodcastJob();
+  const transcribeJob = useTranscribePodcast();
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -167,10 +168,63 @@ export default function PodcastDetailPage() {
         )}
 
         {/* Transcript */}
-        {transcript.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-base font-semibold text-slate-900">Transcript</h2>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900">Transcript</h2>
+              {job.detected_language && (
+                <span className="text-xs font-medium px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">
+                  {job.detected_language}
+                </span>
+              )}
+              {(job.transcript_status === "pending" || job.transcript_status === "processing") && (
+                <span className="flex items-center gap-1.5 text-xs text-indigo-600">
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                  {job.transcript_status === "pending" ? "Queued…" : "Transcribing…"}
+                </span>
+              )}
+            </div>
+            {job.status === "complete" && job.transcript_status === "none" && (
+              <button
+                type="button"
+                onClick={() => jobId && transcribeJob.mutate(jobId)}
+                disabled={transcribeJob.isPending}
+                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition-colors"
+              >
+                {transcribeJob.isPending ? (
+                  <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Starting…</>
+                ) : (
+                  <>Generate timestamped transcript</>
+                )}
+              </button>
+            )}
+            {job.transcript_status === "failed" && (
+              <button
+                type="button"
+                onClick={() => jobId && transcribeJob.mutate(jobId)}
+                disabled={transcribeJob.isPending}
+                className="text-sm font-medium px-3 py-1.5 border border-red-200 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+              >
+                Retry transcription
+              </button>
+            )}
+          </div>
+
+          {/* Gemini timestamped transcript */}
+          {job.transcript_status === "done" && job.transcript && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-h-96 overflow-y-auto">
+              <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-sans">
+                {job.transcript}
+              </pre>
+            </div>
+          )}
+
+          {/* Fallback: script-parsed transcript while waiting or if transcription not triggered */}
+          {job.transcript_status !== "done" && transcript.length > 0 && (
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+              {job.transcript_status === "none" && (
+                <p className="text-xs text-slate-400 mb-2">Script-based transcript (no timestamps). Generate a timestamped transcript above.</p>
+              )}
               {transcript.map((line, i) => (
                 <div key={i} className="flex gap-3">
                   <span className={`text-xs font-bold flex-shrink-0 w-16 pt-0.5 truncate ${speakerColors[speakers.indexOf(line.speaker) % speakerColors.length]}`}>
@@ -180,8 +234,8 @@ export default function PodcastDetailPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
       </div>
     </div>
