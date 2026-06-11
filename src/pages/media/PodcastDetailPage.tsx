@@ -312,7 +312,7 @@ export default function PodcastDetailPage() {
                   { key: "generating_visuals", label: "Generating visuals" },
                   { key: "rendering",          label: "Rendering video" },
                   { key: "complete",           label: "Done" },
-                ].map((step, i, arr) => {
+                ].map((step) => {
                   const order = ["pending", "generating_visuals", "rendering", "complete"];
                   const cur = order.indexOf(job.video_status);
                   const me = order.indexOf(step.key);
