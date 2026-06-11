@@ -303,21 +303,6 @@ function VideoCard({ video, onDelete, deleting }: { video: Video; onDelete: () =
   );
 }
 
-// ─── Podcast transcript helpers ───────────────────────────────────────────────
-
-interface TranscriptLine { speaker: string; text: string; }
-
-function parseTranscript(script: string): TranscriptLine[] {
-  return script.split("\n").map((line) => {
-    const colon = line.indexOf(":");
-    if (colon === -1) return null;
-    const speaker = line.slice(0, colon).trim();
-    const text = line.slice(colon + 1).trim().replace(/\[[^\]]+\]/g, "").replace(/\s+/g, " ").trim();
-    if (!speaker || !text) return null;
-    return { speaker, text };
-  }).filter((l): l is TranscriptLine => l !== null);
-}
-
 // ─── Podcast card ─────────────────────────────────────────────────────────────
 
 function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: () => void; deleting: boolean }) {
@@ -325,7 +310,6 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
   const [playing, setPlaying] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showTranscript, setShowTranscript] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   function formatDuration(s: number | null) {
@@ -366,7 +350,7 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
       {/* Waveform / play area */}
       <div
         className="bg-gradient-to-br from-indigo-50 to-purple-50 px-4 py-5 flex items-center gap-3 cursor-pointer hover:from-indigo-100 hover:to-purple-100 transition-colors"
-        onClick={() => job.status === "complete" && navigate(`/p/${job.id}`)}
+        onClick={() => navigate(`/media/podcasts/${job.id}`)}
       >
         <button
           type="button"
@@ -396,60 +380,24 @@ function PodcastCard({ job, onDelete, deleting }: { job: PodcastJob; onDelete: (
         <audio ref={audioRef} src={job.audio_url} onEnded={() => setPlaying(false)} preload="none" />
       )}
 
-      {/* Transcript panel */}
-      {showTranscript && job.script && (() => {
-        const lines = parseTranscript(job.script);
-        const speakers = [...new Set(lines.map((l) => l.speaker))];
-        const colors = ["text-indigo-600", "text-violet-600"];
-        return lines.length ? (
-          <div className="px-3 pb-3 max-h-48 overflow-y-auto space-y-2 border-t border-slate-100 pt-2">
-            {lines.map((line, i) => (
-              <div key={i} className="flex gap-2">
-                <span className={`text-[10px] font-bold flex-shrink-0 w-12 truncate pt-0.5 ${colors[speakers.indexOf(line.speaker) % colors.length]}`}>
-                  {line.speaker}
-                </span>
-                <p className="text-xs text-slate-600 leading-relaxed">{line.text}</p>
-              </div>
-            ))}
-          </div>
-        ) : null;
-      })()}
-
       {/* Footer actions */}
       <div className="px-3 py-2.5 flex items-center gap-2">
         {job.status === "complete" && (
-          <>
-            <button
-              type="button"
-              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/p/${job.id}`); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-              className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
-            >
-              {copied ? "Copied!" : "Copy link"}
-            </button>
-            {job.audio_url && (
-              <a
-                href={job.audio_url}
-                download
-                className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
-              >
-                Download
-              </a>
-            )}
-          </>
-        )}
-        {job.script && (
-          <button type="button" onClick={() => setShowTranscript((v) => !v)}
-            className={`text-xs font-medium px-3 py-1.5 border rounded-xl transition-colors ${showTranscript ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "border-slate-200 text-slate-400 hover:text-slate-600"}`}>
-            {showTranscript ? "Hide" : "Transcript"}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/p/${job.id}`); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+            className="flex-1 text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors"
+          >
+            {copied ? "Copied!" : "Copy link"}
           </button>
         )}
         {!confirmDelete ? (
-          <button type="button" onClick={() => setConfirmDelete(true)}
+          <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
             className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-xl hover:border-red-200 hover:text-red-500 text-slate-400 transition-colors">
             Delete
           </button>
         ) : (
-          <button type="button" onClick={onDelete} disabled={deleting}
+          <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }} disabled={deleting}
             className="text-xs font-medium px-3 py-1.5 bg-red-500 text-white rounded-xl disabled:opacity-50 transition-colors">
             {deleting ? "…" : "Confirm"}
           </button>

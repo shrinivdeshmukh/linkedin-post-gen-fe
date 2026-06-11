@@ -27,6 +27,7 @@ import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 import SparkPage from "./pages/spark/SparkPage";
 import PodcastPage from "./pages/podcast/PodcastPage";
 import PodcastPublicPage from "./pages/podcast/PodcastPublicPage";
+import PodcastDetailPage from "./pages/media/PodcastDetailPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -89,6 +90,7 @@ export default function App() {
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="media/collections/:collectionId" element={<MediaCollectionDetailPage />} />
           <Route path="media/videos/:videoId" element={<VideoDetailPage />} />
+          <Route path="media/podcasts/:jobId" element={<PodcastDetailPage />} />
           <Route path="calendar" element={<ContentCalendarPage />} />
           <Route path="schedule" element={<ContentCalendarPage />} />
           <Route path="settings" element={<SettingsPage />} />
