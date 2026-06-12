@@ -26,6 +26,7 @@ import AdminPage from "./pages/admin/AdminPage";
 import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 import SparkPage from "./pages/spark/SparkPage";
 import PodcastPage from "./pages/podcast/PodcastPage";
+import StudioPage from "./pages/studio/StudioPage";
 import PodcastPublicPage from "./pages/podcast/PodcastPublicPage";
 import PodcastDetailPage from "./pages/media/PodcastDetailPage";
 
@@ -79,6 +80,7 @@ export default function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="studio" element={<StudioPage />} />
           <Route path="composer" element={<ComposerPage />} />
           <Route path="composer/:postId" element={<ComposerPage />} />
           <Route path="approvals" element={<ApprovalsPage />} />
