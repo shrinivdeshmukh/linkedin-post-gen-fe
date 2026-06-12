@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePosts, useApprovePost, useSchedulePost, useUnschedulePost, useMe, type Post } from "../../lib/api-hooks";
+import { usePosts, useApprovePost, useSchedulePost, useMe, type Post } from "../../lib/api-hooks";
 import { StatusBadge } from "../../components/dashboard/StatusBadge";
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -38,7 +38,6 @@ export default function ApprovalsPage() {
   );
   const approvePost = useApprovePost();
   const schedulePost = useSchedulePost();
-  const unschedulePost = useUnschedulePost();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rejectMode, setRejectMode] = useState(false);

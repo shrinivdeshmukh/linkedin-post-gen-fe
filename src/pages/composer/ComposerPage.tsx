@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { AIResultCard } from "./components/AIResultCard";
 import { PostEditor } from "./components/PostEditor";
 import { LinkedInPreview } from "./components/LinkedInPreview";
@@ -90,7 +90,6 @@ const POST_TYPE_OPTIONS: { type: PostType; label: string; icon: React.ReactNode 
 ];
 
 export default function ComposerPage() {
-  const navigate = useNavigate();
   const { postId: urlPostId } = useParams<{ postId: string }>();
   const location = useLocation();
   const locationState = location.state as { rawContext?: string; spark?: { topic?: string; rawContext?: string } } | null;
