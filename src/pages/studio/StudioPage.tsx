@@ -237,15 +237,17 @@ export default function StudioPage() {
   const navigate = useNavigate();
   const tab = (searchParams.get("tab") as Tab) ?? "post";
   const [sparkOpen, setSparkOpen] = useState(true);
+  const [composerKey, setComposerKey] = useState(0);
+  const [campaignKey, setCampaignKey] = useState(0);
 
   function usePost(topic: string, rawContext: string) {
-    navigate("/studio", { state: { spark: { topic, rawContext } } });
-    setSearchParams({ tab: "post" });
+    navigate("/studio?tab=post", { state: { spark: { topic, rawContext } } });
+    setComposerKey((k) => k + 1);
   }
 
   function useCampaign(prefill: object) {
-    navigate("/studio", { state: { prefill } });
-    setSearchParams({ tab: "campaign" });
+    navigate("/studio?tab=campaign", { state: { prefill } });
+    setCampaignKey((k) => k + 1);
   }
 
   return (
@@ -290,8 +292,8 @@ export default function StudioPage() {
       <div className="flex-1 overflow-hidden flex">
         {/* Tab content */}
         <div className={`flex-1 overflow-hidden transition-all ${sparkOpen ? "min-w-0" : ""}`}>
-          {tab === "post"     && <ComposerPage />}
-          {tab === "campaign" && <NewCampaignPage />}
+          {tab === "post"     && <ComposerPage key={composerKey} />}
+          {tab === "campaign" && <NewCampaignPage key={campaignKey} />}
           {tab === "podcast"  && <PodcastPage />}
         </div>
 
