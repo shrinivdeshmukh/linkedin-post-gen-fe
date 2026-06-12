@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePosts, useUpdatePost, type Post } from "../../lib/api-hooks";
+import {
+  usePosts,
+  useUpdatePost,
+  useSchedulePost,
+  useUnschedulePost,
+  usePublishPost,
+  type Post,
+} from "../../lib/api-hooks";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -63,73 +70,206 @@ function PostPill({ post, onClick }: { post: Post; onClick: () => void }) {
   );
 }
 
-// DateSetModal — lets user set or clear a planned date for a post
-function DateSetModal({ post, onClose }: { post: Post; onClose: () => void }) {
+// PostScheduleDrawer — right-side panel with date setting + full scheduling actions
+function PostScheduleDrawer({ post, onClose }: { post: Post; onClose: () => void }) {
+  const navigate = useNavigate();
   const updatePost = useUpdatePost();
-  const [value, setValue] = useState<string>(() => {
+  const schedulePost = useSchedulePost();
+  const unschedulePost = useUnschedulePost();
+  const publishPost = usePublishPost();
+
+  const [dateValue, setDateValue] = useState<string>(() => {
     if (!post.scheduled_at) return "";
     const d = new Date(post.scheduled_at);
     const off = d.getTimezoneOffset() * 60000;
     return new Date(d.getTime() - off).toISOString().slice(0, 16);
   });
 
-  async function handleSave() {
+  const isPending =
+    updatePost.isPending || schedulePost.isPending ||
+    unschedulePost.isPending || publishPost.isPending;
+
+  const excerpt = post.medium === "blog"
+    ? post.title ?? "Blog post"
+    : (post.content ?? post.title ?? "Untitled").slice(0, 160);
+
+  const colors = STATUS_COLORS[post.status] ?? STATUS_COLORS.draft;
+
+  function minDatetime() {
+    const d = new Date(Date.now() + 2 * 60 * 1000);
+    const off = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - off).toISOString().slice(0, 16);
+  }
+
+  async function handleSaveDate() {
     await updatePost.mutateAsync({
       id: post.id,
-      scheduled_at: value ? new Date(value).toISOString() : null,
+      scheduled_at: dateValue ? new Date(dateValue).toISOString() : null,
     });
+  }
+
+  async function handleSchedule() {
+    if (!dateValue) return;
+    await schedulePost.mutateAsync({ postId: post.id, publishAt: new Date(dateValue).toISOString() });
     onClose();
   }
 
-  async function handleClear() {
+  async function handleUnschedule() {
+    await unschedulePost.mutateAsync(post.id);
+    onClose();
+  }
+
+  async function handlePublishNow() {
+    await publishPost.mutateAsync(post.id);
+    onClose();
+  }
+
+  async function handleClearDate() {
     await updatePost.mutateAsync({ id: post.id, scheduled_at: null });
     onClose();
   }
 
-  const excerpt = post.medium === "blog"
-    ? post.title ?? "Blog post"
-    : (post.content ?? post.title ?? "Untitled").slice(0, 80);
+  function openPost() {
+    onClose();
+    if (post.medium === "blog") navigate(`/blog/${post.id}`);
+    else navigate(`/composer/${post.id}`);
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
-        <div>
-          <h2 className="text-base font-bold text-slate-900">Set planned date</h2>
-          <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{excerpt}</p>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-600">Pick a date</label>
-          <input
-            type="datetime-local"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
-          />
-          <p className="text-[11px] text-slate-400">This is a planning reminder only.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSave}
-            disabled={updatePost.isPending}
-            className="flex-1 text-sm font-semibold py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors disabled:opacity-50"
-          >
-            {updatePost.isPending ? "Saving…" : "Save date"}
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40 bg-black/30" onClick={onClose} />
+
+      {/* Drawer */}
+      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${colors.bg} ${colors.text}`}>
+              {post.status.replace("_", " ")}
+            </span>
+            <span className="text-xs text-slate-400 capitalize">
+              {post.medium === "blog" ? "blog" : post.type}
+            </span>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-          {post.scheduled_at && (
-            <button
-              onClick={handleClear}
-              disabled={updatePost.isPending}
-              className="px-3 py-2 text-sm text-red-500 hover:text-red-700 border border-red-100 hover:border-red-200 rounded-xl transition-colors"
-            >
-              Clear
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Post preview */}
+          <div className="bg-slate-50 rounded-xl p-4">
+            <p className="text-sm text-slate-700 line-clamp-4">{excerpt}</p>
+            <button onClick={openPost} className="mt-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+              Open post
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
             </button>
-          )}
-          <button onClick={onClose} className="px-3 py-2 text-sm text-slate-500 hover:text-slate-700">
-            Cancel
-          </button>
+          </div>
+
+          {/* Date/time picker */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Date & time</label>
+            <input
+              type="datetime-local"
+              value={dateValue}
+              min={minDatetime()}
+              onChange={(e) => setDateValue(e.target.value)}
+              disabled={post.status === "published"}
+              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-300 disabled:bg-slate-50 disabled:text-slate-400"
+            />
+            {post.status !== "scheduled" && post.status !== "published" && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveDate}
+                  disabled={isPending || !dateValue}
+                  className="flex-1 text-sm py-2 font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors disabled:opacity-40"
+                >
+                  {updatePost.isPending ? "Saving…" : "Save date"}
+                </button>
+                {post.scheduled_at && (
+                  <button
+                    onClick={handleClearDate}
+                    disabled={isPending}
+                    className="px-3 py-2 text-sm text-red-500 hover:text-red-700 border border-red-100 hover:border-red-200 rounded-xl transition-colors disabled:opacity-40"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Scheduling actions */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Publishing</label>
+
+            {post.status === "published" && (
+              <div className="rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3 text-sm text-indigo-700">
+                Published {post.published_at
+                  ? new Date(post.published_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+                  : ""}
+              </div>
+            )}
+
+            {post.status === "scheduled" && (
+              <div className="space-y-2">
+                <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm text-blue-700 flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Scheduled for {post.scheduled_at
+                    ? new Date(post.scheduled_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+                    : "—"}
+                </div>
+                <button
+                  onClick={handlePublishNow}
+                  disabled={isPending}
+                  className="w-full py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {publishPost.isPending ? "Publishing…" : "Publish now"}
+                </button>
+                <button
+                  onClick={handleUnschedule}
+                  disabled={isPending}
+                  className="w-full py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {unschedulePost.isPending ? "Unscheduling…" : "Unschedule"}
+                </button>
+              </div>
+            )}
+
+            {(post.status === "approved" || post.status === "draft" || post.status === "pending_approval") && (
+              <div className="space-y-2">
+                {post.status !== "approved" && (
+                  <p className="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                    Post must be approved before scheduling.
+                  </p>
+                )}
+                <button
+                  onClick={handleSchedule}
+                  disabled={isPending || !dateValue || post.status !== "approved"}
+                  className="w-full py-2.5 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors disabled:opacity-40"
+                >
+                  {schedulePost.isPending ? "Scheduling…" : "Schedule for publishing"}
+                </button>
+                <button
+                  onClick={handlePublishNow}
+                  disabled={isPending || post.status !== "approved"}
+                  className="w-full py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-40"
+                >
+                  {publishPost.isPending ? "Publishing…" : "Publish now"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -298,7 +438,7 @@ export default function ContentCalendarPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [drawerPost, setDrawerPost] = useState<Post | null>(null);
   const [pickingForDay, setPickingForDay] = useState<Date | null>(null);
 
   const { data: allPosts = [], isLoading } = usePosts();
@@ -468,7 +608,7 @@ export default function ContentCalendarPage() {
                   return (
                     <button
                       key={p.id}
-                      onClick={() => setEditingPost(p)}
+                      onClick={() => setDrawerPost(p)}
                       className="w-full text-left bg-white border border-slate-100 rounded-xl p-3.5 flex items-center gap-3 hover:border-indigo-200 hover:shadow-sm transition-all"
                     >
                       <div className="text-center flex-shrink-0 w-10">
@@ -499,19 +639,19 @@ export default function ContentCalendarPage() {
       </div>
 
       {/* Day detail panel */}
-      {selectedDay && !editingPost && (
+      {selectedDay && !drawerPost && (
         <DayDetailPanel
           date={selectedDay}
           posts={postMap.get(toDateKey(selectedDay)) ?? []}
           onPickPost={() => { setPickingForDay(selectedDay); setSelectedDay(null); }}
-          onEditDate={(p) => { setEditingPost(p); setSelectedDay(null); }}
+          onEditDate={(p) => { setDrawerPost(p); setSelectedDay(null); }}
           onClose={() => setSelectedDay(null)}
         />
       )}
 
-      {/* Edit date modal */}
-      {editingPost && (
-        <DateSetModal post={editingPost} onClose={() => setEditingPost(null)} />
+      {/* Schedule drawer */}
+      {drawerPost && (
+        <PostScheduleDrawer post={drawerPost} onClose={() => setDrawerPost(null)} />
       )}
 
       {/* Post picker modal */}
