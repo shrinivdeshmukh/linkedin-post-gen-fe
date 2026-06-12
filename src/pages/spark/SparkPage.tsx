@@ -454,16 +454,16 @@ export default function SparkPage() {
   }
 
   function handleWritePost(topic: string, rawContext: string) {
-    navigate("/composer", { state: { spark: { topic, rawContext } } });
+    navigate("/studio", { state: { spark: { topic, rawContext } } });
   }
 
   async function handleCreateCampaign() {
     setBriefLoading(true);
     try {
       const brief = await getResearchBrief.mutateAsync();
-      navigate("/campaigns/new", { state: { prefill: brief } });
+      navigate("/studio", { state: { prefill: brief } });
     } catch {
-      navigate("/campaigns/new");
+      navigate("/studio?tab=campaign");
     } finally {
       setBriefLoading(false);
     }
