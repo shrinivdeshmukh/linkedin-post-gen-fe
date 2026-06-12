@@ -156,10 +156,21 @@ export default function ApprovalsPage() {
           ) : (
             <div className="max-w-2xl mx-auto px-4 py-5 md:px-6 md:py-6 space-y-6">
               {/* Post meta */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <StatusBadge status={selected.status} />
-                <span className="text-xs text-slate-400 capitalize">{selected.type} post</span>
-                <span className="text-xs text-slate-400">· Submitted {timeAgo(selected.updated_at)}</span>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <StatusBadge status={selected.status} />
+                  <span className="text-xs text-slate-400 capitalize">{selected.type} post</span>
+                  <span className="text-xs text-slate-400">· {timeAgo(selected.updated_at)}</span>
+                </div>
+                <a
+                  href={`/composer/${selected.id}`}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1"
+                >
+                  Edit in composer
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
               </div>
 
               {/* Post content */}
