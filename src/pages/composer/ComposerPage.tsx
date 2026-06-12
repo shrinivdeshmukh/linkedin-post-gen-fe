@@ -17,6 +17,8 @@ import {
   useSubmitPost,
   usePost,
   usePublishPost,
+  useSchedulePost,
+  useUnschedulePost,
   useLinkedInStatus,
   type PostType,
   type AIResult,
@@ -116,7 +118,9 @@ export default function ComposerPage() {
   const [showRawContext, setShowRawContext] = useState(!!initialRawContext);
   const [pollData, setPollData] = useState<PollData>(DEFAULT_POLL);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [plannedDate, setPlannedDate] = useState<string>("");
+  const [scheduleDate, setScheduleDate] = useState<string>("");
+  const [scheduleTime, setScheduleTime] = useState<string>("09:00");
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(!urlPostId);
 
   // Load existing post into state
@@ -148,7 +152,10 @@ export default function ComposerPage() {
       if (existingPost.scheduled_at) {
         const d = new Date(existingPost.scheduled_at);
         const off = d.getTimezoneOffset() * 60000;
-        setPlannedDate(new Date(d.getTime() - off).toISOString().slice(0, 10));
+        const local = new Date(d.getTime() - off);
+        setScheduleDate(local.toISOString().slice(0, 10));
+        setScheduleTime(local.toISOString().slice(11, 16));
+        setScheduledAt(existingPost.scheduled_at);
       }
       setHydrated(true);
     }
@@ -159,6 +166,8 @@ export default function ComposerPage() {
   const generateAI = useGenerateAI();
   const submitPost = useSubmitPost();
   const publishPost = usePublishPost();
+  const schedulePost = useSchedulePost();
+  const unschedulePost = useUnschedulePost();
 
   function handleTypeToggle(type: PostType) {
     const next = postType === type ? "text" : type;
@@ -256,6 +265,26 @@ export default function ComposerPage() {
     }
     await publishPost.mutateAsync(postId);
     navigate("/dashboard");
+  }
+
+  async function handleSchedule() {
+    if (!postId || !scheduleDate) return;
+    try {
+      await handleSaveDraft();
+    } catch {
+      return;
+    }
+    const publishAt = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString();
+    await schedulePost.mutateAsync({ postId, publishAt });
+    setScheduledAt(publishAt);
+  }
+
+  async function handleUnschedule() {
+    if (!postId) return;
+    await unschedulePost.mutateAsync(postId);
+    setScheduledAt(null);
+    setScheduleDate("");
+    setScheduleTime("09:00");
   }
 
   return (
@@ -671,27 +700,63 @@ export default function ComposerPage() {
 
           {/* Pinned publish actions — desktop only (mobile uses top bar buttons) */}
           {phase === "editing" && (
-            <div className="hidden md:block flex-shrink-0 px-5 py-4 border-t border-slate-200 bg-slate-50/80 space-y-2">
+            <div className="hidden md:block flex-shrink-0 px-5 py-4 border-t border-slate-200 bg-slate-50/80 space-y-3">
+
+              {/* Schedule section */}
               <div className="space-y-1.5">
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan date</h3>
-                <input
-                  type="date"
-                  value={plannedDate}
-                  onChange={(e) => {
-                    setPlannedDate(e.target.value);
-                    if (postId) {
-                      updatePost.mutate({
-                        id: postId,
-                        scheduled_at: e.target.value ? new Date(e.target.value + "T09:00:00").toISOString() : null,
-                      });
-                    }
-                  }}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-                />
-                {plannedDate && (
-                  <p className="text-[11px] text-indigo-500">Added to content calendar</p>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Schedule</h3>
+                {scheduledAt ? (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-xs font-semibold text-indigo-700">Scheduled</p>
+                    </div>
+                    <p className="text-xs text-indigo-600">
+                      {new Date(scheduledAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    <button
+                      onClick={handleUnschedule}
+                      disabled={unschedulePost.isPending}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
+                    >
+                      {unschedulePost.isPending ? "Removing…" : "Unschedule"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="flex gap-1.5">
+                      <input
+                        type="date"
+                        value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                        className="flex-1 min-w-0 text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                      />
+                      <input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                        className="w-24 text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      fullWidth
+                      size="md"
+                      onClick={handleSchedule}
+                      disabled={!canSubmit || !scheduleDate || schedulePost.isPending}
+                      loading={schedulePost.isPending}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Schedule post
+                    </Button>
+                  </div>
                 )}
               </div>
+
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish</h3>
               <Button variant="outline" fullWidth size="md" onClick={() => navigator.clipboard.writeText(content)}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
