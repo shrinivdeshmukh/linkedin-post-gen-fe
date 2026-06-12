@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePosts, useApprovePost, useUpdatePost, useMe, type Post } from "../../lib/api-hooks";
+import { usePosts, useApprovePost, useSchedulePost, useUnschedulePost, useMe, type Post } from "../../lib/api-hooks";
 import { StatusBadge } from "../../components/dashboard/StatusBadge";
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -29,9 +29,16 @@ function timeAgo(dateStr: string): string {
 export default function ApprovalsPage() {
   const { data: me } = useMe();
   const { data: allPosts = [], isLoading } = usePosts();
-  const posts = allPosts.filter((p) => p.status === "pending_approval" || p.status === "approved");
+  const isOwner = me?.role === "owner";
+  // Owners see pending + approved. Non-owners also see rejected so they know why.
+  const posts = allPosts.filter((p) =>
+    isOwner
+      ? ["pending_approval", "approved"].includes(p.status)
+      : ["pending_approval", "approved", "rejected"].includes(p.status)
+  );
   const approvePost = useApprovePost();
-  const updatePost = useUpdatePost();
+  const schedulePost = useSchedulePost();
+  const unschedulePost = useUnschedulePost();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rejectMode, setRejectMode] = useState(false);
@@ -40,9 +47,9 @@ export default function ApprovalsPage() {
   const [scheduleError, setScheduleError] = useState("");
   const [scheduling, setScheduling] = useState(false);
 
-  const isOwner = me?.role === "owner";
   const pendingCount = posts.filter((p) => p.status === "pending_approval").length;
   const approvedCount = posts.filter((p) => p.status === "approved").length;
+  const rejectedCount = posts.filter((p) => p.status === "rejected").length;
   const selected = posts.find((p) => p.id === selectedId) ?? posts[0] ?? null;
 
   // Auto-select first post
@@ -55,12 +62,12 @@ export default function ApprovalsPage() {
     setScheduleError("");
     setScheduling(true);
     try {
-      await updatePost.mutateAsync({ id: selected.id, scheduled_at: new Date(scheduleValue).toISOString() });
+      await schedulePost.mutateAsync({ postId: selected.id, publishAt: new Date(scheduleValue).toISOString() });
       setSelectedId(null);
       setScheduleValue("");
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setScheduleError(msg ?? "Failed to save date. Please try again.");
+      setScheduleError(msg ?? "Failed to schedule. Please try again.");
     } finally {
       setScheduling(false);
     }
@@ -91,10 +98,11 @@ export default function ApprovalsPage() {
             <h1 className="text-lg font-bold text-slate-900">Approvals</h1>
             <p className="text-sm text-slate-500 mt-0.5">
               {isLoading ? "Loading…" : posts.length === 0
-                ? "No posts pending review or awaiting scheduling"
+                ? "No posts pending review"
                 : [
                     pendingCount > 0 ? `${pendingCount} pending review` : "",
                     approvedCount > 0 ? `${approvedCount} approved` : "",
+                    rejectedCount > 0 ? `${rejectedCount} rejected` : "",
                   ].filter(Boolean).join(" · ")}
             </p>
           </div>
@@ -268,13 +276,31 @@ export default function ApprovalsPage() {
                 </div>
               )}
 
-              {/* Editor view — read-only */}
-              {!isOwner && (
+              {/* Non-owner status messages */}
+              {!isOwner && selected.status === "pending_approval" && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
                   <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-sm text-amber-700">Waiting for owner approval. You'll be notified once reviewed.</p>
+                </div>
+              )}
+              {!isOwner && selected.status === "rejected" && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2">
+                  <p className="text-sm font-semibold text-red-700">Post rejected</p>
+                  {selected.rejection_reason && (
+                    <p className="text-sm text-red-600 italic">"{selected.rejection_reason}"</p>
+                  )}
+                  <p className="text-xs text-slate-500">Open the post in the composer to edit and re-submit.</p>
+                  <a href={`/composer/${selected.id}`} className="inline-block text-xs font-semibold text-indigo-600 hover:underline">Edit post →</a>
+                </div>
+              )}
+              {!isOwner && selected.status === "approved" && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
+                  <svg className="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-sm text-emerald-700">Approved — the owner will schedule or publish this post.</p>
                 </div>
               )}
             </div>

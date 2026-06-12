@@ -19,8 +19,10 @@ import {
   usePublishPost,
   useSchedulePost,
   useUnschedulePost,
+  useApprovePost,
   useLinkedInStatus,
   type PostType,
+  type PostStatus,
   type AIResult,
 } from "../../lib/api-hooks";
 import { useMe } from "../../lib/api-hooks";
@@ -121,6 +123,10 @@ export default function ComposerPage() {
   const [scheduleDate, setScheduleDate] = useState<string>("");
   const [scheduleTime, setScheduleTime] = useState<string>("09:00");
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
+  const [postStatus, setPostStatus] = useState<PostStatus>("draft");
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [rejectMode, setRejectMode] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const [hydrated, setHydrated] = useState(!urlPostId);
 
   // Load existing post into state
@@ -157,6 +163,8 @@ export default function ComposerPage() {
         setScheduleTime(local.toISOString().slice(11, 16));
         setScheduledAt(existingPost.scheduled_at);
       }
+      setPostStatus((existingPost.status as PostStatus) ?? "draft");
+      if (existingPost.rejection_reason) setRejectionReason(existingPost.rejection_reason);
       setHydrated(true);
     }
   }, [existingPost, hydrated]);
@@ -168,6 +176,7 @@ export default function ComposerPage() {
   const publishPost = usePublishPost();
   const schedulePost = useSchedulePost();
   const unschedulePost = useUnschedulePost();
+  const approvePost = useApprovePost();
 
   function handleTypeToggle(type: PostType) {
     const next = postType === type ? "text" : type;
@@ -245,10 +254,10 @@ export default function ComposerPage() {
     try {
       await handleSaveDraft();
     } catch {
-      return; // save failed — don't submit stale content
+      return;
     }
     await submitPost.mutateAsync(postId);
-    navigate("/approvals");
+    setPostStatus("pending_approval");
   }
 
   const activeResult = aiResults?.find((r) => r.model === activeModel) ?? null;
@@ -261,10 +270,10 @@ export default function ComposerPage() {
     try {
       await handleSaveDraft();
     } catch {
-      return; // save failed — don't publish stale content
+      return;
     }
     await publishPost.mutateAsync(postId);
-    navigate("/dashboard");
+    setPostStatus("published");
   }
 
   async function handleSchedule() {
@@ -277,6 +286,7 @@ export default function ComposerPage() {
     const publishAt = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString();
     await schedulePost.mutateAsync({ postId, publishAt });
     setScheduledAt(publishAt);
+    setPostStatus("scheduled");
   }
 
   async function handleUnschedule() {
@@ -285,6 +295,23 @@ export default function ComposerPage() {
     setScheduledAt(null);
     setScheduleDate("");
     setScheduleTime("09:00");
+    setPostStatus("approved");
+  }
+
+  async function handleApprove() {
+    if (!postId) return;
+    await approvePost.mutateAsync({ id: postId, action: "approve" });
+    setPostStatus("approved");
+    setRejectMode(false);
+  }
+
+  async function handleReject() {
+    if (!postId) return;
+    await approvePost.mutateAsync({ id: postId, action: "reject", reason: rejectReason || undefined });
+    setPostStatus("rejected");
+    setRejectionReason(rejectReason || null);
+    setRejectMode(false);
+    setRejectReason("");
   }
 
   return (
@@ -301,29 +328,39 @@ export default function ComposerPage() {
           {phase === "editing" && (
             <>
               <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(content)}>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
                 Copy
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSaveDraft} loading={saveStatus === "saving"} disabled={!postId}>
-                Save draft
-              </Button>
-              {!isOwner && (
+              {["draft", "rejected"].includes(postStatus) && (
+                <Button variant="outline" size="sm" onClick={handleSaveDraft} loading={saveStatus === "saving"} disabled={!postId}>
+                  Save draft
+                </Button>
+              )}
+              {!isOwner && ["draft", "rejected"].includes(postStatus) && (
                 <Button size="sm" onClick={handleSubmitForApproval} disabled={!canSubmit} loading={submitPost.isPending}>
                   Submit for approval
                 </Button>
               )}
-              {isOwner && (
-                <Button
-                  size="sm"
-                  disabled={!canSubmit || !liConnected || publishPost.isPending}
-                  loading={publishPost.isPending}
-                  onClick={handlePublishToLinkedIn}
-                  title={!liConnected ? "Connect LinkedIn in Settings first" : undefined}
-                >
-                  {liConnected ? "Publish to LinkedIn" : "Connect LinkedIn"}
+              {isOwner && postStatus === "pending_approval" && (
+                <Button size="sm" onClick={handleApprove} loading={approvePost.isPending} disabled={approvePost.isPending}>
+                  Approve
                 </Button>
+              )}
+              {isOwner && !["pending_approval", "published", "scheduled"].includes(postStatus) && (
+                <Button size="sm" disabled={!canSubmit || !liConnected || publishPost.isPending} loading={publishPost.isPending} onClick={handlePublishToLinkedIn} title={!liConnected ? "Connect LinkedIn in Settings first" : undefined}>
+                  {liConnected ? "Publish" : "Connect LinkedIn"}
+                </Button>
+              )}
+              {postStatus === "pending_approval" && !isOwner && (
+                <span className="text-xs text-amber-600 font-medium bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">Awaiting review</span>
+              )}
+              {postStatus === "scheduled" && (
+                <span className="text-xs text-indigo-600 font-medium bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">Scheduled</span>
+              )}
+              {postStatus === "published" && (
+                <span className="text-xs text-emerald-600 font-medium bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">Published</span>
+              )}
+              {postStatus === "rejected" && (
+                <span className="text-xs text-red-600 font-medium bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">Rejected</span>
               )}
             </>
           )}
@@ -698,89 +735,149 @@ export default function ComposerPage() {
             )}
           </div>
 
-          {/* Pinned publish actions — desktop only (mobile uses top bar buttons) */}
+          {/* Pinned publish actions — desktop only */}
           {phase === "editing" && (
             <div className="hidden md:block flex-shrink-0 px-5 py-4 border-t border-slate-200 bg-slate-50/80 space-y-3">
 
-              {/* Schedule section */}
-              <div className="space-y-1.5">
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Schedule</h3>
-                {scheduledAt ? (
-                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-xs font-semibold text-indigo-700">Scheduled</p>
-                    </div>
-                    <p className="text-xs text-indigo-600">
-                      {new Date(scheduledAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                    <button
-                      onClick={handleUnschedule}
-                      disabled={unschedulePost.isPending}
-                      className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
-                    >
-                      {unschedulePost.isPending ? "Removing…" : "Unschedule"}
-                    </button>
+              {/* ── Published ── */}
+              {postStatus === "published" && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-xs font-semibold text-emerald-700">Published to LinkedIn</p>
+                </div>
+              )}
+
+              {/* ── Scheduled ── */}
+              {postStatus === "scheduled" && scheduledAt && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5 space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-xs font-semibold text-indigo-700">Scheduled</p>
                   </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <div className="flex gap-1.5">
-                      <input
-                        type="date"
-                        value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                        className="flex-1 min-w-0 text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-                      />
-                      <input
-                        type="time"
-                        value={scheduleTime}
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                        className="w-24 text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
-                      />
+                  <p className="text-xs text-indigo-600">
+                    {new Date(scheduledAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  <button onClick={handleUnschedule} disabled={unschedulePost.isPending} className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50">
+                    {unschedulePost.isPending ? "Removing…" : "Unschedule"}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Pending approval (non-owner view) ── */}
+              {postStatus === "pending_approval" && !isOwner && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                  <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-xs text-amber-700 font-medium">Submitted — awaiting owner review.</p>
+                </div>
+              )}
+
+              {/* ── Pending approval (owner review inline) ── */}
+              {postStatus === "pending_approval" && isOwner && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Review</p>
+                  {!rejectMode ? (
+                    <div className="flex gap-2">
+                      <Button fullWidth size="md" onClick={handleApprove} loading={approvePost.isPending}>
+                        Approve
+                      </Button>
+                      <button
+                        onClick={() => setRejectMode(true)}
+                        disabled={approvePost.isPending}
+                        className="flex-1 py-2 text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
                     </div>
-                    <Button
-                      variant="outline"
-                      fullWidth
-                      size="md"
-                      onClick={handleSchedule}
-                      disabled={!canSubmit || !scheduleDate || schedulePost.isPending}
-                      loading={schedulePost.isPending}
-                    >
+                  ) : (
+                    <div className="space-y-2 bg-red-50 border border-red-100 rounded-xl p-3">
+                      <textarea
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        placeholder="Reason (optional)…"
+                        rows={2}
+                        className="w-full text-xs border border-red-200 rounded-lg px-2.5 py-2 outline-none focus:ring-2 focus:ring-red-300 resize-none bg-white placeholder:text-slate-400"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={handleReject} disabled={approvePost.isPending} className="flex-1 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50">
+                          {approvePost.isPending ? "Rejecting…" : "Confirm reject"}
+                        </button>
+                        <button onClick={() => { setRejectMode(false); setRejectReason(""); }} className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Rejected ── */}
+              {postStatus === "rejected" && (
+                <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 space-y-2">
+                  <p className="text-xs font-semibold text-red-700">Rejected</p>
+                  {rejectionReason && <p className="text-xs text-red-600 italic">"{rejectionReason}"</p>}
+                  {!isOwner && (
+                    <p className="text-xs text-slate-500">Edit your post and re-submit for approval.</p>
+                  )}
+                </div>
+              )}
+
+              {/* ── Approved (non-owner) ── */}
+              {postStatus === "approved" && !isOwner && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-xs font-semibold text-emerald-700">Approved — owner will schedule.</p>
+                </div>
+              )}
+
+              {/* ── Schedule + Publish (draft, approved, or rejected for owner) ── */}
+              {(postStatus === "draft" || postStatus === "approved" || (postStatus === "rejected" && !isOwner) || (isOwner && ["draft", "approved", "rejected"].includes(postStatus))) && postStatus !== "scheduled" && postStatus !== "published" && !(postStatus === "approved" && !isOwner) && (
+                <>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Schedule</h3>
+                    <div className="flex gap-1.5">
+                      <input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} className="flex-1 min-w-0 text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white" />
+                      <input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} className="w-24 text-xs border border-slate-200 rounded-xl px-2.5 py-1.5 outline-none focus:ring-2 focus:ring-indigo-300 bg-white" />
+                    </div>
+                    <Button variant="outline" fullWidth size="md" onClick={handleSchedule} disabled={!canSubmit || !scheduleDate || schedulePost.isPending} loading={schedulePost.isPending}>
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       Schedule post
                     </Button>
                   </div>
-                )}
-              </div>
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish</h3>
+                </>
+              )}
 
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Publish</h3>
-              <Button variant="outline" fullWidth size="md" onClick={() => navigator.clipboard.writeText(content)}>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy to clipboard
-              </Button>
-              <Button variant="outline" fullWidth size="md" onClick={handleSaveDraft} loading={saveStatus === "saving"} disabled={!postId}>
-                Save as draft
-              </Button>
-              {!isOwner && (
+              {/* Always-available actions */}
+              {postStatus !== "published" && (
+                <Button variant="outline" fullWidth size="md" onClick={() => navigator.clipboard.writeText(content)}>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy to clipboard
+                </Button>
+              )}
+              {["draft", "rejected"].includes(postStatus) && (
+                <Button variant="outline" fullWidth size="md" onClick={handleSaveDraft} loading={saveStatus === "saving"} disabled={!postId}>
+                  Save as draft
+                </Button>
+              )}
+              {!isOwner && ["draft", "rejected"].includes(postStatus) && (
                 <Button fullWidth size="md" onClick={handleSubmitForApproval} loading={submitPost.isPending} disabled={!canSubmit}>
                   Submit for approval
                 </Button>
               )}
-              {isOwner && (
-                <Button
-                  fullWidth
-                  size="md"
-                  disabled={!canSubmit || !liConnected || publishPost.isPending}
-                  loading={publishPost.isPending}
-                  onClick={handlePublishToLinkedIn}
-                  title={!liConnected ? "Connect LinkedIn in Settings first" : undefined}
-                >
+              {isOwner && !["pending_approval", "published", "scheduled"].includes(postStatus) && (
+                <Button fullWidth size="md" disabled={!canSubmit || !liConnected || publishPost.isPending} loading={publishPost.isPending} onClick={handlePublishToLinkedIn} title={!liConnected ? "Connect LinkedIn in Settings first" : undefined}>
                   {liConnected ? "Publish to LinkedIn" : "Connect LinkedIn in Settings"}
                 </Button>
               )}
