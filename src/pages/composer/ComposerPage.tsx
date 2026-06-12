@@ -339,8 +339,8 @@ export default function ComposerPage() {
                   Submit for approval
                 </Button>
               )}
-              {isOwner && postStatus === "pending_approval" && (
-                <Button size="sm" onClick={handleApprove} loading={approvePost.isPending} disabled={approvePost.isPending}>
+              {isOwner && (postStatus === "draft" || postStatus === "pending_approval") && (
+                <Button size="sm" onClick={handleApprove} loading={approvePost.isPending} disabled={approvePost.isPending || !canSubmit}>
                   Approve
                 </Button>
               )}
@@ -779,22 +779,24 @@ export default function ComposerPage() {
                 </div>
               )}
 
-              {/* ── Pending approval (owner review inline) ── */}
-              {postStatus === "pending_approval" && isOwner && (
+              {/* ── Owner review (own draft or submitted by team member) ── */}
+              {isOwner && (postStatus === "draft" || postStatus === "pending_approval") && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Review</p>
                   {!rejectMode ? (
                     <div className="flex gap-2">
-                      <Button fullWidth size="md" onClick={handleApprove} loading={approvePost.isPending}>
+                      <Button fullWidth size="md" onClick={handleApprove} loading={approvePost.isPending} disabled={!canSubmit}>
                         Approve
                       </Button>
-                      <button
-                        onClick={() => setRejectMode(true)}
-                        disabled={approvePost.isPending}
-                        className="flex-1 py-2 text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
-                      >
-                        Reject
-                      </button>
+                      {postStatus === "pending_approval" && (
+                        <button
+                          onClick={() => setRejectMode(true)}
+                          disabled={approvePost.isPending}
+                          className="flex-1 py-2 text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2 bg-red-50 border border-red-100 rounded-xl p-3">
