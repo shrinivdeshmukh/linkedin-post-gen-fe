@@ -92,7 +92,6 @@ export default function App() {
           <Route path="media/videos/:videoId" element={<VideoDetailPage />} />
           <Route path="media/podcasts/:jobId" element={<PodcastDetailPage />} />
           <Route path="calendar" element={<ContentCalendarPage />} />
-          <Route path="schedule" element={<ContentCalendarPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="spark" element={<SparkPage />} />
           <Route path="podcast" element={<PodcastPage />} />
