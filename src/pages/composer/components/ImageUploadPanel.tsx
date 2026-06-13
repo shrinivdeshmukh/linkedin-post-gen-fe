@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { useGenerateImage, useMediaCollections, useMediaCollection } from "../../../lib/api-hooks";
+import { useRef, useState, useEffect } from "react";
+import { useGenerateImage, useMediaCollections, useMediaCollection, useOrgProfile } from "../../../lib/api-hooks";
 
 interface ImageUploadPanelProps {
   postId: string | null;
@@ -87,6 +87,7 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [mode, setMode] = useState<"ai" | "upload" | "library">("ai");
+  const { data: org } = useOrgProfile();
 
   // AI generation state
   const [colors, setColors] = useState<string[]>([DEFAULT_COLOR]);
@@ -94,6 +95,13 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [logoUrl, setLogoUrl] = useState("");
   const [additionalInstructions, setAdditionalInstructions] = useState("");
+
+  // Autofill logo URL from org settings once loaded
+  useEffect(() => {
+    if (org?.logo_url && !logoUrl) {
+      setLogoUrl(org.logo_url);
+    }
+  }, [org?.logo_url]);
   const [, setGeneratedDataUrl] = useState<string | null>(null);
 
   const generateImage = useGenerateImage();
@@ -267,7 +275,12 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
 
           {/* Logo URL */}
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-slate-600">Company logo URL <span className="font-normal text-slate-400">(optional)</span></p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-600">Company logo URL <span className="font-normal text-slate-400">(optional)</span></p>
+              {logoUrl && org?.logo_url && logoUrl === org.logo_url && (
+                <span className="text-[10px] text-indigo-500 font-medium">from settings</span>
+              )}
+            </div>
             <input
               type="url"
               value={logoUrl}
