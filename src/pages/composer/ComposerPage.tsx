@@ -128,31 +128,9 @@ export default function ComposerPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [hydrated, setHydrated] = useState(!urlPostId);
 
-  // Reset hydration state when navigating to a different post
-  useEffect(() => {
-    if (urlPostId) {
-      setHydrated(false);
-      setContent("");
-      setPostType("text");
-      setImageUrl(null);
-      setSelectedVideo(null);
-      setLinkUrl("");
-      setSlides([]);
-      setCarouselMode("builder");
-      setCarouselPdf(null);
-      setPhase("setup");
-      setPostStatus("draft");
-      setRejectionReason(null);
-      setScheduleDate("");
-      setScheduleTime("09:00");
-      setScheduledAt(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlPostId]);
-
   // Load existing post into state
   useEffect(() => {
-    if (existingPost && !hydrated && existingPost.id === urlPostId) {
+    if (existingPost && !hydrated) {
       setPostType((existingPost.type as PostType) ?? "text");
       setContent(existingPost.content ?? "");
       setSelectedModel(existingPost.ai_model_used ?? null);

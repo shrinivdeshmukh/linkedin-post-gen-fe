@@ -7,6 +7,11 @@ import SignupPage from "./pages/auth/SignupPage";
 import OnboardingPage from "./pages/onboarding/OnboardingPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import ComposerPage from "./pages/composer/ComposerPage";
+import { useParams } from "react-router-dom";
+function ComposerRoute() {
+  const { postId } = useParams<{ postId: string }>();
+  return <ComposerPage key={postId ?? "new"} />;
+}
 import ApprovalsPage from "./pages/approvals/ApprovalsPage";
 import ContentCalendarPage from "./pages/calendar/ContentCalendarPage";
 import SettingsPage from "./pages/settings/SettingsPage";
@@ -83,8 +88,8 @@ export default function App() {
           <Route index element={<Navigate to="/spark" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="studio" element={<StudioPage />} />
-          <Route path="composer" element={<ComposerPage />} />
-          <Route path="composer/:postId" element={<ComposerPage />} />
+          <Route path="composer" element={<ComposerRoute />} />
+          <Route path="composer/:postId" element={<ComposerRoute />} />
           <Route path="approvals" element={<ApprovalsPage />} />
           <Route path="campaigns" element={<CampaignsPage />} />
           <Route path="campaigns/new" element={<NewCampaignPage />} />
