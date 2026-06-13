@@ -1,16 +1,30 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useLatestResearch,
-  useResearchSession,
   useTriggerResearch,
   useGetResearchBrief,
   useOrgProfile,
   useUpdateOrgSettings,
 } from "../../lib/api-hooks";
 
-// ── Result types ──────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
 
+interface FeedItem {
+  title: string;
+  summary: string;
+  angle: string;
+  urgency: "high" | "medium" | "low";
+  hook: string;
+  sources?: { title: string; url: string; snippet?: string }[];
+}
+
+interface FeedResult {
+  section_summary?: string;
+  items?: FeedItem[];
+}
+
+// Legacy auto_pulse types (still used for Studio sidebar)
 interface SparkTopic {
   title: string;
   summary: string;
@@ -20,109 +34,281 @@ interface SparkTopic {
   sources?: { title: string; url: string; snippet?: string }[];
 }
 
-interface SparkConnection {
-  event: string;
-  relevance: string;
-  post_idea: string;
-  hook: string;
-}
+// ── Constants ──────────────────────────────────────────────────────────────────
 
-interface SparkCompetitor {
-  name: string;
-  update: string;
-  opportunity: string;
-}
+const FEED_SECTIONS = [
+  {
+    mode: "competitor_feed",
+    title: "Competitor Intelligence",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    ),
+    color: "text-rose-600",
+    bg: "bg-rose-50",
+    border: "border-rose-100",
+    dot: { high: "bg-rose-500", medium: "bg-rose-300", low: "bg-rose-200" },
+  },
+  {
+    mode: "industry_trends",
+    title: "Industry Trends",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+      </svg>
+    ),
+    color: "text-indigo-600",
+    bg: "bg-indigo-50",
+    border: "border-indigo-100",
+    dot: { high: "bg-indigo-500", medium: "bg-indigo-300", low: "bg-indigo-200" },
+  },
+  {
+    mode: "world_politics",
+    title: "World & Politics",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    border: "border-amber-100",
+    dot: { high: "bg-amber-500", medium: "bg-amber-300", low: "bg-amber-200" },
+  },
+  {
+    mode: "creative_angles",
+    title: "Creative Angles",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      </svg>
+    ),
+    color: "text-violet-600",
+    bg: "bg-violet-50",
+    border: "border-violet-100",
+    dot: { high: "bg-violet-500", medium: "bg-violet-300", low: "bg-violet-200" },
+  },
+] as const;
 
-interface SparkResult {
-  mode?: string;
-  summary?: string;
-  daily_pick?: { topic_index: number; why_now: string; hook: string };
-  topics?: SparkTopic[];
-  creative_connections?: SparkConnection[];
-  competitor_updates?: SparkCompetitor[];
-  recommended_campaign?: {
-    name: string;
-    topic: string;
-    target_outcome: string;
-    key_messages: string[];
-  };
-}
+// ── Feed card ──────────────────────────────────────────────────────────────────
 
-// ── Shared components ─────────────────────────────────────────────────────────
+function FeedCard({
+  item,
+  section,
+  onWritePost,
+  onCampaign,
+}: {
+  item: FeedItem;
+  section: typeof FEED_SECTIONS[number];
+  onWritePost: (title: string, context: string) => void;
+  onCampaign: (topic: string) => void;
+}) {
+  const dotColor = section.dot[item.urgency] ?? section.dot.low;
 
-function UrgencyBadge({ urgency }: { urgency: string }) {
-  const colors =
-    urgency === "high"
-      ? "bg-red-50 text-red-700 border-red-200"
-      : urgency === "medium"
-      ? "bg-amber-50 text-amber-700 border-amber-200"
-      : "bg-slate-50 text-slate-500 border-slate-200";
   return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${colors}`}>
-      {urgency}
-    </span>
+    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 hover:border-slate-200 hover:shadow-sm transition-all duration-150">
+      <div className="flex items-start gap-2.5">
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
+        <p className="text-sm font-semibold text-slate-900 leading-snug">{item.title}</p>
+      </div>
+
+      <p className="text-sm text-slate-500 leading-relaxed pl-4 line-clamp-3">{item.summary}</p>
+
+      {item.hook && (
+        <p className="text-xs text-slate-400 italic pl-4 line-clamp-2">"{item.hook}"</p>
+      )}
+
+      {item.sources && item.sources.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap pl-4">
+          {item.sources.slice(0, 3).map((s, i) => (
+            <a
+              key={i}
+              href={s.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-slate-400 hover:text-indigo-600 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full truncate max-w-[160px] transition-colors"
+            >
+              {s.title || s.url}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-2 pl-4 pt-1">
+        <button
+          onClick={() => onWritePost(item.title, `${item.hook}\n\n${item.angle}`)}
+          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${section.bg} ${section.color} hover:opacity-80`}
+        >
+          Write post →
+        </button>
+        <button
+          onClick={() => onCampaign(item.title)}
+          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+        >
+          Campaign →
+        </button>
+      </div>
+    </div>
   );
 }
 
-function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
+// ── Feed section ───────────────────────────────────────────────────────────────
+
+function FeedSection({
+  section,
+  onWritePost,
+  onCampaign,
+}: {
+  section: typeof FEED_SECTIONS[number];
+  onWritePost: (title: string, context: string) => void;
+  onCampaign: (topic: string) => void;
+}) {
+  const { data: session, isLoading, refetch } = useLatestResearch(section.mode);
+  const triggerResearch = useTriggerResearch();
+  const result = session?.result as FeedResult | null | undefined;
+  const isRunning = session?.status === "pending" || session?.status === "running";
+  const isFailed = session?.status === "failed";
+
+  useEffect(() => {
+    if (isRunning) {
+      const timer = setInterval(() => refetch(), 3000);
+      return () => clearInterval(timer);
+    }
+  }, [isRunning, refetch]);
+
+  const lastUpdated = session?.completed_at
+    ? new Date(session.completed_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  async function handleRefresh() {
+    try {
+      await triggerResearch.mutateAsync({ mode: section.mode });
+      setTimeout(() => refetch(), 1000);
+    } catch {
+      // 409 = already running, ignore
+    }
+  }
+
   return (
-    <div className="space-y-3 animate-pulse">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-28 bg-slate-100 rounded-xl" />
-      ))}
-    </div>
+    <section className="space-y-3">
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${section.bg} ${section.color}`}>
+            {section.icon}
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-800">{section.title}</h2>
+            {lastUpdated && !isRunning && (
+              <p className="text-[11px] text-slate-400">Updated {lastUpdated}</p>
+            )}
+            {isRunning && (
+              <p className="text-[11px] text-indigo-500 animate-pulse">Researching…</p>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRunning || triggerResearch.isPending}
+          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40"
+          title="Refresh this section"
+        >
+          <svg className={`w-3.5 h-3.5 ${isRunning ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Section summary */}
+      {result?.section_summary && !isRunning && (
+        <p className={`text-xs px-3 py-2 rounded-xl ${section.bg} ${section.color} font-medium`}>
+          {result.section_summary}
+        </p>
+      )}
+
+      {/* Loading */}
+      {(isLoading || isRunning) && (
+        <div className="space-y-3 animate-pulse">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-28 bg-slate-100 rounded-2xl" />
+          ))}
+        </div>
+      )}
+
+      {/* Failed */}
+      {isFailed && !isRunning && (
+        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-sm text-red-600">
+          Research failed. <button onClick={handleRefresh} className="underline font-medium">Try again</button>
+        </div>
+      )}
+
+      {/* Empty */}
+      {!isLoading && !isRunning && !isFailed && (!result?.items || result.items.length === 0) && (
+        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 text-center space-y-2">
+          <p className="text-sm text-slate-400">No data yet.</p>
+          <button onClick={handleRefresh} disabled={triggerResearch.isPending} className={`text-xs font-semibold ${section.color} hover:underline`}>
+            Run research →
+          </button>
+        </div>
+      )}
+
+      {/* Cards */}
+      {!isRunning && result?.items && result.items.length > 0 && (
+        <div className="space-y-3">
+          {result.items.slice(0, 4).map((item, i) => (
+            <FeedCard key={i} item={item} section={section} onWritePost={onWritePost} onCampaign={onCampaign} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
 // ── Competitors editor ─────────────────────────────────────────────────────────
 
-function CompetitorsEditor({
-  initial,
-  onSave,
-}: {
-  initial: string[];
-  onSave: (list: string[]) => void;
-}) {
+function CompetitorsEditor({ initial, onSave }: { initial: string[]; onSave: (list: string[]) => void }) {
   const [items, setItems] = useState(initial);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
 
   function add() {
-    const trimmed = draft.trim();
-    if (trimmed && !items.includes(trimmed)) setItems([...items, trimmed]);
+    const t = draft.trim();
+    if (t && !items.includes(t)) setItems([...items, t]);
     setDraft("");
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-slate-700">Competitors to track</p>
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tracking competitors</p>
         {!editing ? (
-          <button type="button" onClick={() => setEditing(true)} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">Edit</button>
+          <button onClick={() => setEditing(true)} className="text-xs text-indigo-600 font-medium hover:underline">Edit</button>
         ) : (
-          <button type="button" onClick={() => { onSave(items); setEditing(false); }} className="text-xs text-green-600 hover:text-green-700 font-semibold">Save</button>
+          <button onClick={() => { onSave(items); setEditing(false); }} className="text-xs text-emerald-600 font-semibold hover:underline">Save</button>
         )}
       </div>
       {items.length === 0 && !editing && (
-        <p className="text-xs text-slate-400 italic">No competitors tracked. Click Edit to add some.</p>
+        <p className="text-xs text-slate-400 italic">No competitors tracked — add some to unlock the Competitor feed.</p>
       )}
       <div className="flex flex-wrap gap-2">
         {items.map((item, i) => (
           <span key={i} className="flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium">
             {item}
             {editing && (
-              <button type="button" onClick={() => setItems(items.filter((_, j) => j !== i))} className="text-slate-400 hover:text-slate-600 ml-0.5">×</button>
+              <button onClick={() => setItems(items.filter((_, j) => j !== i))} className="text-slate-400 hover:text-slate-600 ml-0.5">×</button>
             )}
           </span>
         ))}
         {editing && (
           <input
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
             onBlur={add}
             placeholder="Add competitor…"
-            className="text-xs px-2.5 py-1 border border-slate-300 rounded-full outline-none focus:border-indigo-400 min-w-[120px]"
+            className="text-xs px-2.5 py-1 border border-slate-200 rounded-full outline-none focus:border-indigo-400 min-w-[130px]"
           />
         )}
       </div>
@@ -130,618 +316,94 @@ function CompetitorsEditor({
   );
 }
 
-// ── Deep Dive modal ────────────────────────────────────────────────────────────
-
-function DeepDiveModal({ onSubmit, onClose }: { onSubmit: (mode: string, topic?: string, url?: string) => void; onClose: () => void }) {
-  const [tab, setTab] = useState<"topic" | "url">("topic");
-  const [topic, setTopic] = useState("");
-  const [url, setUrl] = useState("");
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="text-base font-bold text-slate-900">Custom research</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Ask a question or analyse a URL.</p>
-        </div>
-        <div className="px-6 py-5 space-y-4">
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setTab("topic")} className={`flex-1 py-2 text-sm font-medium rounded-xl transition-colors ${tab === "topic" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>Research a topic</button>
-            <button type="button" onClick={() => setTab("url")} className={`flex-1 py-2 text-sm font-medium rounded-xl transition-colors ${tab === "url" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>Analyse a URL</button>
-          </div>
-          {tab === "topic" ? (
-            <textarea value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. How will new tariff policies affect hiring in tech?" rows={3} className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-slate-400" />
-          ) : (
-            <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/article" className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400" />
-          )}
-        </div>
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex gap-3">
-          <button type="button" onClick={() => { if (tab === "topic" && topic.trim()) onSubmit("deep_dive", topic.trim()); if (tab === "url" && url.trim()) onSubmit("url_analysis", undefined, url.trim()); }} disabled={(tab === "topic" && !topic.trim()) || (tab === "url" && !url.trim())} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">Run research</button>
-          <button type="button" onClick={onClose} className="px-4 py-2.5 border border-slate-200 text-slate-600 text-sm font-medium rounded-xl hover:bg-slate-50 transition-colors">Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Grid view ─────────────────────────────────────────────────────────────────
-
-function TopicGridCard({ topic, onClick, onWritePost }: { topic: SparkTopic; onClick: () => void; onWritePost: () => void }) {
-  const urgencyDot =
-    topic.urgency === "high" ? "bg-red-400" :
-    topic.urgency === "medium" ? "bg-amber-400" : "bg-slate-300";
-
-  return (
-    <div className="group bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all duration-150 space-y-0 overflow-hidden">
-      <button
-        type="button"
-        onClick={onClick}
-        className="w-full text-left p-5 space-y-3"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${urgencyDot}`} />
-            <p className="text-sm font-semibold text-slate-900 leading-snug">{topic.title}</p>
-          </div>
-          <UrgencyBadge urgency={topic.urgency} />
-        </div>
-        <p className="text-sm text-slate-500 line-clamp-2">{topic.summary}</p>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-400">{topic.sources?.length ?? 0} source{(topic.sources?.length ?? 0) !== 1 ? "s" : ""}</span>
-          <span className="text-xs font-semibold text-indigo-600 group-hover:text-indigo-700 flex items-center gap-1">
-            Explore deeper
-            <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </span>
-        </div>
-      </button>
-      <div className="px-5 pb-4">
-        <button
-          type="button"
-          onClick={onWritePost}
-          className="w-full py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl transition-colors"
-        >
-          Write post →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Detail view ───────────────────────────────────────────────────────────────
-
-function DeepDiveDetail({
-  topic,
-  sessionId,
-  onBack,
-  onCreateCampaign,
-  onWritePost,
-}: {
-  topic: SparkTopic;
-  sessionId: string;
-  onBack: () => void;
-  onCreateCampaign: () => void;
-  onWritePost: (topic: string, rawContext: string) => void;
-}) {
-  const { data: session } = useResearchSession(sessionId);
-  const result = session?.result as SparkResult | null | undefined;
-  const isRunning = session?.status === "pending" || session?.status === "running";
-  const isFailed = session?.status === "failed";
-
-  return (
-    <div className="space-y-6">
-      {/* Back + title */}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors font-medium"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to overview
-        </button>
-        <div className="h-4 w-px bg-slate-200" />
-        <UrgencyBadge urgency={topic.urgency} />
-      </div>
-
-      <div>
-        <h2 className="text-lg font-bold text-slate-900">{topic.title}</h2>
-        <p className="text-sm text-slate-500 mt-1">{topic.summary}</p>
-      </div>
-
-      {/* Loading */}
-      {isRunning && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-            <svg className="w-4 h-4 text-indigo-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
-            <p className="text-sm text-indigo-700 font-medium">Running deep research on this topic…</p>
-          </div>
-          <LoadingSkeleton rows={3} />
-        </div>
-      )}
-
-      {/* Failed */}
-      {isFailed && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-          <p className="text-sm font-semibold text-red-700">Research failed</p>
-          <p className="text-xs text-red-600 mt-1">{session?.error ?? "Unknown error"}</p>
-        </div>
-      )}
-
-      {/* Results */}
-      {!isRunning && !isFailed && result && (
-        <div className="space-y-6">
-          {/* Summary */}
-          {result.summary && (
-            <div className="p-4 bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100 rounded-xl">
-              <p className="text-sm text-indigo-900">{result.summary}</p>
-            </div>
-          )}
-
-          {/* Topics / angles */}
-          {result.topics && result.topics.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Content angles</h3>
-              {result.topics.map((t, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
-                  <p className="text-sm font-semibold text-slate-900">{t.title}</p>
-                  <p className="text-sm text-slate-600">{t.summary}</p>
-                  <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
-                    <p className="text-xs font-medium text-indigo-700 mb-1">Post angle</p>
-                    <p className="text-sm text-indigo-800">{t.angle}</p>
-                  </div>
-                  {t.sources && t.sources.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {t.sources.map((s, j) => (
-                        <a key={j} href={s.url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 hover:underline bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100 truncate max-w-[200px]">
-                          {s.title || s.url}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => onWritePost(t.title, t.angle)}
-                    className="w-full py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl transition-colors"
-                  >
-                    Write post →
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Creative connections */}
-          {result.creative_connections && result.creative_connections.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Creative connections</h3>
-              {result.creative_connections.map((item, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
-                  <p className="text-sm font-semibold text-slate-900">{item.event}</p>
-                  <p className="text-sm text-slate-600">{item.relevance}</p>
-                  <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-100">
-                    <p className="text-xs font-medium text-violet-700 mb-1">Post idea</p>
-                    <p className="text-sm text-violet-900">{item.post_idea}</p>
-                  </div>
-                  <p className="text-sm text-slate-600 italic pl-3 border-l-2 border-slate-200">"{item.hook}"</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Campaign CTA */}
-          {result.recommended_campaign && (
-            <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-6 text-white space-y-3">
-              <div>
-                <p className="text-xs font-semibold text-indigo-200 uppercase tracking-wider mb-1">Recommended campaign</p>
-                <h3 className="text-base font-bold">{result.recommended_campaign.name}</h3>
-                <p className="text-sm text-indigo-100 mt-1">{result.recommended_campaign.topic}</p>
-              </div>
-              {result.recommended_campaign.key_messages?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {result.recommended_campaign.key_messages.map((msg, i) => (
-                    <span key={i} className="text-xs bg-white/20 text-white px-2.5 py-1 rounded-full">{msg}</span>
-                  ))}
-                </div>
-              )}
-              <button type="button" onClick={onCreateCampaign} className="flex items-center gap-2 mt-1 px-5 py-2.5 bg-white text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-50 transition-colors">
-                Create campaign →
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function SparkPage() {
   const navigate = useNavigate();
-
-  // Base auto_pulse session
-  const { data: baseSession, isLoading, refetch } = useLatestResearch("auto_pulse");
   const triggerResearch = useTriggerResearch();
   const getResearchBrief = useGetResearchBrief();
   const { data: org } = useOrgProfile();
   const updateOrg = useUpdateOrgSettings();
 
-  // Navigation state
-  const [view, setView] = useState<"grid" | "detail">("grid");
-  const [selectedTopic, setSelectedTopic] = useState<SparkTopic | null>(null);
-  const [deepDiveSessionId, setDeepDiveSessionId] = useState<string | null>(null);
+  // Today's brief — reads latest auto_pulse for the summary line
+  const { data: pulseSession } = useLatestResearch("auto_pulse");
+  const pulseResult = pulseSession?.result as { summary?: string; topics?: SparkTopic[] } | null | undefined;
 
-  const [deepDiveOpen, setDeepDiveOpen] = useState(false);
-  const [briefLoading, setBriefLoading] = useState(false);
-
-  // Poll while base session is running
-  useEffect(() => {
-    if (baseSession?.status === "pending" || baseSession?.status === "running") {
-      const timer = setInterval(() => refetch(), 3000);
-      return () => clearInterval(timer);
-    }
-  }, [baseSession?.status, refetch]);
-
-  const isRunning = baseSession?.status === "pending" || baseSession?.status === "running";
-  const isStale = isRunning && baseSession?.created_at
-    ? Date.now() - new Date(baseSession.created_at).getTime() > 3 * 60 * 1000
-    : false;
-  const baseResult = baseSession?.result as SparkResult | null | undefined;
-
-  async function handleRefresh(mode = "auto_pulse", topic?: string, url?: string) {
-    setDeepDiveOpen(false);
-    try {
-      const session = await triggerResearch.mutateAsync({ mode, topic, url });
-      if (mode === "auto_pulse") {
-        setView("grid");
-        setTimeout(() => refetch(), 1000);
-      } else {
-        // Custom deep dive from the modal — go straight to detail
-        setSelectedTopic({ title: topic ?? url ?? "Research", summary: "", angle: "", urgency: "medium" });
-        setDeepDiveSessionId(session.id);
-        setView("detail");
-      }
-    } catch {
-      // error shown via triggerResearch.error
-    }
-  }
-
-  async function handleConnectionClick(item: SparkConnection) {
-    const syntheticTopic: SparkTopic = {
-      title: item.event,
-      summary: item.relevance,
-      angle: item.post_idea,
-      urgency: "medium",
-    };
-    setSelectedTopic(syntheticTopic);
-    setView("detail");
-    try {
-      const session = await triggerResearch.mutateAsync({
-        mode: "deep_dive",
-        topic: `${item.event}: ${item.relevance}. Post idea: ${item.post_idea}`,
-      });
-      setDeepDiveSessionId(session.id);
-    } catch {
-      // error handled in detail view
-    }
-  }
-
-  async function handleTopicClick(topic: SparkTopic) {
-    setSelectedTopic(topic);
-    setView("detail");
-    try {
-      const session = await triggerResearch.mutateAsync({
-        mode: "deep_dive",
-        topic: `${topic.title}: ${topic.summary}`,
-      });
-      setDeepDiveSessionId(session.id);
-    } catch {
-      // error handled in detail view
-    }
-  }
-
-  function handleBack() {
-    setView("grid");
-    setSelectedTopic(null);
-    setDeepDiveSessionId(null);
-  }
-
-  function handleWritePost(topic: string, rawContext: string) {
-    navigate("/studio", { state: { spark: { topic, rawContext } } });
-  }
-
-  async function handleCreateCampaign() {
-    setBriefLoading(true);
-    try {
-      const brief = await getResearchBrief.mutateAsync();
-      navigate("/studio", { state: { prefill: brief } });
-    } catch {
-      navigate("/studio?tab=campaign");
-    } finally {
-      setBriefLoading(false);
-    }
-  }
-
-  const lastUpdated = baseSession?.completed_at
-    ? new Date(baseSession.completed_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+  const lastPulse = pulseSession?.completed_at
+    ? new Date(pulseSession.completed_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
     : null;
 
-  return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+  async function handleRefreshAll() {
+    const modes = ["competitor_feed", "industry_trends", "world_politics", "creative_angles"];
+    await Promise.allSettled(modes.map(mode => triggerResearch.mutateAsync({ mode })));
+  }
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  function handleWritePost(title: string, context: string) {
+    navigate("/studio", { state: { spark: { topic: title, rawContext: context } } });
+  }
+
+  async function handleCampaign(topic: string) {
+    try {
+      const brief = await getResearchBrief.mutateAsync();
+      navigate("/studio", { state: { prefill: { ...brief, topic } } });
+    } catch {
+      navigate("/studio?tab=campaign", { state: { prefill: { topic, name: `${topic} Campaign` } } });
+    }
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-slate-50">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+        {/* ── Today's brief ── */}
+        <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 space-y-3 shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold text-slate-900">Spark</h1>
+              <div>
+                <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Today's Brief</p>
+                {lastPulse && <p className="text-[11px] text-white/50">Updated {lastPulse}</p>}
+              </div>
             </div>
-            <p className="text-sm text-slate-500">
-              Your contextual intelligence feed{lastUpdated ? ` · Updated ${lastUpdated}` : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setDeepDiveOpen(true)} disabled={triggerResearch.isPending} className="px-3.5 py-2 text-sm font-medium border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 disabled:opacity-50 transition-colors">
-              Custom research
-            </button>
-            <button type="button" onClick={() => handleRefresh("auto_pulse")} disabled={isRunning && !isStale || triggerResearch.isPending} className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition-colors">
-              {isRunning && !isStale ? (
-                <>
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>
-                  Running…
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                  Refresh
-                </>
-              )}
+            <button
+              onClick={handleRefreshAll}
+              disabled={triggerResearch.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-xl transition-colors disabled:opacity-50"
+            >
+              <svg className={`w-3 h-3 ${triggerResearch.isPending ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh all
             </button>
           </div>
+          {pulseResult?.summary ? (
+            <p className="text-sm text-white/90 leading-relaxed">{pulseResult.summary}</p>
+          ) : (
+            <p className="text-sm text-white/60 italic">No brief yet — refresh to generate your daily pulse.</p>
+          )}
         </div>
 
-        {/* Trigger error */}
-        {triggerResearch.error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-sm text-red-700">
-              {(triggerResearch.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to start research. Try again."}
-            </p>
-          </div>
-        )}
+        {/* ── Competitors config ── */}
+        <CompetitorsEditor
+          initial={org?.competitors ?? []}
+          onSave={list => updateOrg.mutate({ competitors: list })}
+        />
 
-        {/* Stale */}
-        {isStale && (
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-            <p className="text-sm font-semibold text-amber-800">Research is taking longer than expected</p>
-            <p className="text-xs text-amber-700">The background worker may not be running. Try again.</p>
-            <button type="button" onClick={() => handleRefresh("auto_pulse")} disabled={triggerResearch.isPending} className="text-xs font-semibold text-amber-800 underline">Retry</button>
-          </div>
-        )}
-
-        {/* Loading base session */}
-        {(isLoading || (isRunning && !isStale)) && view === "grid" && (
-          <div className="space-y-4">
-            {isRunning && !isStale && (
-              <div className="flex items-center gap-2 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-                <svg className="w-4 h-4 text-indigo-600 animate-spin flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>
-                <p className="text-sm text-indigo-700 font-medium">Spark is researching your world… this takes about 30 seconds.</p>
-              </div>
-            )}
-            <LoadingSkeleton rows={4} />
-          </div>
-        )}
-
-        {/* No session yet */}
-        {!isLoading && !isRunning && !baseSession && view === "grid" && (
-          <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-violet-100 to-indigo-100 rounded-2xl flex items-center justify-center">
-              <svg className="w-7 h-7 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-slate-900">No research yet</h2>
-              <p className="text-sm text-slate-500 mt-1 max-w-xs">Spark researches industry news, world events, and competitor moves — then surfaces content topics you can explore deeper.</p>
-            </div>
-            <button type="button" onClick={() => handleRefresh("auto_pulse")} disabled={triggerResearch.isPending} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-colors">
-              Run Spark now
-            </button>
-          </div>
-        )}
-
-        {/* Failed */}
-        {!isLoading && !isStale && baseSession?.status === "failed" && view === "grid" && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2">
-            <p className="text-sm font-semibold text-red-700">Research failed</p>
-            <p className="text-xs text-red-600">{baseSession.error ?? "Unknown error"}</p>
-            <button type="button" onClick={() => handleRefresh("auto_pulse")} className="text-xs font-semibold text-red-700 underline">Try again</button>
-          </div>
-        )}
-
-        {/* ── GRID VIEW ── */}
-        {!isLoading && !isRunning && baseSession?.status === "complete" && baseResult && view === "grid" && (
-          <div className="space-y-8">
-
-            {/* Hero: Post this today */}
-            {baseResult.daily_pick && baseResult.topics && baseResult.topics[baseResult.daily_pick.topic_index] && (() => {
-              const pick = baseResult.daily_pick!;
-              const pickTopic = baseResult.topics![pick.topic_index];
-              return (
-                <div className="bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl p-6 text-white space-y-4">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                    <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Post this today</span>
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold">{pickTopic.title}</h3>
-                    <p className="text-sm text-indigo-100 mt-1">{pick.why_now}</p>
-                  </div>
-                  <div className="p-3 bg-white/10 rounded-xl border border-white/20">
-                    <p className="text-xs font-medium text-indigo-200 mb-1">Opening hook</p>
-                    <p className="text-sm text-white italic">"{pick.hook}"</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleWritePost(pickTopic.title, `${pick.hook}\n\n${pickTopic.angle}`)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-50 transition-colors"
-                  >
-                    Write this post →
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* Summary */}
-            {baseResult.summary && (
-              <div className="p-4 bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100 rounded-xl">
-                <p className="text-sm text-indigo-900">{baseResult.summary}</p>
-              </div>
-            )}
-
-            {/* Competitors */}
-            <CompetitorsEditor initial={org?.competitors ?? []} onSave={(list) => updateOrg.mutate({ competitors: list })} />
-
-            {/* Topic cards */}
-            {baseResult.topics && baseResult.topics.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Topics to explore</h2>
-                  <p className="text-xs text-slate-400">Click any topic to research deeper</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {baseResult.topics.map((topic, i) => (
-                    <TopicGridCard
-                      key={i}
-                      topic={topic}
-                      onClick={() => handleTopicClick(topic)}
-                      onWritePost={() => handleWritePost(topic.title, topic.angle)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Creative connections */}
-            {baseResult.creative_connections && baseResult.creative_connections.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Creative connections</h2>
-                  <p className="text-xs text-slate-400">Click to explore deeper</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {baseResult.creative_connections.map((item, i) => (
-                    <div
-                      key={i}
-                      className="group bg-white rounded-xl border border-slate-200 hover:border-violet-300 hover:shadow-md transition-all duration-150 overflow-hidden"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleConnectionClick(item)}
-                        className="w-full text-left p-4 space-y-2"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-semibold text-slate-900">{item.event}</p>
-                          <span className="text-xs font-semibold text-violet-600 group-hover:text-violet-700 flex items-center gap-1 flex-shrink-0">
-                            Explore
-                            <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                            </svg>
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600">{item.relevance}</p>
-                        <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-100">
-                          <p className="text-xs font-medium text-violet-700 mb-1">Post idea</p>
-                          <p className="text-sm text-violet-900">{item.post_idea}</p>
-                        </div>
-                        <p className="text-sm text-slate-500 italic pl-3 border-l-2 border-slate-200">"{item.hook}"</p>
-                      </button>
-                      <div className="px-4 pb-4">
-                        <button
-                          type="button"
-                          onClick={() => handleWritePost(item.event, `${item.hook}\n\n${item.post_idea}`)}
-                          className="w-full py-2 text-xs font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-100 rounded-xl transition-colors"
-                        >
-                          Write post →
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Competitor pulse */}
-            {baseResult.competitor_updates && baseResult.competitor_updates.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Competitor pulse</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {baseResult.competitor_updates.map((item, i) => (
-                    <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 space-y-2">
-                      <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-sm text-slate-600">{item.update}</p>
-                      <div className="p-2.5 bg-green-50 rounded-lg border border-green-100">
-                        <p className="text-xs font-medium text-green-700 mb-0.5">Your angle</p>
-                        <p className="text-sm text-green-800">{item.opportunity}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Campaign CTA */}
-            {baseResult.recommended_campaign && (
-              <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-6 text-white space-y-3">
-                <div>
-                  <p className="text-xs font-semibold text-indigo-200 uppercase tracking-wider mb-1">Recommended campaign</p>
-                  <h3 className="text-lg font-bold">{baseResult.recommended_campaign.name}</h3>
-                  <p className="text-sm text-indigo-100 mt-1">{baseResult.recommended_campaign.topic}</p>
-                </div>
-                {baseResult.recommended_campaign.key_messages?.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {baseResult.recommended_campaign.key_messages.map((msg, i) => (
-                      <span key={i} className="text-xs bg-white/20 text-white px-2.5 py-1 rounded-full">{msg}</span>
-                    ))}
-                  </div>
-                )}
-                <button type="button" onClick={handleCreateCampaign} disabled={briefLoading} className="flex items-center gap-2 mt-1 px-5 py-2.5 bg-white text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-50 transition-colors disabled:opacity-70">
-                  {briefLoading ? "Loading…" : "Create campaign →"}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── DETAIL VIEW ── */}
-        {view === "detail" && selectedTopic && deepDiveSessionId && (
-          <DeepDiveDetail
-            topic={selectedTopic}
-            sessionId={deepDiveSessionId}
-            onBack={handleBack}
-            onCreateCampaign={handleCreateCampaign}
+        {/* ── Feed sections ── */}
+        {FEED_SECTIONS.map(section => (
+          <FeedSection
+            key={section.mode}
+            section={section}
             onWritePost={handleWritePost}
+            onCampaign={handleCampaign}
           />
-        )}
+        ))}
 
       </div>
-
-      {deepDiveOpen && (
-        <DeepDiveModal onSubmit={handleRefresh} onClose={() => setDeepDiveOpen(false)} />
-      )}
     </div>
   );
 }

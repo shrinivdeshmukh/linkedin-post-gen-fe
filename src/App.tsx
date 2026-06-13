@@ -78,7 +78,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<Navigate to="/spark" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="studio" element={<StudioPage />} />
           <Route path="composer" element={<ComposerPage />} />

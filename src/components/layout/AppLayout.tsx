@@ -6,11 +6,12 @@ import { Button } from "../ui/Button";
 
 const navItems = [
   {
-    to: "/dashboard",
-    label: "Dashboard",
+    to: "/spark",
+    label: "Spark",
+    spark: true,
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
   },
@@ -34,7 +35,7 @@ const navItems = [
   },
   {
     to: "/calendar",
-    label: "Content Calendar",
+    label: "Calendar",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -60,11 +61,11 @@ const navItems = [
     ),
   },
   {
-    to: "/spark",
-    label: "Spark",
+    to: "/dashboard",
+    label: "Dashboard",
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     ),
   },
@@ -78,7 +79,7 @@ const navItems = [
       </svg>
     ),
   },
-];
+] as const;
 
 export default function AppLayout() {
   const { data: me } = useMe();
@@ -126,13 +127,12 @@ export default function AppLayout() {
             key={item.to}
             to={item.to}
             onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-                isActive
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`
-            }
+            className={({ isActive }) => {
+              const spark = "spark" in item && item.spark;
+              if (spark && isActive) return "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 text-white transition-all duration-150";
+              if (spark) return "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-violet-700 hover:bg-violet-50 transition-all duration-150";
+              return `flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`;
+            }}
           >
             {item.icon}
             {item.label}
