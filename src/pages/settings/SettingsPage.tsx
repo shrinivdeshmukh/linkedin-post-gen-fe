@@ -122,7 +122,7 @@ function SparkSettingsSection({
 
 const LINKEDIN_CLIENT_ID = import.meta.env.VITE_LINKEDIN_CLIENT_ID ?? "";
 const LINKEDIN_REDIRECT_URI = import.meta.env.VITE_LINKEDIN_REDIRECT_URI ?? `${window.location.origin}/linkedin/callback`;
-const LINKEDIN_SCOPE = "openid profile email w_member_social";
+const LINKEDIN_SCOPE = "openid profile email w_member_social r_basicprofile r_1st_connections_size";
 
 function initiateLinkedInOAuth() {
   const state = crypto.randomUUID();
