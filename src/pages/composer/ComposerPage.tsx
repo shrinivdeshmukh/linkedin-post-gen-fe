@@ -152,7 +152,7 @@ export default function ComposerPage() {
 
   // Load existing post into state
   useEffect(() => {
-    if (existingPost && !hydrated) {
+    if (existingPost && !hydrated && existingPost.id === urlPostId) {
       setPostType((existingPost.type as PostType) ?? "text");
       setContent(existingPost.content ?? "");
       setSelectedModel(existingPost.ai_model_used ?? null);
