@@ -121,7 +121,7 @@ function OverviewTab() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
                 <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-                <Tooltip formatter={(v: number) => [v.toLocaleString(), "Followers"]} labelStyle={{ fontSize: 11 }} />
+                <Tooltip formatter={(v) => [Number(v).toLocaleString(), "Followers"]} labelStyle={{ fontSize: 11 }} />
                 <Line type="monotone" dataKey="follower_count" stroke="#6366f1" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -139,7 +139,7 @@ function OverviewTab() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="type" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 10 }} unit="%" />
-                <Tooltip formatter={(v: number) => [`${v}%`, "Engagement Rate"]} labelStyle={{ fontSize: 11 }} />
+                <Tooltip formatter={(v) => [`${Number(v)}%`, "Engagement Rate"]} labelStyle={{ fontSize: 11 }} />
                 <Bar dataKey="avg_engagement" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -307,7 +307,7 @@ function FollowersTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-              <Tooltip formatter={(v: number) => [v.toLocaleString(), "Followers"]} labelStyle={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => [Number(v).toLocaleString(), "Followers"]} labelStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="follower_count" stroke="#6366f1" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
