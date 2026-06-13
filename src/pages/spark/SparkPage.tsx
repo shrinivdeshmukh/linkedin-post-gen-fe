@@ -473,9 +473,9 @@ export default function SparkPage() {
   async function handleCampaign(topic: string) {
     try {
       const brief = await getResearchBrief.mutateAsync();
-      navigate("/studio", { state: { prefill: { ...brief, topic } } });
+      navigate("/campaigns/new", { state: { prefill: { ...brief, topic } } });
     } catch {
-      navigate("/studio?tab=campaign", { state: { prefill: { topic, name: `${topic} Campaign` } } });
+      navigate("/campaigns/new", { state: { prefill: { topic, name: `${topic} Campaign` } } });
     }
   }
 

@@ -229,6 +229,12 @@ export default function DeepResearchPage() {
                       ))}
                     </ul>
                   )}
+                  <button
+                    onClick={() => navigate("/campaigns/new", { state: { prefill: result.recommended_campaign } })}
+                    className="w-full mt-1 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
+                  >
+                    Build this campaign →
+                  </button>
                 </div>
               </section>
             )}
