@@ -1301,6 +1301,7 @@ export interface PostAnalyticsItem {
   post_id: string;
   title: string | null;
   post_type: string;
+  source: string; // "app" | "linkedin_native"
   published_at: string | null;
   impressions: number;
   clicks: number;

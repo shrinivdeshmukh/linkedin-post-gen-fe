@@ -160,18 +160,22 @@ function PostsTab() {
   const { data: posts, isLoading } = usePostsAnalytics();
   const navigate = useNavigate();
   const [sort, setSort] = useState<SortKey>("impressions");
+  const [showNative, setShowNative] = useState(true);
 
   if (isLoading) return <div className="text-sm text-slate-400 py-12 text-center">Loading…</div>;
   if (!posts?.length) return (
     <p className="text-sm text-slate-400 py-12 text-center">No post analytics yet. Publish a post and sync.</p>
   );
 
-  const sorted = [...posts].sort((a, b) => {
+  const filtered = showNative ? posts : posts.filter((p) => p.source === "app");
+  const sorted = [...filtered].sort((a, b) => {
     if (sort === "published_at") {
       return (b.published_at ?? "").localeCompare(a.published_at ?? "");
     }
     return (b[sort] as number) - (a[sort] as number);
   });
+
+  const nativeCount = posts.filter((p) => p.source === "linkedin_native").length;
 
   const SortBtn = ({ k, label }: { k: SortKey; label: string }) => (
     <button
@@ -184,12 +188,25 @@ function PostsTab() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-1 flex-wrap">
-        <span className="text-xs text-slate-400 mr-1">Sort by:</span>
-        <SortBtn k="impressions" label="Impressions" />
-        <SortBtn k="engagement_rate" label="Engagement" />
-        <SortBtn k="reactions" label="Reactions" />
-        <SortBtn k="published_at" label="Date" />
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-slate-400 mr-1">Sort by:</span>
+          <SortBtn k="impressions" label="Impressions" />
+          <SortBtn k="engagement_rate" label="Engagement" />
+          <SortBtn k="reactions" label="Reactions" />
+          <SortBtn k="published_at" label="Date" />
+        </div>
+        {nativeCount > 0 && (
+          <button
+            onClick={() => setShowNative(!showNative)}
+            className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-colors ${showNative ? "bg-blue-50 text-blue-600 border-blue-200" : "border-slate-200 text-slate-400 hover:text-slate-600"}`}
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 3a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h14m-.5 15.5v-5.3a3.26 3.26 0 00-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 011.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 001.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 00-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+            </svg>
+            {showNative ? `Hide LinkedIn-native (${nativeCount})` : `Show LinkedIn-native (${nativeCount})`}
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -208,15 +225,23 @@ function PostsTab() {
             {sorted.map((p: PostAnalyticsItem) => (
               <tr
                 key={p.post_id}
-                onClick={() => navigate(`/composer/${p.post_id}`)}
-                className="border-b border-slate-50 last:border-0 hover:bg-slate-50 cursor-pointer transition-colors"
+                onClick={() => p.source === "app" ? navigate(`/composer/${p.post_id}`) : undefined}
+                className={`border-b border-slate-50 last:border-0 transition-colors ${p.source === "app" ? "hover:bg-slate-50 cursor-pointer" : ""}`}
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 capitalize">
                       {p.post_type}
                     </span>
-                    <span className="text-slate-700 truncate max-w-[220px]">{p.title}</span>
+                    {p.source === "linkedin_native" && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-500">
+                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M19 3a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h14m-.5 15.5v-5.3a3.26 3.26 0 00-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 011.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 001.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 00-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+                        </svg>
+                        Native
+                      </span>
+                    )}
+                    <span className="text-slate-700 truncate max-w-[200px]">{p.title}</span>
                   </div>
                 </td>
                 <td className="px-3 py-3 text-right text-slate-700 font-medium">{p.impressions.toLocaleString()}</td>
