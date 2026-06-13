@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import type { ChatConversation, ChatMessage } from "../../lib/api-hooks";
 import {
-  ChatConversation,
-  ChatMessage,
-  SaviEvent,
   streamSaviMessage,
   useConversation,
   useConversations,
@@ -122,8 +120,6 @@ function ConversationView({ conversationId }: { conversationId: string }) {
     setMessages((prev) => [...prev, { role: "user", content: text }]);
     setIsStreaming(true);
 
-    // Add empty assistant message placeholder
-    const assistantIndex = messages.length + 1;
     setMessages((prev) => [...prev, { role: "assistant", content: "", isStreaming: true }]);
 
     let finalAction: DisplayMessage["action"] | undefined;

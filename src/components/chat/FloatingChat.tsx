@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import type { ChatMessage } from "../../lib/api-hooks";
 import {
-  ChatMessage,
-  SaviEvent,
   streamSaviMessage,
   useConversation,
   useConversations,
