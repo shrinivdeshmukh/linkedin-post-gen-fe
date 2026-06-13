@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ChatMessage } from "../../lib/api-hooks";
 import {
@@ -270,12 +271,12 @@ export default function FloatingChat() {
                         <span className="text-[9px] font-bold text-white">S</span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
-                          {msg.content}
+                        <div className="text-sm text-slate-800 leading-relaxed prose prose-sm prose-slate max-w-none prose-p:my-0.5 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0 prose-headings:my-1">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
                           {msg.isStreaming && (
                             <span className="inline-block w-1 h-3 bg-indigo-500 ml-0.5 animate-pulse rounded-sm" />
                           )}
-                        </p>
+                        </div>
                         {msg.action && !msg.isStreaming && (
                           <button
                             onClick={() => handleActionClick(msg.action!)}

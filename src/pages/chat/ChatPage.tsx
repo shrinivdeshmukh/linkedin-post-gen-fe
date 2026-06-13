@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import type { ChatConversation, ChatMessage } from "../../lib/api-hooks";
 import {
   streamSaviMessage,
@@ -54,8 +55,8 @@ function MessageBubble({ msg, navigate }: { msg: DisplayMessage; navigate: Retur
           <span className="text-[10px] font-bold text-white">S</span>
         </div>
         <div className="flex-1">
-          <div className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
-            {msg.content}
+          <div className="text-sm text-slate-800 leading-relaxed prose prose-sm prose-slate max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2">
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
             {msg.isStreaming && (
               <span className="inline-block w-1.5 h-3.5 bg-indigo-500 ml-0.5 animate-pulse rounded-sm" />
             )}
