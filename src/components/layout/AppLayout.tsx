@@ -7,11 +7,11 @@ import { Button } from "../ui/Button";
 const navItems = [
   {
     to: "/spark",
-    label: "Spark",
+    label: "Pulse AI",
     spark: true,
     icon: (
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h2M7 8v8M11 5v14M15 8v8M19 12h2" />
       </svg>
     ),
   },
