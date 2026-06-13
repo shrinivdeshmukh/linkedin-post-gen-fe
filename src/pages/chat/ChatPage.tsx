@@ -276,6 +276,11 @@ export default function ChatPage() {
     navigate(`/chat/${conv.id}`);
   }
 
+  function handleMinimise() {
+    sessionStorage.setItem("savi_reopen", conversationId ?? "");
+    navigate(-1);
+  }
+
   function formatDate(iso: string) {
     const d = new Date(iso);
     const now = new Date();
@@ -291,11 +296,22 @@ export default function ChatPage() {
       {/* Sidebar */}
       <div className="w-64 flex-shrink-0 border-r border-slate-100 flex flex-col bg-white">
         <div className="p-4 border-b border-slate-100">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-              <span className="text-xs font-bold text-white">S</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
+                <span className="text-xs font-bold text-white">S</span>
+              </div>
+              <span className="text-sm font-bold text-slate-800">Savi</span>
             </div>
-            <span className="text-sm font-bold text-slate-800">Savi</span>
+            <button
+              onClick={handleMinimise}
+              title="Minimise to chat window"
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
           </div>
           <button
             onClick={handleNewChat}

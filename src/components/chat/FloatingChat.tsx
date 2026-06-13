@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ChatMessage } from "../../lib/api-hooks";
@@ -28,6 +28,7 @@ const INACTIVITY_MS = 90_000; // 90 seconds
 
 export default function FloatingChat() {
   const navigate = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [bounce, setBounce] = useState(false);
@@ -39,6 +40,17 @@ export default function FloatingChat() {
   const hasBouncedThisSession = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Re-open panel when user minimises from full-screen chat
+  useEffect(() => {
+    const reopen = sessionStorage.getItem("savi_reopen");
+    if (reopen !== null && !location.pathname.startsWith("/chat")) {
+      sessionStorage.removeItem("savi_reopen");
+      if (reopen) setConversationId(reopen);
+      setMessages([]);
+      setIsOpen(true);
+    }
+  }, [location.pathname]);
 
   const { data: conversations } = useConversations();
   const { data: conv } = useConversation(conversationId);
