@@ -304,6 +304,10 @@ function CompetitorsEditor({ initial, onSave }: { initial: string[]; onSave: (li
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
 
+  useEffect(() => {
+    if (!editing) setItems(initial);
+  }, [initial]);
+
   function add() {
     const t = draft.trim();
     if (t && !items.includes(t)) setItems([...items, t]);
