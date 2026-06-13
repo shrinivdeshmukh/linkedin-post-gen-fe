@@ -95,7 +95,7 @@ export default function ComposerPage() {
   const locationState = location.state as { rawContext?: string; spark?: { topic?: string; rawContext?: string } } | null;
   const sparkState = locationState?.spark;
   const { data: me } = useMe();
-  const { data: existingPost } = usePost(urlPostId ?? null);
+  const { data: existingPost, isFetching: isPostFetching } = usePost(urlPostId ?? null);
   const { data: liAccount } = useLinkedInStatus();
 
   const [postType, setPostType] = useState<PostType>("text");
@@ -128,9 +128,9 @@ export default function ComposerPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [hydrated, setHydrated] = useState(!urlPostId);
 
-  // Load existing post into state
+  // Load existing post into state — wait for fresh fetch to complete before hydrating
   useEffect(() => {
-    if (existingPost && !hydrated) {
+    if (existingPost && !hydrated && !isPostFetching) {
       setPostType((existingPost.type as PostType) ?? "text");
       setContent(existingPost.content ?? "");
       setSelectedModel(existingPost.ai_model_used ?? null);
@@ -166,7 +166,7 @@ export default function ComposerPage() {
       if (existingPost.rejection_reason) setRejectionReason(existingPost.rejection_reason);
       setHydrated(true);
     }
-  }, [existingPost, hydrated]);
+  }, [existingPost, hydrated, isPostFetching]);
 
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
