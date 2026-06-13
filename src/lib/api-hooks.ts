@@ -1280,3 +1280,80 @@ export async function* streamSaviMessage(
     }
   }
 }
+
+
+// ── Analytics ──────────────────────────────────────────────────────────────────
+
+export interface AnalyticsSummary {
+  total_impressions: number;
+  total_reactions: number;
+  total_comments: number;
+  total_shares: number;
+  avg_engagement_rate: number;
+  posts_published: number;
+  posts_with_analytics: number;
+  current_followers: number | null;
+  follower_growth_30d: number | null;
+  linkedin_connected: boolean;
+}
+
+export interface PostAnalyticsItem {
+  post_id: string;
+  title: string | null;
+  post_type: string;
+  published_at: string | null;
+  impressions: number;
+  clicks: number;
+  reactions: number;
+  comments: number;
+  shares: number;
+  engagement_rate: number;
+  synced_at: string;
+}
+
+export interface FollowerPoint {
+  date: string;
+  follower_count: number;
+}
+
+export function useAnalyticsSummary() {
+  return useQuery<AnalyticsSummary>({
+    queryKey: ["analytics", "summary"],
+    queryFn: () => api.get("/analytics/summary").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePostsAnalytics() {
+  return useQuery<PostAnalyticsItem[]>({
+    queryKey: ["analytics", "posts"],
+    queryFn: () => api.get("/analytics/posts").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useFollowerHistory(days = 90) {
+  return useQuery<FollowerPoint[]>({
+    queryKey: ["analytics", "followers", days],
+    queryFn: () => api.get(`/analytics/followers?days=${days}`).then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAnalyticsInsights() {
+  return useQuery<string[]>({
+    queryKey: ["analytics", "insights"],
+    queryFn: () => api.get("/analytics/insights").then((r) => r.data),
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useTriggerAnalyticsSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post("/analytics/sync"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["analytics"] });
+    },
+  });
+}

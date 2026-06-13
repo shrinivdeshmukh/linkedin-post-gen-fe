@@ -20,7 +20,13 @@ interface DisplayMessage {
   isStreaming?: boolean;
   toolName?: string;
   toolSummary?: string;
-  action?: { type: string; post_id?: string };
+  action?: {
+    type: string;
+    post_id?: string;
+    url?: string;
+    image_data?: string;
+    mime_type?: string;
+  };
 }
 
 // ── Message bubble ────────────────────────────────────────────────────────────
@@ -79,18 +85,42 @@ function MessageBubble({ msg, navigate }: { msg: DisplayMessage; navigate: Retur
               <span className="inline-block w-1.5 h-3.5 bg-indigo-500 ml-0.5 animate-pulse rounded-sm" />
             )}
           </div>
-          {msg.action && !msg.isStreaming && (
+          {msg.action?.type === "show_image" && msg.action.image_data && !msg.isStreaming && (
+            <div className="mt-3">
+              <img
+                src={`data:${msg.action.mime_type ?? "image/png"};base64,${msg.action.image_data}`}
+                alt="Generated image"
+                className="rounded-xl max-w-xs border border-slate-200"
+              />
+              {msg.action.post_id && (
+                <button
+                  onClick={() => navigate(`/composer/${msg.action!.post_id}`)}
+                  className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                >
+                  Open in composer →
+                </button>
+              )}
+            </div>
+          )}
+          {msg.action && msg.action.type !== "show_image" && !msg.isStreaming && (
             <button
               onClick={() => {
-                if (msg.action?.type === "open_composer" && msg.action.post_id) {
-                  navigate(`/composer/${msg.action.post_id}`);
-                } else if (msg.action?.type === "open_pulse_ai") {
+                const a = msg.action!;
+                if (a.type === "open_composer" && a.post_id) {
+                  navigate(`/composer/${a.post_id}`);
+                } else if (a.type === "open_pulse_ai") {
                   navigate("/spark");
+                } else if (a.type === "open_url" && a.url) {
+                  navigate(a.url);
                 }
               }}
               className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
             >
-              {msg.action.type === "open_composer" ? "Open in composer →" : "View Pulse AI →"}
+              {msg.action.type === "open_composer"
+                ? "Open in composer →"
+                : msg.action.type === "open_url"
+                ? "View →"
+                : "View Pulse AI →"}
             </button>
           )}
         </div>

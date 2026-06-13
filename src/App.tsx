@@ -36,6 +36,7 @@ import ChatPage from "./pages/chat/ChatPage";
 import StudioPage from "./pages/studio/StudioPage";
 import PodcastPublicPage from "./pages/podcast/PodcastPublicPage";
 import PodcastDetailPage from "./pages/media/PodcastDetailPage";
+import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -107,6 +108,7 @@ export default function App() {
           <Route path="podcast" element={<PodcastPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:conversationId" element={<ChatPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
