@@ -17,6 +17,11 @@ interface FeedItem {
   urgency: "high" | "medium" | "low";
   hook: string;
   sources?: { title: string; url: string; snippet?: string }[];
+  // World & Politics
+  post_risk?: "low" | "medium" | "high";
+  risk_reason?: string;
+  // Creative Angles
+  surprise_factor?: "low" | "medium" | "high";
 }
 
 interface FeedResult {
@@ -118,6 +123,24 @@ function FeedCard({
 
       {item.hook && (
         <p className="text-xs text-slate-400 italic pl-4 line-clamp-2">"{item.hook}"</p>
+      )}
+
+      {/* World & Politics: risk badge */}
+      {item.post_risk && item.post_risk !== "low" && (
+        <div className={`flex items-center gap-1.5 pl-4 text-[11px] font-medium ${item.post_risk === "high" ? "text-red-600" : "text-amber-600"}`}>
+          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          {item.post_risk === "high" ? "High sensitivity" : "Moderate sensitivity"}
+          {item.risk_reason && item.risk_reason !== "none" && ` — ${item.risk_reason}`}
+        </div>
+      )}
+
+      {/* Creative Angles: surprise factor badge */}
+      {item.surprise_factor && (
+        <div className={`pl-4 text-[11px] font-medium ${item.surprise_factor === "high" ? "text-violet-600" : "text-slate-400"}`}>
+          {item.surprise_factor === "high" ? "Highly original angle" : item.surprise_factor === "medium" ? "Original angle" : ""}
+        </div>
       )}
 
       {item.sources && item.sources.length > 0 && (
@@ -361,7 +384,7 @@ export default function SparkPage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-50">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
         {/* ── Today's brief ── */}
         <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 space-y-3 shadow-md">
@@ -401,15 +424,17 @@ export default function SparkPage() {
           onSave={list => updateOrg.mutate({ competitors: list })}
         />
 
-        {/* ── Feed sections ── */}
-        {FEED_SECTIONS.map(section => (
-          <FeedSection
-            key={section.mode}
-            section={section}
-            onWritePost={handleWritePost}
-            onCampaign={handleCampaign}
-          />
-        ))}
+        {/* ── Feed sections — 2×2 grid on desktop, single column on mobile ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          {FEED_SECTIONS.map(section => (
+            <FeedSection
+              key={section.mode}
+              section={section}
+              onWritePost={handleWritePost}
+              onCampaign={handleCampaign}
+            />
+          ))}
+        </div>
 
       </div>
     </div>
