@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { ResearchSession } from "../../lib/api-hooks";
 import {
   useLatestResearch,
   useTriggerResearch,
@@ -111,15 +112,16 @@ function FeedCard({
   onCampaign: (topic: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [deepDiveStatus, setDeepDiveStatus] = useState<"idle" | "loading" | "done">("idle");
+  const [deepDiveStatus, setDeepDiveStatus] = useState<"idle" | "loading">("idle");
   const triggerResearch = useTriggerResearch();
+  const navigate = useNavigate();
   const dotColor = section.dot[item.urgency] ?? section.dot.low;
 
   async function handleDeepDive() {
     setDeepDiveStatus("loading");
     try {
-      await triggerResearch.mutateAsync({ mode: "deep_dive", topic: item.title });
-      setDeepDiveStatus("done");
+      const session = await triggerResearch.mutateAsync({ mode: "deep_dive", topic: item.title }) as ResearchSession;
+      navigate(`/spark/research/${session.id}`);
     } catch {
       setDeepDiveStatus("idle");
     }
@@ -209,7 +211,7 @@ function FeedCard({
             >
               Campaign →
             </button>
-            {deepDiveStatus === "idle" && (
+            {deepDiveStatus === "idle" ? (
               <button
                 onClick={(e) => { e.stopPropagation(); handleDeepDive(); }}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
@@ -219,21 +221,12 @@ function FeedCard({
                 </svg>
                 Research deeper
               </button>
-            )}
-            {deepDiveStatus === "loading" && (
+            ) : (
               <span className="flex items-center gap-1 px-3 py-1.5 text-xs text-indigo-400">
                 <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Researching…
-              </span>
-            )}
-            {deepDiveStatus === "done" && (
-              <span className="flex items-center gap-1 px-3 py-1.5 text-xs text-emerald-600 font-medium">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Research queued
+                Starting…
               </span>
             )}
           </div>

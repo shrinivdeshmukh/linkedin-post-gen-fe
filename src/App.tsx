@@ -25,6 +25,7 @@ import AcceptInvitePage from "./pages/auth/AcceptInvitePage";
 import AdminPage from "./pages/admin/AdminPage";
 import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 import SparkPage from "./pages/spark/SparkPage";
+import DeepResearchPage from "./pages/spark/DeepResearchPage";
 import PodcastPage from "./pages/podcast/PodcastPage";
 import ChatPage from "./pages/chat/ChatPage";
 import StudioPage from "./pages/studio/StudioPage";
@@ -97,6 +98,7 @@ export default function App() {
           <Route path="calendar" element={<ContentCalendarPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="spark" element={<SparkPage />} />
+          <Route path="spark/research/:sessionId" element={<DeepResearchPage />} />
           <Route path="podcast" element={<PodcastPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:conversationId" element={<ChatPage />} />
