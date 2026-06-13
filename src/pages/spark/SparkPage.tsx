@@ -110,69 +110,135 @@ function FeedCard({
   onWritePost: (title: string, context: string) => void;
   onCampaign: (topic: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [deepDiveStatus, setDeepDiveStatus] = useState<"idle" | "loading" | "done">("idle");
+  const triggerResearch = useTriggerResearch();
   const dotColor = section.dot[item.urgency] ?? section.dot.low;
 
+  async function handleDeepDive() {
+    setDeepDiveStatus("loading");
+    try {
+      await triggerResearch.mutateAsync({ mode: "deep_dive", topic: item.title });
+      setDeepDiveStatus("done");
+    } catch {
+      setDeepDiveStatus("idle");
+    }
+  }
+
   return (
-    <div className="bg-white border border-slate-100 rounded-2xl p-4 space-y-3 hover:border-slate-200 hover:shadow-sm transition-all duration-150">
-      <div className="flex items-start gap-2.5">
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
-        <p className="text-sm font-semibold text-slate-900 leading-snug">{item.title}</p>
+    <div
+      className={`bg-white border rounded-2xl transition-all duration-150 ${expanded ? "border-slate-200 shadow-sm" : "border-slate-100 hover:border-slate-200 hover:shadow-sm cursor-pointer"}`}
+      onClick={() => !expanded && setExpanded(true)}
+    >
+      {/* Card header — always visible */}
+      <div className="p-4 space-y-2">
+        <div className="flex items-start gap-2.5">
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
+          <p className="text-sm font-semibold text-slate-900 leading-snug flex-1">{item.title}</p>
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+            className="text-slate-300 hover:text-slate-500 flex-shrink-0 transition-colors"
+          >
+            <svg className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        <p className={`text-sm text-slate-500 leading-relaxed pl-4 ${expanded ? "" : "line-clamp-2"}`}>{item.summary}</p>
       </div>
 
-      <p className="text-sm text-slate-500 leading-relaxed pl-4 line-clamp-3">{item.summary}</p>
+      {/* Expanded content */}
+      {expanded && (
+        <div className="px-4 pb-4 space-y-3 border-t border-slate-50 pt-3">
+          {item.hook && (
+            <p className="text-xs text-slate-400 italic pl-4">"{item.hook}"</p>
+          )}
 
-      {item.hook && (
-        <p className="text-xs text-slate-400 italic pl-4 line-clamp-2">"{item.hook}"</p>
-      )}
+          {item.angle && (
+            <div className={`text-xs px-3 py-2 rounded-xl ${section.bg} ${section.color} leading-relaxed`}>
+              {item.angle}
+            </div>
+          )}
 
-      {/* World & Politics: risk badge */}
-      {item.post_risk && item.post_risk !== "low" && (
-        <div className={`flex items-center gap-1.5 pl-4 text-[11px] font-medium ${item.post_risk === "high" ? "text-red-600" : "text-amber-600"}`}>
-          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          {item.post_risk === "high" ? "High sensitivity" : "Moderate sensitivity"}
-          {item.risk_reason && item.risk_reason !== "none" && ` — ${item.risk_reason}`}
-        </div>
-      )}
+          {/* World & Politics: risk badge */}
+          {item.post_risk && item.post_risk !== "low" && (
+            <div className={`flex items-center gap-1.5 pl-4 text-[11px] font-medium ${item.post_risk === "high" ? "text-red-600" : "text-amber-600"}`}>
+              <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {item.post_risk === "high" ? "High sensitivity" : "Moderate sensitivity"}
+              {item.risk_reason && item.risk_reason !== "none" && ` — ${item.risk_reason}`}
+            </div>
+          )}
 
-      {/* Creative Angles: surprise factor badge */}
-      {item.surprise_factor && (
-        <div className={`pl-4 text-[11px] font-medium ${item.surprise_factor === "high" ? "text-violet-600" : "text-slate-400"}`}>
-          {item.surprise_factor === "high" ? "Highly original angle" : item.surprise_factor === "medium" ? "Original angle" : ""}
-        </div>
-      )}
+          {/* Creative Angles: surprise factor badge */}
+          {item.surprise_factor && (
+            <div className={`pl-4 text-[11px] font-medium ${item.surprise_factor === "high" ? "text-violet-600" : "text-slate-400"}`}>
+              {item.surprise_factor === "high" ? "Highly original angle" : item.surprise_factor === "medium" ? "Original angle" : ""}
+            </div>
+          )}
 
-      {item.sources && item.sources.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap pl-4">
-          {item.sources.slice(0, 3).map((s, i) => (
-            <a
-              key={i}
-              href={s.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-slate-400 hover:text-indigo-600 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full truncate max-w-[160px] transition-colors"
+          {item.sources && item.sources.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap pl-4">
+              {item.sources.slice(0, 3).map((s, i) => (
+                <a
+                  key={i}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-[11px] text-slate-400 hover:text-indigo-600 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full truncate max-w-[160px] transition-colors"
+                >
+                  {s.title || s.url}
+                </a>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 pl-4 pt-1 flex-wrap">
+            <button
+              onClick={(e) => { e.stopPropagation(); onWritePost(item.title, `${item.hook}\n\n${item.angle}`); }}
+              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${section.bg} ${section.color} hover:opacity-80`}
             >
-              {s.title || s.url}
-            </a>
-          ))}
+              Write post →
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onCampaign(item.title); }}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              Campaign →
+            </button>
+            {deepDiveStatus === "idle" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDeepDive(); }}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Research deeper
+              </button>
+            )}
+            {deepDiveStatus === "loading" && (
+              <span className="flex items-center gap-1 px-3 py-1.5 text-xs text-indigo-400">
+                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Researching…
+              </span>
+            )}
+            {deepDiveStatus === "done" && (
+              <span className="flex items-center gap-1 px-3 py-1.5 text-xs text-emerald-600 font-medium">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Research queued
+              </span>
+            )}
+          </div>
         </div>
       )}
-
-      <div className="flex gap-2 pl-4 pt-1">
-        <button
-          onClick={() => onWritePost(item.title, `${item.hook}\n\n${item.angle}`)}
-          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${section.bg} ${section.color} hover:opacity-80`}
-        >
-          Write post →
-        </button>
-        <button
-          onClick={() => onCampaign(item.title)}
-          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          Campaign →
-        </button>
-      </div>
     </div>
   );
 }
@@ -299,19 +365,37 @@ function FeedSection({
 
 // ── Competitors editor ─────────────────────────────────────────────────────────
 
-function CompetitorsEditor({ initial, onSave }: { initial: string[]; onSave: (list: string[]) => void }) {
+function CompetitorsEditor({
+  initial,
+  initialUrls,
+  onSave,
+}: {
+  initial: string[];
+  initialUrls: Record<string, string>;
+  onSave: (list: string[], urls: Record<string, string>) => void;
+}) {
   const [items, setItems] = useState(initial);
+  const [urls, setUrls] = useState<Record<string, string>>(initialUrls);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    if (!editing) setItems(initial);
-  }, [initial]);
+    if (!editing) {
+      setItems(initial);
+      setUrls(initialUrls);
+    }
+  }, [initial, initialUrls]);
 
   function add() {
     const t = draft.trim();
     if (t && !items.includes(t)) setItems([...items, t]);
     setDraft("");
+  }
+
+  function remove(i: number) {
+    const removed = items[i];
+    setItems(items.filter((_, j) => j !== i));
+    setUrls(prev => { const next = { ...prev }; delete next[removed]; return next; });
   }
 
   return (
@@ -321,32 +405,48 @@ function CompetitorsEditor({ initial, onSave }: { initial: string[]; onSave: (li
         {!editing ? (
           <button onClick={() => setEditing(true)} className="text-xs text-indigo-600 font-medium hover:underline">Edit</button>
         ) : (
-          <button onClick={() => { onSave(items); setEditing(false); }} className="text-xs text-emerald-600 font-semibold hover:underline">Save</button>
+          <button onClick={() => { onSave(items, urls); setEditing(false); }} className="text-xs text-emerald-600 font-semibold hover:underline">Save</button>
         )}
       </div>
       {items.length === 0 && !editing && (
         <p className="text-xs text-slate-400 italic">No competitors tracked — add some to unlock the Competitor feed.</p>
       )}
-      <div className="flex flex-wrap gap-2">
-        {items.map((item, i) => (
-          <span key={i} className="flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium">
-            {item}
-            {editing && (
-              <button onClick={() => setItems(items.filter((_, j) => j !== i))} className="text-slate-400 hover:text-slate-600 ml-0.5">×</button>
-            )}
-          </span>
-        ))}
-        {editing && (
-          <input
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
-            onBlur={add}
-            placeholder="Add competitor…"
-            className="text-xs px-2.5 py-1 border border-slate-200 rounded-full outline-none focus:border-indigo-400 min-w-[130px]"
-          />
-        )}
-      </div>
+      {!editing ? (
+        <div className="flex flex-wrap gap-2">
+          {items.map((item, i) => (
+            <span key={i} className="flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium">
+              {item}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0">
+                {item}
+                <button onClick={() => remove(i)} className="text-slate-400 hover:text-slate-600 ml-0.5">×</button>
+              </span>
+              <input
+                value={urls[item] ?? ""}
+                onChange={e => setUrls(prev => ({ ...prev, [item]: e.target.value }))}
+                placeholder="Website URL (optional)"
+                className="text-xs px-2.5 py-1 border border-slate-200 rounded-full outline-none focus:border-indigo-400 flex-1 min-w-0"
+              />
+            </div>
+          ))}
+          <div className="flex items-center gap-2">
+            <input
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+              onBlur={add}
+              placeholder="Add competitor…"
+              className="text-xs px-2.5 py-1 border border-slate-200 rounded-full outline-none focus:border-indigo-400 min-w-[130px]"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -425,7 +525,8 @@ export default function SparkPage() {
         {/* ── Competitors config ── */}
         <CompetitorsEditor
           initial={org?.competitors ?? []}
-          onSave={list => updateOrg.mutate({ competitors: list })}
+          initialUrls={org?.competitor_urls ?? {}}
+          onSave={(list, urls) => updateOrg.mutate({ competitors: list, competitor_urls: urls })}
         />
 
         {/* ── Feed sections — 2×2 grid on desktop, single column on mobile ── */}

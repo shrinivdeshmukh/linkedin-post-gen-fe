@@ -661,6 +661,7 @@ export interface OrgProfile {
   logo_url?: string | null;
   auto_transcribe: boolean;
   competitors?: string[] | null;
+  competitor_urls?: Record<string, string> | null;
   timezone?: string;
   country?: string | null;
 }
@@ -668,7 +669,7 @@ export interface OrgProfile {
 export function useUpdateOrgSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { auto_transcribe?: boolean; competitors?: string[]; timezone?: string; country?: string }) =>
+    mutationFn: (payload: { auto_transcribe?: boolean; competitors?: string[]; competitor_urls?: Record<string, string>; timezone?: string; country?: string }) =>
       api.patch<OrgProfile>("/orgs/me", payload).then((r) => r.data),
     onSuccess: (data) => qc.setQueryData(["org-profile"], data),
   });
