@@ -170,6 +170,7 @@ function FeedSection({
   const result = session?.result as FeedResult | null | undefined;
   const isRunning = session?.status === "pending" || session?.status === "running";
   const isFailed = session?.status === "failed";
+  const [throttled, setThrottled] = useState(false);
 
   useEffect(() => {
     if (isRunning) {
@@ -186,7 +187,9 @@ function FeedSection({
     try {
       await triggerResearch.mutateAsync({ mode: section.mode });
       setTimeout(() => refetch(), 1000);
-    } catch {
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 429) setThrottled(true);
       // 409 = already running, ignore
     }
   }
@@ -209,16 +212,21 @@ function FeedSection({
             )}
           </div>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isRunning || triggerResearch.isPending}
-          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40"
-          title="Refresh this section"
-        >
-          <svg className={`w-3.5 h-3.5 ${isRunning ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {throttled && (
+            <span className="text-[11px] text-amber-500 font-medium">Refreshed recently</span>
+          )}
+          <button
+            onClick={() => { setThrottled(false); handleRefresh(); }}
+            disabled={isRunning || triggerResearch.isPending}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40"
+            title={throttled ? "Refreshed within the last 4 hours" : "Refresh this section"}
+          >
+            <svg className={`w-3.5 h-3.5 ${isRunning ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Section summary */}
