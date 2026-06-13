@@ -272,7 +272,25 @@ export default function FloatingChat() {
                       </div>
                       <div className="flex-1">
                         <div className="text-sm text-slate-800 leading-relaxed prose prose-sm prose-slate max-w-none prose-p:my-0.5 prose-ul:my-0.5 prose-ol:my-0.5 prose-li:my-0 prose-headings:my-1">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          <ReactMarkdown
+                            components={{
+                              a: ({ href, children }) =>
+                                href?.startsWith("/") ? (
+                                  <button
+                                    onClick={() => { setIsOpen(false); navigate(href); }}
+                                    className="text-indigo-600 hover:text-indigo-800 underline font-medium cursor-pointer"
+                                  >
+                                    {children}
+                                  </button>
+                                ) : (
+                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
+                                    {children}
+                                  </a>
+                                ),
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
                           {msg.isStreaming && (
                             <span className="inline-block w-1 h-3 bg-indigo-500 ml-0.5 animate-pulse rounded-sm" />
                           )}
