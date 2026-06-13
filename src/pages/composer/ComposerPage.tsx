@@ -486,7 +486,7 @@ export default function ComposerPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Running Claude & Gemini in parallel…
+                Generating options…
               </div>
               <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 animate-pulse">
                 <div className="flex gap-2">

@@ -347,7 +347,7 @@ export default function PodcastDetailPage() {
               <p className="text-xs text-indigo-600 font-medium">
                 {{
                   pending: "Waiting to start…",
-                  generating_visuals: "Claude is writing visual descriptions, then generating images with Gemini…",
+                  generating_visuals: "Writing visual descriptions and generating images…",
                   rendering: "FFmpeg is assembling your video…",
                 }[job.video_status as string] ?? ""}
               </p>

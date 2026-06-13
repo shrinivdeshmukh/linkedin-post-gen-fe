@@ -36,9 +36,9 @@ const TYPE_ICONS: Record<PostType, React.ReactNode> = {
 };
 
 const MODEL_LABEL: Record<string, { label: string; color: string }> = {
-  claude: { label: "Claude", color: "text-orange-600 bg-orange-50" },
-  openai: { label: "GPT-4o", color: "text-emerald-600 bg-emerald-50" },
-  gemini: { label: "Gemini", color: "text-blue-600 bg-blue-50" },
+  claude: { label: "AI", color: "text-indigo-600 bg-indigo-50" },
+  openai: { label: "AI", color: "text-indigo-600 bg-indigo-50" },
+  gemini: { label: "AI", color: "text-indigo-600 bg-indigo-50" },
 };
 
 function timeAgo(dateStr: string): string {
