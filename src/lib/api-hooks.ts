@@ -1171,3 +1171,111 @@ export function useDeletePodcastJob() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["podcast-jobs"] }),
   });
 }
+
+// ── Savi Chat ─────────────────────────────────────────────────────────────────
+
+export interface ChatConversation {
+  id: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+  preview?: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string | null;
+  raw_content: unknown[] | null;
+  tool_action: { type: string; post_id?: string } | null;
+  created_at: string;
+}
+
+export interface SaviEvent {
+  type: "text" | "tool_start" | "tool_result" | "done" | "error";
+  delta?: string;
+  name?: string;
+  input?: Record<string, unknown>;
+  summary?: string;
+  action?: { type: string; post_id?: string };
+  tool_actions?: Array<{ type: string; post_id?: string }>;
+  text?: string;
+  message?: string;
+}
+
+export function useConversations() {
+  return useQuery<ChatConversation[]>({
+    queryKey: ["conversations"],
+    queryFn: () => api.get<ChatConversation[]>("/chat/conversations").then((r) => r.data),
+  });
+}
+
+export function useConversation(id: string | null) {
+  return useQuery<ChatConversation & { messages: ChatMessage[] }>({
+    queryKey: ["conversation", id],
+    queryFn: () =>
+      api.get<ChatConversation & { messages: ChatMessage[] }>(`/chat/conversations/${id}`).then((r) => r.data),
+    enabled: !!id,
+  });
+}
+
+export function useCreateConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<ChatConversation>("/chat/conversations").then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+export function useDeleteConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/chat/conversations/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+export async function* streamSaviMessage(
+  conversationId: string,
+  content: string
+): AsyncGenerator<SaviEvent> {
+  const { auth } = await import("./firebase");
+  const user = auth.currentUser;
+  const token = user ? await user.getIdToken() : "";
+  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+
+  const response = await fetch(`${base}/chat/conversations/${conversationId}/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok || !response.body) {
+    yield { type: "error", message: `Request failed: ${response.status}` };
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          yield JSON.parse(line.slice(6)) as SaviEvent;
+        } catch {
+          // ignore malformed lines
+        }
+      }
+    }
+  }
+}

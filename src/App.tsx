@@ -26,6 +26,7 @@ import AdminPage from "./pages/admin/AdminPage";
 import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 import SparkPage from "./pages/spark/SparkPage";
 import PodcastPage from "./pages/podcast/PodcastPage";
+import ChatPage from "./pages/chat/ChatPage";
 import StudioPage from "./pages/studio/StudioPage";
 import PodcastPublicPage from "./pages/podcast/PodcastPublicPage";
 import PodcastDetailPage from "./pages/media/PodcastDetailPage";
@@ -97,6 +98,8 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="spark" element={<SparkPage />} />
           <Route path="podcast" element={<PodcastPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="chat/:conversationId" element={<ChatPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

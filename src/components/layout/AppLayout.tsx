@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { logout } from "../../lib/firebase";
 import { useMe, usePlanStatus } from "../../lib/api-hooks";
 import { Button } from "../ui/Button";
+import FloatingChat from "../chat/FloatingChat";
 
 const navItems = [
   {
@@ -286,6 +287,7 @@ export default function AppLayout() {
 
         <Outlet />
       </main>
+      <FloatingChat />
     </div>
   );
 }
