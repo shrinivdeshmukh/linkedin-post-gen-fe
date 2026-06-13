@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import api from "../../lib/api";
 import { useParams, useLocation } from "react-router-dom";
 import { AIResultCard } from "./components/AIResultCard";
 import { PostEditor } from "./components/PostEditor";
@@ -15,7 +17,6 @@ import {
   useUpdatePost,
   useGenerateAI,
   useSubmitPost,
-  usePost,
   usePublishPost,
   useSchedulePost,
   useUnschedulePost,
@@ -24,6 +25,7 @@ import {
   type PostType,
   type PostStatus,
   type AIResult,
+  type Post,
 } from "../../lib/api-hooks";
 import { useMe } from "../../lib/api-hooks";
 
@@ -95,7 +97,15 @@ export default function ComposerPage() {
   const locationState = location.state as { rawContext?: string; spark?: { topic?: string; rawContext?: string } } | null;
   const sparkState = locationState?.spark;
   const { data: me } = useMe();
-  const { data: existingPost, isFetching: isPostFetching } = usePost(urlPostId ?? null);
+  // No-cache fetch — always load fresh post data, never show stale content
+  const { data: existingPost } = useQuery<Post>({
+    queryKey: ["post-composer", urlPostId],
+    queryFn: async () => (await api.get(`/posts/${urlPostId}`)).data,
+    enabled: !!urlPostId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+  });
   const { data: liAccount } = useLinkedInStatus();
 
   const [postType, setPostType] = useState<PostType>("text");
@@ -126,11 +136,11 @@ export default function ComposerPage() {
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [rejectMode, setRejectMode] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [hydrated, setHydrated] = useState(!urlPostId);
+  const hydrated = useRef(false);
 
-  // Load existing post into state — wait for fresh fetch to complete before hydrating
+  // Load existing post into state once when fresh data arrives
   useEffect(() => {
-    if (existingPost && !hydrated && !isPostFetching) {
+    if (existingPost && !hydrated.current) {
       setPostType((existingPost.type as PostType) ?? "text");
       setContent(existingPost.content ?? "");
       setSelectedModel(existingPost.ai_model_used ?? null);
@@ -164,9 +174,9 @@ export default function ComposerPage() {
       }
       setPostStatus((existingPost.status as PostStatus) ?? "draft");
       if (existingPost.rejection_reason) setRejectionReason(existingPost.rejection_reason);
-      setHydrated(true);
+      hydrated.current = true;
     }
-  }, [existingPost, hydrated, isPostFetching]);
+  }, [existingPost]);
 
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
