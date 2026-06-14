@@ -1,12 +1,23 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDeck, useRegenerateDeck } from "../../lib/api-hooks";
 import api from "../../lib/api";
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function DeckDetailPage() {
   const { deckId } = useParams<{ deckId: string }>();
   const navigate = useNavigate();
   const { data: deck, isLoading } = useDeck(deckId ?? null);
   const regenerate = useRegenerateDeck();
+  const [downloading, setDownloading] = useState<"html" | "pdf" | null>(null);
 
   const isGenerating = deck?.status === "generating" || isLoading;
   const isFailed = deck?.status === "failed";
@@ -15,19 +26,31 @@ export default function DeckDetailPage() {
   const publicUrl = deck?.slug ? `${window.location.origin}/d/${deck.slug}` : null;
 
   function copyLink() {
-    if (publicUrl) {
-      navigator.clipboard.writeText(publicUrl);
+    if (publicUrl) navigator.clipboard.writeText(publicUrl);
+  }
+
+  async function downloadHtml() {
+    if (!deckId) return;
+    setDownloading("html");
+    try {
+      const res = await api.get(`/decks/${deckId}/export/html`, { responseType: "blob" });
+      const filename = `${deck?.title?.replace(/\s+/g, "_").toLowerCase() ?? "deck"}.html`;
+      triggerDownload(res.data, filename);
+    } finally {
+      setDownloading(null);
     }
   }
 
-  function downloadHtml() {
+  async function downloadPdf() {
     if (!deckId) return;
-    window.open(api.defaults.baseURL + `/decks/${deckId}/export/html`, "_blank");
-  }
-
-  function downloadPdf() {
-    if (!deckId) return;
-    window.open(api.defaults.baseURL + `/decks/${deckId}/export/pdf`, "_blank");
+    setDownloading("pdf");
+    try {
+      const res = await api.get(`/decks/${deckId}/export/pdf`, { responseType: "blob" });
+      const filename = `${deck?.title?.replace(/\s+/g, "_").toLowerCase() ?? "deck"}.pdf`;
+      triggerDownload(res.data, filename);
+    } finally {
+      setDownloading(null);
+    }
   }
 
   return (
@@ -64,21 +87,23 @@ export default function DeckDetailPage() {
               </button>
               <button
                 onClick={downloadHtml}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 rounded-lg transition-colors"
+                disabled={downloading !== null}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 rounded-lg transition-colors disabled:opacity-50"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className={`w-3.5 h-3.5 ${downloading === "html" ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                HTML
+                {downloading === "html" ? "…" : "HTML"}
               </button>
               <button
                 onClick={downloadPdf}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                disabled={downloading !== null}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className={`w-3.5 h-3.5 ${downloading === "pdf" ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                PDF
+                {downloading === "pdf" ? "…" : "PDF"}
               </button>
               <button
                 onClick={() => deckId && regenerate.mutate(deckId)}
