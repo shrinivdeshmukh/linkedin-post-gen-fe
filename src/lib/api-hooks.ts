@@ -21,14 +21,14 @@ export interface PlanStatus {
   trial_active: boolean;
   trial_ends_at: string | null;
   days_remaining: number | null;
-  post_generations_used: number;
-  post_generations_limit: number | null;
-  image_generations_used: number;
-  image_generations_limit: number | null;
+  tokens_used: number;
+  tokens_limit: number | null;
+  images_used: number;
+  images_limit: number | null;
+  storage_limit_mb: number | null;
   transcription_minutes_used: number;
   transcription_minutes_limit: number | null;
-  translations_used: number;
-  translations_limit: number | null;
+  token_pct: number | null;
 }
 
 // ─── Videos ──────────────────────────────────────────────────────────────────
@@ -922,11 +922,8 @@ export interface AddonInfo {
 }
 
 export interface ApplyAddonsPayload {
-  post_generations: number;
-  image_generations: number;
+  tokens: number;
   media_storage: number;
-  transcription: number;
-  translations: number;
 }
 
 export function useAddons() {

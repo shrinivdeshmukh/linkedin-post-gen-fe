@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { useAddons, useApplyAddons, type AddonInfo, type ApplyAddonsPayload } from "../../lib/api-hooks";
 
-const ADDON_ORDER = [
-  "post_generations",
-  "image_generations",
-  "media_storage",
-  "transcription",
-  "translations",
-] as const;
-
+const ADDON_ORDER = ["tokens", "media_storage"] as const;
 type AddonType = (typeof ADDON_ORDER)[number];
+
+function formatAddonUnits(addonType: string, units: number): string {
+  if (addonType === "tokens") {
+    return `+${(units / 1_000_000).toFixed(0)}M tokens`;
+  }
+  if (addonType === "media_storage") {
+    return `+${(units / 1024).toFixed(0)} GB`;
+  }
+  return `+${units}`;
+}
 
 function SliderRow({
   info,
@@ -23,13 +26,6 @@ function SliderRow({
   const extraCost = value * info.price_per_block;
   const extraUnits = value * info.block_size;
 
-  const displayUnits =
-    info.addon_type === "media_storage"
-      ? `+${(extraUnits / 1024).toFixed(0)} GB`
-      : info.addon_type === "transcription"
-      ? `+${extraUnits} min`
-      : `+${extraUnits}`;
-
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -40,7 +36,7 @@ function SliderRow({
         <div className="text-right">
           {value > 0 ? (
             <>
-              <p className="text-sm font-semibold text-indigo-600">{displayUnits}</p>
+              <p className="text-sm font-semibold text-indigo-600">{formatAddonUnits(info.addon_type, extraUnits)}</p>
               <p className="text-xs text-slate-500">${extraCost}/mo</p>
             </>
           ) : (
@@ -52,7 +48,7 @@ function SliderRow({
         <input
           type="range"
           min={0}
-          max={10}
+          max={20}
           step={1}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
@@ -73,27 +69,15 @@ export default function AddonsSection() {
   const applyAddons = useApplyAddons();
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [blocks, setBlocks] = useState<Record<AddonType, number>>({
-    post_generations: 0,
-    image_generations: 0,
-    media_storage: 0,
-    transcription: 0,
-    translations: 0,
-  });
+  const [blocks, setBlocks] = useState<Record<AddonType, number>>({ tokens: 0, media_storage: 0 });
   const [error, setError] = useState("");
 
   function openModal() {
-    // Pre-fill sliders from current active add-ons
     const current: Record<string, number> = {};
-    for (const a of addons) {
-      current[a.addon_type] = a.current_blocks;
-    }
+    for (const a of addons) current[a.addon_type] = a.current_blocks;
     setBlocks({
-      post_generations: current.post_generations ?? 0,
-      image_generations: current.image_generations ?? 0,
+      tokens: current.tokens ?? 0,
       media_storage: current.media_storage ?? 0,
-      transcription: current.transcription ?? 0,
-      translations: current.translations ?? 0,
     });
     setError("");
     setModalOpen(true);
@@ -102,11 +86,8 @@ export default function AddonsSection() {
   async function handleSave() {
     setError("");
     const payload: ApplyAddonsPayload = {
-      post_generations: blocks.post_generations,
-      image_generations: blocks.image_generations,
+      tokens: blocks.tokens,
       media_storage: blocks.media_storage,
-      transcription: blocks.transcription,
-      translations: blocks.translations,
     };
     try {
       await applyAddons.mutateAsync(payload);
@@ -119,7 +100,7 @@ export default function AddonsSection() {
 
   const totalMonthly = addons.reduce((s, a) => s + a.monthly_cost, 0);
   const activeAddons = addons.filter((a) => a.current_blocks > 0);
-  const previewTotal = Object.values(blocks).reduce((s, v) => s + v * 5, 0);
+  const previewTotal = (blocks.tokens + blocks.media_storage) * 5;
 
   return (
     <>
@@ -151,27 +132,19 @@ export default function AddonsSection() {
             <svg className="w-5 h-5 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-slate-500">No active add-ons. Hit a limit? Add more capacity without changing your plan.</p>
+            <p className="text-sm text-slate-500">No active add-ons. Running low on tokens or storage? Add more capacity without changing your plan.</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {activeAddons.map((addon) => {
-              const displayExtra =
-                addon.addon_type === "media_storage"
-                  ? `+${(addon.extra_units / 1024).toFixed(0)} GB`
-                  : addon.addon_type === "transcription"
-                  ? `+${addon.extra_units} min`
-                  : `+${addon.extra_units} ${addon.unit_label.replace("/mo", "")}`;
-              return (
-                <div key={addon.addon_type} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
-                  <span className="text-slate-700">{addon.label}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-indigo-600 font-medium">{displayExtra}</span>
-                    <span className="text-slate-400">${addon.monthly_cost}/mo</span>
-                  </div>
+            {activeAddons.map((addon) => (
+              <div key={addon.addon_type} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
+                <span className="text-slate-700">{addon.label}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-indigo-600 font-medium">{formatAddonUnits(addon.addon_type, addon.extra_units)}</span>
+                  <span className="text-slate-400">${addon.monthly_cost}/mo</span>
                 </div>
-              );
-            })}
+              </div>
+            ))}
             <div className="flex items-center justify-between pt-1 text-sm font-semibold text-slate-700">
               <span>Total add-ons</span>
               <span>${totalMonthly.toFixed(2)}/mo</span>
@@ -184,7 +157,6 @@ export default function AddonsSection() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-            {/* Header */}
             <div className="px-6 py-5 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">Manage add-ons</h2>
               <p className="text-sm text-slate-500 mt-0.5">
@@ -192,19 +164,17 @@ export default function AddonsSection() {
               </p>
             </div>
 
-            {/* Sliders */}
             <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-y-auto">
               {addons.map((info) => (
                 <SliderRow
                   key={info.addon_type}
                   info={info}
-                  value={blocks[info.addon_type as AddonType]}
+                  value={blocks[info.addon_type as AddonType] ?? 0}
                   onChange={(v) => setBlocks((prev) => ({ ...prev, [info.addon_type]: v }))}
                 />
               ))}
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-600">Add-ons total</span>

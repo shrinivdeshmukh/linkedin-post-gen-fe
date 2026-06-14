@@ -32,6 +32,12 @@ const PLAN_LABELS: Record<string, string> = {
   agency: "Agency — $499/mo",
 };
 
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return `${n}`;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -330,14 +336,24 @@ export default function SettingsPage() {
 
           <div className="space-y-4">
             <UsageMeter
-              label="Post generations"
-              used={plan.post_generations_used}
-              limit={plan.post_generations_limit}
+              label="AI tokens"
+              used={plan.tokens_used}
+              limit={plan.tokens_limit}
+              display={
+                plan.tokens_limit === null
+                  ? `${fmtTokens(plan.tokens_used)} / ∞`
+                  : `${fmtTokens(plan.tokens_used)} / ${fmtTokens(plan.tokens_limit)} tokens${plan.token_pct !== null ? ` · ${plan.token_pct}% used` : ""}`
+              }
             />
             <UsageMeter
               label="Image generations"
-              used={plan.image_generations_used}
-              limit={plan.image_generations_limit}
+              used={plan.images_used}
+              limit={plan.images_limit}
+              display={
+                plan.images_limit === null
+                  ? `${plan.images_used} images / ∞`
+                  : `${plan.images_used} / ${plan.images_limit} images`
+              }
             />
             <UsageMeter
               label="Media storage"
@@ -361,16 +377,9 @@ export default function SettingsPage() {
                   : `${plan.transcription_minutes_used.toFixed(1)} / ${plan.transcription_minutes_limit} min`
               }
             />
-            {plan.plan !== "trial" && (
-              <UsageMeter
-                label="Translations"
-                used={plan.translations_used}
-                limit={plan.translations_limit}
-              />
-            )}
           </div>
 
-          <p className="text-xs text-slate-400">All usage counters reset monthly. Video storage is cumulative.</p>
+          <p className="text-xs text-slate-400">Token and image counters reset monthly. Storage is cumulative.</p>
         </div>
       )}
 
