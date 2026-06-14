@@ -1358,3 +1358,37 @@ export function useTriggerAnalyticsSync() {
     },
   });
 }
+
+// ─── Gamification ─────────────────────────────────────────────────────────────
+
+export interface StreakData {
+  current_streak: number;
+  longest_streak: number;
+  last_published_at: string | null;
+  total_published: number;
+}
+
+export interface AchievementItem {
+  type: string;
+  title: string;
+  description: string;
+  icon: string;
+  earned_at: string;
+}
+
+export function useStreak() {
+  return useQuery<StreakData>({
+    queryKey: ["gamification", "streak"],
+    queryFn: () => api.get("/gamification/streak").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useAchievements() {
+  return useQuery<AchievementItem[]>({
+    queryKey: ["gamification", "achievements"],
+    queryFn: () => api.get("/gamification/achievements").then((r) => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMe, usePosts, useDeletePost, useSchedulePost, type PostStatus } from "../../lib/api-hooks";
+import { useMe, usePosts, useDeletePost, useSchedulePost, useAchievements, useStreak, type PostStatus } from "../../lib/api-hooks";
 import { StatCard } from "../../components/dashboard/StatCard";
 import { PostRow } from "../../components/dashboard/PostRow";
 import { EmptyState } from "../../components/dashboard/EmptyState";
@@ -47,6 +47,8 @@ export default function DashboardPage() {
   const { data: posts = [], isLoading } = usePosts();
   const deletePost = useDeletePost();
   const schedulePost = useSchedulePost();
+  const { data: achievements = [] } = useAchievements();
+  const { data: streak } = useStreak();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [copied, setCopied] = useState(false);
   const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
@@ -271,6 +273,41 @@ export default function DashboardPage() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Achievements shelf */}
+      {achievements.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Achievements</p>
+            {streak && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span>🔥</span>
+                <span><span className="font-semibold text-slate-700">{streak.current_streak}</span>-day streak</span>
+                <span className="text-slate-300">·</span>
+                <span><span className="font-semibold text-slate-700">{streak.total_published}</span> published</span>
+                {streak.longest_streak > streak.current_streak && (
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <span>best <span className="font-semibold text-slate-700">{streak.longest_streak}</span>d</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {achievements.map((a) => (
+              <div
+                key={a.type}
+                title={`${a.title}: ${a.description}\nEarned ${new Date(a.earned_at).toLocaleDateString()}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-xl text-xs font-medium text-slate-700 cursor-default hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
+              >
+                <span className="text-base leading-none">{a.icon}</span>
+                <span>{a.title}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

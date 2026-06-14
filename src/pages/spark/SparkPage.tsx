@@ -7,6 +7,7 @@ import {
   useGetResearchBrief,
   useOrgProfile,
   useUpdateOrgSettings,
+  useStreak,
 } from "../../lib/api-hooks";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -452,6 +453,7 @@ export default function SparkPage() {
   const getResearchBrief = useGetResearchBrief();
   const { data: org } = useOrgProfile();
   const updateOrg = useUpdateOrgSettings();
+  const { data: streak } = useStreak();
 
   // Today's brief — reads latest auto_pulse for the summary line
   const { data: pulseSession } = useLatestResearch("auto_pulse");
@@ -497,16 +499,27 @@ export default function SparkPage() {
                 {lastPulse && <p className="text-[11px] text-white/50">Updated {lastPulse}</p>}
               </div>
             </div>
-            <button
-              onClick={handleRefreshAll}
-              disabled={triggerResearch.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-xl transition-colors disabled:opacity-50"
-            >
-              <svg className={`w-3 h-3 ${triggerResearch.isPending ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Refresh all
-            </button>
+            <div className="flex items-center gap-2">
+              {streak && streak.current_streak > 0 && (
+                <div
+                  className="flex items-center gap-1 px-2.5 py-1 bg-white/15 rounded-xl cursor-default"
+                  title={`Longest streak: ${streak.longest_streak} days · ${streak.total_published} posts published`}
+                >
+                  <span className="text-sm leading-none">🔥</span>
+                  <span className="text-xs font-bold text-white">{streak.current_streak}d</span>
+                </div>
+              )}
+              <button
+                onClick={handleRefreshAll}
+                disabled={triggerResearch.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-xl transition-colors disabled:opacity-50"
+              >
+                <svg className={`w-3 h-3 ${triggerResearch.isPending ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh all
+              </button>
+            </div>
           </div>
           {pulseResult?.summary ? (
             <p className="text-sm text-white/90 leading-relaxed">{pulseResult.summary}</p>
