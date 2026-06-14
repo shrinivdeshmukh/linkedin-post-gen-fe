@@ -27,9 +27,9 @@ import {
 
 const PLAN_LABELS: Record<string, string> = {
   trial: "Free trial",
-  solo: "Solo — $79/mo",
-  team: "Team — $199/mo",
-  agency: "Agency — $499/mo",
+  solo: "Solo — $49/mo",
+  team: "Team — $149/mo",
+  agency: "Agency — $399/mo",
 };
 
 function fmtTokens(n: number): string {
@@ -147,15 +147,15 @@ const PLAN_PRICING = [
   {
     key: "solo" as const,
     label: "Solo",
-    monthly: "$79/mo",
-    annual: "$759/yr ($63/mo)",
+    monthly: "$49/mo",
+    annual: "$470/yr ($39/mo)",
     description: "For founders and execs building their personal brand.",
     features: [
-      "150 post generations / mo",
-      "30 image generations / mo",
+      "5M AI tokens / mo (~200 posts or 8 decks)",
+      "100 image generations / mo",
       "2 GB media storage",
       "LinkedIn + Blog mediums",
-      "Campaigns (series & collections)",
+      "Campaigns, Decks & Podcasts",
       "Voice profile & company context",
       "Direct LinkedIn publishing",
     ],
@@ -163,12 +163,12 @@ const PLAN_PRICING = [
   {
     key: "team" as const,
     label: "Team",
-    monthly: "$199/mo",
-    annual: "$1,910/yr ($159/mo)",
+    monthly: "$149/mo",
+    annual: "$1,430/yr ($119/mo)",
     description: "For marketing teams managing executive content.",
     features: [
-      "500 post generations / mo",
-      "75 image generations / mo",
+      "25M AI tokens / mo (~1,000 posts or 40 decks)",
+      "300 image generations / mo",
       "10 GB media storage",
       "Up to 5 seats",
       "Approval workflows",
@@ -178,12 +178,12 @@ const PLAN_PRICING = [
   {
     key: "agency" as const,
     label: "Agency",
-    monthly: "$499/mo",
-    annual: "$4,790/yr ($399/mo)",
+    monthly: "$399/mo",
+    annual: "$3,830/yr ($319/mo)",
     description: "For agencies running content for multiple clients.",
     features: [
-      "Unlimited post generations",
-      "200 image generations / mo",
+      "Unlimited AI tokens",
+      "Unlimited image generations",
       "50 GB media storage",
       "Up to 15 seats",
       "Priority support",
