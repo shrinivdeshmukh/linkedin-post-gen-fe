@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useCreateDeck } from "../../lib/api-hooks";
+import { useCreateDeck, useUploadDeckFile, useDeleteDeckFile, DeckFileItem } from "../../lib/api-hooks";
+import { useDeckFile } from "../../lib/api-hooks";
 
 const FONTS = [
   "Inter",
@@ -15,12 +16,74 @@ const FONTS = [
 
 type Step = "format" | "content" | "brand";
 
+// Small component that polls a single file until ready, then notifies parent
+function PollDeckFile({
+  id,
+  onReady,
+  onDelete,
+}: {
+  id: string;
+  onReady: (file: DeckFileItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { data } = useDeckFile(id);
+  const deleteMutation = useDeleteDeckFile();
+  const notifiedRef = useRef(false);
+
+  useEffect(() => {
+    if (data?.status === "ready" && !notifiedRef.current) {
+      notifiedRef.current = true;
+      onReady(data);
+    }
+  }, [data?.status]);
+
+  const filename = data?.original_filename ?? "Uploading…";
+  const status = data?.status ?? "parsing";
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-xl">
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-slate-700 truncate">{filename}</p>
+        {status === "parsing" && (
+          <p className="text-xs text-indigo-500 flex items-center gap-1 mt-0.5">
+            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Parsing…
+          </p>
+        )}
+        {status === "ready" && (
+          <p className="text-xs text-emerald-600 mt-0.5">Parsed — context added</p>
+        )}
+        {status === "failed" && (
+          <p className="text-xs text-red-500 mt-0.5">{data?.error ?? "Parse failed"}</p>
+        )}
+      </div>
+      <button
+        onClick={async () => {
+          if (data) await deleteMutation.mutateAsync(id);
+          onDelete(id);
+        }}
+        className="p-1 text-slate-300 hover:text-red-400 transition-colors flex-shrink-0"
+        title="Remove file"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export default function NewDeckPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const prefill = (location.state as { topic?: string; key_messages?: string[] } | null) ?? {};
 
   const createDeck = useCreateDeck();
+  const uploadDeckFile = useUploadDeckFile();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>("format");
   const [format, setFormat] = useState<"deck" | "onepager">("deck");
@@ -36,12 +99,44 @@ export default function NewDeckPage() {
   const [fontFamily, setFontFamily] = useState("Inter");
   const [customFont, setCustomFont] = useState("");
 
+  // Uploaded deck files (by id) — polled until ready
+  const [uploadedFileIds, setUploadedFileIds] = useState<string[]>([]);
+  const appendedSummaries = useRef<Set<string>>(new Set());
+
   function addKeyMessage() { setKeyMessages(m => [...m, ""]); }
   function updateKeyMessage(i: number, val: string) {
     setKeyMessages(m => m.map((v, idx) => idx === i ? val : v));
   }
   function removeKeyMessage(i: number) {
     setKeyMessages(m => m.filter((_, idx) => idx !== i));
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    const form = new FormData();
+    form.append("file", file);
+    const result = await uploadDeckFile.mutateAsync(form);
+    setUploadedFileIds(ids => [...ids, result.id]);
+  }
+
+  function handleFileReady(file: DeckFileItem) {
+    if (appendedSummaries.current.has(file.id)) return;
+    appendedSummaries.current.add(file.id);
+    if (file.parsed_summary) {
+      setExtraContext(prev => {
+        const prefix = prev.trim() ? prev.trim() + "\n\n" : "";
+        const points = file.key_points?.length
+          ? "\n\nKey points:\n" + file.key_points.map(p => `- ${p}`).join("\n")
+          : "";
+        return prefix + `[From ${file.original_filename}]\n${file.parsed_summary}${points}`;
+      });
+    }
+  }
+
+  function handleFileDeleted(id: string) {
+    setUploadedFileIds(ids => ids.filter(i => i !== id));
   }
 
   async function handleSubmit() {
@@ -255,12 +350,65 @@ export default function NewDeckPage() {
                   className="w-full text-sm px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-400"
                 />
               </div>
+
+              {/* ── File upload ── */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-600">
+                    Source documents <span className="text-slate-400 font-normal">(PDF, Excel, DOCX, CSV, images)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadDeckFile.isPending}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-40 transition-colors"
+                  >
+                    {uploadDeckFile.isPending ? (
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                    )}
+                    Upload file
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.xlsx,.xls,.csv,.docx,.txt,.png,.jpg,.jpeg,.webp"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {uploadDeckFile.isError && (
+                  <p className="text-xs text-red-500">
+                    {(uploadDeckFile.error as Error)?.message ?? "Upload failed"}
+                  </p>
+                )}
+                {uploadedFileIds.length > 0 && (
+                  <div className="space-y-1.5">
+                    {uploadedFileIds.map(id => (
+                      <PollDeckFile
+                        key={id}
+                        id={id}
+                        onReady={handleFileReady}
+                        onDelete={handleFileDeleted}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-600">Additional context <span className="text-slate-400 font-normal">(product details, data, talking points)</span></label>
+                <label className="text-xs font-semibold text-slate-600">
+                  Additional context <span className="text-slate-400 font-normal">(auto-filled from uploaded files, or paste manually)</span>
+                </label>
                 <textarea
                   value={extraContext}
                   onChange={e => setExtraContext(e.target.value)}
-                  rows={4}
+                  rows={5}
                   placeholder="Paste in any text from a doc, spreadsheet, or notes. The AI will use this to populate the slides accurately."
                   className="w-full text-sm px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-400 resize-none"
                 />

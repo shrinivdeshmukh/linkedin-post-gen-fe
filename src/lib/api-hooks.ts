@@ -1481,3 +1481,59 @@ export function useRegenerateDeck() {
     onSuccess: (_, id) => qc.invalidateQueries({ queryKey: ["decks", id] }),
   });
 }
+
+// ── Deck Files ──────────────────────────────────────────────────────────────
+
+export interface DeckFileItem {
+  id: string;
+  org_id: string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  spaces_url: string;
+  parsed_summary: string | null;
+  key_points: string[] | null;
+  status: "parsing" | "ready" | "failed";
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useDeckFiles() {
+  return useQuery<DeckFileItem[]>({
+    queryKey: ["deck-files"],
+    queryFn: () => api.get("/deck-files").then((r) => r.data),
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useDeckFile(id: string | null) {
+  return useQuery<DeckFileItem>({
+    queryKey: ["deck-files", id],
+    queryFn: () => api.get(`/deck-files/${id}`).then((r) => r.data),
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "parsing" ? 2000 : false;
+    },
+  });
+}
+
+export function useUploadDeckFile() {
+  const qc = useQueryClient();
+  return useMutation<DeckFileItem, Error, FormData>({
+    mutationFn: (form) =>
+      api.post("/deck-files/upload", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["deck-files"] }),
+  });
+}
+
+export function useDeleteDeckFile() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) => api.delete(`/deck-files/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["deck-files"] }),
+  });
+}
