@@ -1391,4 +1391,93 @@ export function useAchievements() {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+// ─── Decks ────────────────────────────────────────────────────────────────────
+
+export interface DeckItem {
+  id: string;
+  title: string;
+  topic: string;
+  format: "deck" | "onepager";
+  mode: string;
+  font_family: string;
+  theme: "dark" | "light";
+  brand_logo_url: string | null;
+  company_name: string | null;
+  company_url: string | null;
+  brand_colors: Record<string, string> | null;
+  slides_json: Record<string, unknown> | null;
+  slug: string | null;
+  status: "generating" | "ready" | "failed";
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeckCreate {
+  title: string;
+  topic: string;
+  format?: "deck" | "onepager";
+  mode?: "scratch" | "from_post" | "from_campaign";
+  source_id?: string;
+  key_messages?: string[];
+  brand_logo_url?: string;
+  company_url?: string;
+  company_name?: string;
+  extra_context?: string;
+  font_family?: string;
+  theme?: "dark" | "light";
+  slide_count?: number;
+}
+
+export function useDecks() {
+  return useQuery<DeckItem[]>({
+    queryKey: ["decks"],
+    queryFn: () => api.get("/decks").then((r) => r.data),
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useDeck(deckId: string | null) {
+  return useQuery<DeckItem>({
+    queryKey: ["decks", deckId],
+    queryFn: () => api.get(`/decks/${deckId}`).then((r) => r.data),
+    enabled: !!deckId,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "generating" ? 3000 : false;
+    },
+  });
+}
+
+export function usePublicDeck(slug: string | null) {
+  return useQuery<DeckItem>({
+    queryKey: ["decks", "public", slug],
+    queryFn: () => api.get(`/decks/public/${slug}`).then((r) => r.data),
+    enabled: !!slug,
+  });
+}
+
+export function useCreateDeck() {
+  const qc = useQueryClient();
+  return useMutation<DeckItem, Error, DeckCreate>({
+    mutationFn: (body) => api.post("/decks", body).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["decks"] }),
+  });
+}
+
+export function useDeleteDeck() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) => api.delete(`/decks/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["decks"] }),
+  });
+}
+
+export function useRegenerateDeck() {
+  const qc = useQueryClient();
+  return useMutation<DeckItem, Error, string>({
+    mutationFn: (id) => api.post(`/decks/${id}/regenerate`).then((r) => r.data),
+    onSuccess: (_, id) => qc.invalidateQueries({ queryKey: ["decks", id] }),
+  });
 }

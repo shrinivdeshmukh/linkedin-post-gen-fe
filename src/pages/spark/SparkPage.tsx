@@ -472,6 +472,10 @@ export default function SparkPage() {
     navigate("/studio", { state: { spark: { topic: title, rawContext: context } } });
   }
 
+  function handleNewDeck(topic?: string) {
+    navigate("/decks/new", { state: topic ? { topic } : undefined });
+  }
+
   async function handleCampaign(topic: string) {
     try {
       const brief = await getResearchBrief.mutateAsync();
@@ -526,6 +530,19 @@ export default function SparkPage() {
           ) : (
             <p className="text-sm text-white/60 italic">No brief yet — refresh to generate your daily pulse.</p>
           )}
+        </div>
+
+        {/* ── Quick actions ── */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => handleNewDeck()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-600 rounded-xl transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            New deck
+          </button>
         </div>
 
         {/* ── Competitors config ── */}

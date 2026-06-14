@@ -36,6 +36,10 @@ import ChatPage from "./pages/chat/ChatPage";
 import StudioPage from "./pages/studio/StudioPage";
 import PodcastPublicPage from "./pages/podcast/PodcastPublicPage";
 import PodcastDetailPage from "./pages/media/PodcastDetailPage";
+import DecksPage from "./pages/decks/DecksPage";
+import NewDeckPage from "./pages/decks/NewDeckPage";
+import DeckDetailPage from "./pages/decks/DeckDetailPage";
+import DeckPublicPage from "./pages/decks/DeckPublicPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -65,6 +69,7 @@ export default function App() {
         <Route path="/p/:jobId" element={<PodcastPublicPage />} />
         <Route path="/shared/collections/:token" element={<PublicCollectionPage />} />
         <Route path="/invite/:token" element={<AcceptInvitePage />} />
+        <Route path="/d/:slug" element={<DeckPublicPage />} />
 
         {/* Onboarding — authenticated but no org yet */}
         <Route
@@ -107,6 +112,9 @@ export default function App() {
           <Route path="podcast" element={<PodcastPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:conversationId" element={<ChatPage />} />
+          <Route path="decks" element={<DecksPage />} />
+          <Route path="decks/new" element={<NewDeckPage />} />
+          <Route path="decks/:deckId" element={<DeckDetailPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
