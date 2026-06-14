@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useCreateDeck, useUploadDeckFile, useDeleteDeckFile, DeckFileItem } from "../../lib/api-hooks";
-import { useDeckFile } from "../../lib/api-hooks";
+import { useCreateDeck, useUploadDeckFile, useDeleteDeckFile, useDeckFile } from "../../lib/api-hooks";
+import type { DeckFileItem } from "../../lib/api-hooks";
 
 const FONTS = [
   "Inter",
