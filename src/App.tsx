@@ -31,6 +31,7 @@ import AdminPage from "./pages/admin/AdminPage";
 import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
 import SparkPage from "./pages/spark/SparkPage";
 import DeepResearchPage from "./pages/spark/DeepResearchPage";
+import SparkSectionPage from "./pages/spark/SparkSectionPage";
 import PodcastPage from "./pages/podcast/PodcastPage";
 import ChatPage from "./pages/chat/ChatPage";
 import StudioPage from "./pages/studio/StudioPage";
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="spark" element={<SparkPage />} />
           <Route path="spark/research/:sessionId" element={<DeepResearchPage />} />
+          <Route path="spark/sections/:mode" element={<SparkSectionPage />} />
           <Route path="podcast" element={<PodcastPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:conversationId" element={<ChatPage />} />

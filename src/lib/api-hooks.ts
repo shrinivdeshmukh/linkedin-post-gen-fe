@@ -1035,6 +1035,34 @@ export function useResearchSessions() {
   });
 }
 
+export interface ResearchSectionItem {
+  title: string;
+  summary: string;
+  angle: string;
+  urgency: "high" | "medium" | "low";
+  hook: string;
+  sources?: { title: string; url: string; snippet?: string }[];
+  post_risk?: "low" | "medium" | "high";
+  risk_reason?: string;
+  surprise_factor?: "low" | "medium" | "high";
+  session_date: string | null;
+}
+
+export interface ResearchSectionResult {
+  mode: string;
+  items: ResearchSectionItem[];
+  total: number;
+}
+
+export function useResearchSection(mode: string | null) {
+  return useQuery<ResearchSectionResult>({
+    queryKey: ["research-section", mode],
+    queryFn: () => api.get(`/research/sections/${mode}`).then((r) => r.data),
+    enabled: !!mode,
+    staleTime: 60_000,
+  });
+}
+
 export function useTriggerResearch() {
   const qc = useQueryClient();
   return useMutation({

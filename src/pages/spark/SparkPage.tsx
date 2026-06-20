@@ -351,6 +351,12 @@ function FeedSection({
           {result.items.slice(0, 4).map((item, i) => (
             <FeedCard key={i} item={item} section={section} onWritePost={onWritePost} onCampaign={onCampaign} />
           ))}
+          <button
+            onClick={() => navigate(`/spark/sections/${section.mode}`)}
+            className={`w-full text-center text-xs font-semibold py-2.5 rounded-xl border border-dashed transition-colors ${section.border} ${section.color} hover:${section.bg}`}
+          >
+            Show more →
+          </button>
         </div>
       )}
     </section>
