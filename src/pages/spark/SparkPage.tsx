@@ -248,6 +248,7 @@ function FeedSection({
   onWritePost: (title: string, context: string) => void;
   onCampaign: (topic: string) => void;
 }) {
+  const navigate = useNavigate();
   const { data: session, isLoading, refetch } = useLatestResearch(section.mode);
   const triggerResearch = useTriggerResearch();
   const result = session?.result as FeedResult | null | undefined;
