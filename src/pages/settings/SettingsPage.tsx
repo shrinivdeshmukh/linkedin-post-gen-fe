@@ -928,7 +928,7 @@ function ApiKeysSection() {
     }
   }
 
-  const mcpUrl = `${(import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, "")}/mcp/sse`;
+  const mcpBase = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, "");
 
   return (
     <div className="space-y-5 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
@@ -945,41 +945,38 @@ function ApiKeysSection() {
         </div>
       </div>
 
-      {/* MCP URL */}
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-slate-600">MCP Server URL</p>
-        <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl">
-          <code className="text-xs text-slate-700 flex-1 truncate">{mcpUrl}</code>
-          <button
-            type="button"
-            onClick={() => handleCopy(mcpUrl)}
-            className="text-xs text-slate-400 hover:text-slate-700 font-medium shrink-0"
-          >
-            {copied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-        <p className="text-xs text-slate-400">Add this URL as a custom connector in Claude Desktop, then authenticate with an API key below.</p>
+      {/* Setup instructions */}
+      <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-1.5">
+        <p className="text-xs font-semibold text-violet-800">How to connect Claude Desktop</p>
+        <ol className="text-xs text-violet-700 space-y-1 list-decimal list-inside">
+          <li>Generate an API key below</li>
+          <li>Copy the personal connector URL shown after creation</li>
+          <li>In Claude Desktop → Settings → Connectors → Add custom → paste the URL</li>
+        </ol>
       </div>
 
-      {/* New key revealed after creation */}
+      {/* New key revealed after creation — show the ready-to-use connector URL */}
       {createdKey && (
-        <div className="space-y-2 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <div className="space-y-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-amber-800">Save this key — it won't be shown again</p>
+            <p className="text-xs font-semibold text-amber-800">Your connector URL — copy this into Claude Desktop</p>
             <button type="button" onClick={() => setCreatedKey(null)} className="text-amber-400 hover:text-amber-600">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <code className="text-xs font-mono text-amber-900 bg-amber-100 px-2 py-1.5 rounded-lg flex-1 break-all">{createdKey.key}</code>
+            <code className="text-xs font-mono text-amber-900 bg-amber-100 px-2 py-1.5 rounded-lg flex-1 break-all">
+              {`${mcpBase}/mcp?key=${createdKey.key}`}
+            </code>
             <button
               type="button"
-              onClick={() => handleCopy(createdKey.key)}
+              onClick={() => handleCopy(`${mcpBase}/mcp?key=${createdKey.key}`)}
               className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors"
             >
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
+          <p className="text-xs text-amber-700">This URL won't be shown again. Save it somewhere safe.</p>
         </div>
       )}
 
