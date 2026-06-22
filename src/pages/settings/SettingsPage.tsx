@@ -928,7 +928,7 @@ function ApiKeysSection() {
     }
   }
 
-  const mcpUrl = `${(import.meta.env.VITE_API_URL || "").replace(/\/api\/v1$/, "")}/mcp/sse`;
+  const mcpUrl = `${(import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, "")}/mcp/sse`;
 
   return (
     <div className="space-y-5 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
