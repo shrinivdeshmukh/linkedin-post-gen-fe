@@ -1588,3 +1588,40 @@ export function useDeleteDeckFile() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["deck-files"] }),
   });
 }
+
+// ─── API Keys (MCP) ──────────────────────────────────────────────────────────
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  key_preview: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  key: string; // plain key — returned once at creation only
+}
+
+export function useApiKeys() {
+  return useQuery<ApiKey[]>({
+    queryKey: ["api-keys"],
+    queryFn: () => api.get("/api-keys").then((r) => r.data),
+  });
+}
+
+export function useCreateApiKey() {
+  const qc = useQueryClient();
+  return useMutation<ApiKeyCreated, Error, { name: string }>({
+    mutationFn: (body) => api.post("/api-keys", body).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}
+
+export function useRevokeApiKey() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) => api.delete(`/api-keys/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}

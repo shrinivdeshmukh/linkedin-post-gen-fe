@@ -22,6 +22,11 @@ import {
   useRevokeInvite,
   useRemoveMember,
   useUpdateMemberRole,
+  useApiKeys,
+  useCreateApiKey,
+  useRevokeApiKey,
+  type ApiKey,
+  type ApiKeyCreated,
   type BillingPeriod,
 } from "../../lib/api-hooks";
 
@@ -881,6 +886,154 @@ export default function SettingsPage() {
           </p>
         )}
       </div>
+
+      <ApiKeysSection />
+    </div>
+  );
+}
+
+// ── API Keys section ──────────────────────────────────────────────────────────
+
+function ApiKeysSection() {
+  const { data: keys = [], isLoading } = useApiKeys();
+  const createKey = useCreateApiKey();
+  const revokeKey = useRevokeApiKey();
+
+  const [name, setName] = useState("");
+  const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [revoking, setRevoking] = useState<string | null>(null);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    const result = await createKey.mutateAsync({ name: name.trim() });
+    setCreatedKey(result);
+    setName("");
+  }
+
+  function handleCopy(text: string) {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleRevoke(id: string) {
+    setRevoking(id);
+    try {
+      await revokeKey.mutateAsync(id);
+      if (createdKey?.id === id) setCreatedKey(null);
+    } finally {
+      setRevoking(null);
+    }
+  }
+
+  const mcpUrl = `${(import.meta.env.VITE_API_URL || "").replace(/\/api\/v1$/, "")}/mcp/sse`;
+
+  return (
+    <div className="space-y-5 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
+          <svg className="w-4.5 h-4.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">MCP / API Access</h2>
+          <p className="text-sm text-slate-500">Connect Claude Desktop and other AI tools directly to your workspace.</p>
+        </div>
+      </div>
+
+      {/* MCP URL */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-slate-600">MCP Server URL</p>
+        <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+          <code className="text-xs text-slate-700 flex-1 truncate">{mcpUrl}</code>
+          <button
+            type="button"
+            onClick={() => handleCopy(mcpUrl)}
+            className="text-xs text-slate-400 hover:text-slate-700 font-medium shrink-0"
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">Add this URL as a custom connector in Claude Desktop, then authenticate with an API key below.</p>
+      </div>
+
+      {/* New key revealed after creation */}
+      {createdKey && (
+        <div className="space-y-2 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-amber-800">Save this key — it won't be shown again</p>
+            <button type="button" onClick={() => setCreatedKey(null)} className="text-amber-400 hover:text-amber-600">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="text-xs font-mono text-amber-900 bg-amber-100 px-2 py-1.5 rounded-lg flex-1 break-all">{createdKey.key}</code>
+            <button
+              type="button"
+              onClick={() => handleCopy(createdKey.key)}
+              className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Existing keys */}
+      {isLoading ? (
+        <div className="h-10 bg-slate-100 rounded-xl animate-pulse" />
+      ) : keys.length > 0 ? (
+        <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+          {keys.map((k: ApiKey) => (
+            <div key={k.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-800 truncate">{k.name}</p>
+                <p className="text-xs text-slate-400 font-mono">{k.key_preview}</p>
+              </div>
+              <div className="flex items-center gap-4 shrink-0 ml-4">
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs text-slate-400">Created {new Date(k.created_at).toLocaleDateString()}</p>
+                  {k.last_used_at && (
+                    <p className="text-xs text-slate-400">Used {new Date(k.last_used_at).toLocaleDateString()}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRevoke(k.id)}
+                  disabled={revoking === k.id}
+                  className="text-xs text-slate-400 hover:text-red-500 font-medium transition-colors disabled:opacity-40"
+                >
+                  {revoking === k.id ? "Revoking…" : "Revoke"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-slate-400">No API keys yet.</p>
+      )}
+
+      {/* Create new key */}
+      <form onSubmit={handleCreate} className="flex gap-2">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Key name (e.g. Claude Desktop)"
+          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+        />
+        <button
+          type="submit"
+          disabled={!name.trim() || createKey.isPending}
+          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          {createKey.isPending ? "Creating…" : "Generate key"}
+        </button>
+      </form>
     </div>
   );
 }
