@@ -41,6 +41,7 @@ import DecksPage from "./pages/decks/DecksPage";
 import NewDeckPage from "./pages/decks/NewDeckPage";
 import DeckDetailPage from "./pages/decks/DeckDetailPage";
 import DeckPublicPage from "./pages/decks/DeckPublicPage";
+import McpConnectPage from "./pages/mcp/McpConnectPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/linkedin/callback" element={<LinkedInCallbackPage />} />
+        <Route path="/mcp-connect" element={<McpConnectPage />} />
         <Route path="/v/:slug" element={<VideoPublicPage />} />
         <Route path="/p/:jobId" element={<PodcastPublicPage />} />
         <Route path="/shared/collections/:token" element={<PublicCollectionPage />} />

@@ -901,7 +901,8 @@ function ApiKeysSection() {
 
   const [name, setName] = useState("");
   const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedMcp, setCopiedMcp] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
 
   async function handleCreate(e: React.FormEvent) {
@@ -910,12 +911,6 @@ function ApiKeysSection() {
     const result = await createKey.mutateAsync({ name: name.trim() });
     setCreatedKey(result);
     setName("");
-  }
-
-  function handleCopy(text: string) {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleRevoke(id: string) {
@@ -929,6 +924,10 @@ function ApiKeysSection() {
   }
 
   const mcpBase = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, "");
+  const mcpUrl = `${mcpBase}/mcp`;
+
+  function copyMcp() { navigator.clipboard.writeText(mcpUrl); setCopiedMcp(true); setTimeout(() => setCopiedMcp(false), 2000); }
+  function copyKey(text: string) { navigator.clipboard.writeText(text); setCopiedKey(true); setTimeout(() => setCopiedKey(false), 2000); }
 
   return (
     <div className="space-y-5 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
@@ -945,38 +944,43 @@ function ApiKeysSection() {
         </div>
       </div>
 
-      {/* Setup instructions */}
-      <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-1.5">
-        <p className="text-xs font-semibold text-violet-800">How to connect Claude Desktop</p>
-        <ol className="text-xs text-violet-700 space-y-1 list-decimal list-inside">
-          <li>Generate an API key below</li>
-          <li>Copy the personal connector URL shown after creation</li>
-          <li>In Claude Desktop → Settings → Connectors → Add custom → paste the URL</li>
-        </ol>
+      {/* Claude Desktop — OAuth, just paste the URL */}
+      <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl space-y-3">
+        <div>
+          <p className="text-xs font-semibold text-violet-800">Connect Claude Desktop</p>
+          <p className="text-xs text-violet-600 mt-0.5">
+            Copy the URL below → Claude Desktop → Settings → Connectors → Add custom connector → paste &amp; connect.
+            Claude will open a browser window for you to authorise — no manual key needed.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="text-xs font-mono text-violet-900 bg-violet-100 px-2 py-1.5 rounded-lg flex-1 break-all">
+            {mcpUrl}
+          </code>
+          <button type="button" onClick={copyMcp} className="shrink-0 px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-lg transition-colors">
+            {copiedMcp ? "Copied!" : "Copy"}
+          </button>
+        </div>
       </div>
 
-      {/* New key revealed after creation — show the ready-to-use connector URL */}
+      {/* Plain key just created (for API / programmatic use) */}
       {createdKey && (
         <div className="space-y-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-amber-800">Your connector URL — copy this into Claude Desktop</p>
+            <p className="text-xs font-semibold text-amber-800">API key — copy now, won't be shown again</p>
             <button type="button" onClick={() => setCreatedKey(null)} className="text-amber-400 hover:text-amber-600">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
           <div className="flex items-center gap-2">
             <code className="text-xs font-mono text-amber-900 bg-amber-100 px-2 py-1.5 rounded-lg flex-1 break-all">
-              {`${mcpBase}/mcp?key=${createdKey.key}`}
+              {createdKey.key}
             </code>
-            <button
-              type="button"
-              onClick={() => handleCopy(`${mcpBase}/mcp?key=${createdKey.key}`)}
-              className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors"
-            >
-              {copied ? "Copied!" : "Copy"}
+            <button type="button" onClick={() => copyKey(createdKey.key)} className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors">
+              {copiedKey ? "Copied!" : "Copy"}
             </button>
           </div>
-          <p className="text-xs text-amber-700">This URL won't be shown again. Save it somewhere safe.</p>
+          <p className="text-xs text-amber-700">Use as <code className="font-mono">Authorization: Bearer {createdKey.key}</code></p>
         </div>
       )}
 
@@ -1011,26 +1015,29 @@ function ApiKeysSection() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-slate-400">No API keys yet.</p>
+        <p className="text-sm text-slate-400 text-center py-2">No API keys yet. Claude Desktop keys are created automatically on first connect.</p>
       )}
 
-      {/* Create new key */}
-      <form onSubmit={handleCreate} className="flex gap-2">
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Key name (e.g. Claude Desktop)"
-          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-        />
-        <button
-          type="submit"
-          disabled={!name.trim() || createKey.isPending}
-          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          {createKey.isPending ? "Creating…" : "Generate key"}
-        </button>
-      </form>
+      {/* Create key for API / programmatic use */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-slate-500">Create a key for direct API access</p>
+        <form onSubmit={handleCreate} className="flex gap-2">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Key name (e.g. CI pipeline)"
+            className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+          />
+          <button
+            type="submit"
+            disabled={!name.trim() || createKey.isPending}
+            className="px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            {createKey.isPending ? "Creating…" : "Generate"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
