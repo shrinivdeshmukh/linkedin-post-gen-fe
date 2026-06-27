@@ -26,9 +26,24 @@ const DEFAULT_DETAILS: VoiceDetailsData = {
   free_form: "",
 };
 
+function getAnonProfile(): { display_name?: string; org_name?: string; org_slug?: string } {
+  try {
+    const raw = localStorage.getItem("pcs_anon_profile");
+    if (!raw) return {};
+    const { name, company_url } = JSON.parse(raw) as { name?: string; company_url?: string };
+    const domain = (company_url ?? "").replace(/https?:\/\//, "").split("/")[0].split(".")[0];
+    const org_name = domain ? domain.charAt(0).toUpperCase() + domain.slice(1) : undefined;
+    const org_slug = org_name ? org_name.toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(0, 40) : undefined;
+    return { display_name: name || undefined, org_name, org_slug };
+  } catch {
+    return {};
+  }
+}
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [workspaceData, setWorkspaceData] = useState<WorkspaceFormData | null>(null);
+  const anonProfile = getAnonProfile();
   const [toneData, setToneData] = useState<VoiceToneData>(DEFAULT_TONE);
   const [detailsData, setDetailsData] = useState<VoiceDetailsData>(DEFAULT_DETAILS);
 
@@ -121,7 +136,7 @@ export default function OnboardingPage() {
           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 sm:p-10">
             {step === 0 && (
               <WorkspaceStep
-                defaultValues={workspaceData ?? undefined}
+                defaultValues={workspaceData ?? anonProfile}
                 onNext={handleWorkspaceSubmit}
                 loading={onboard.isPending}
                 error={

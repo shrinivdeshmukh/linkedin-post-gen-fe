@@ -42,16 +42,21 @@ export default function SignupPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Preserve anon session from landing page so CompleteStep can claim it
+  // Preserve anon session + profile from landing page
   const anonSession = searchParams.get("session");
+  const anonName = searchParams.get("name") ?? "";
+  const anonCompanyUrl = searchParams.get("company_url") ?? "";
   if (anonSession) localStorage.setItem("pcs_anon_session", anonSession);
+  if (anonName || anonCompanyUrl) {
+    localStorage.setItem("pcs_anon_profile", JSON.stringify({ name: anonName, company_url: anonCompanyUrl }));
+  }
 
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema), mode: "onChange" });
+  } = useForm<FormData>({ resolver: zodResolver(schema), mode: "onChange", defaultValues: { name: anonName } });
 
   const passwordValue = watch("password", "");
 
