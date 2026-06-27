@@ -1625,3 +1625,16 @@ export function useRevokeApiKey() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
   });
 }
+
+// ─── Anonymous session claim (PLG landing page) ───────────────────────────────
+
+export function useClaimAnonSession() {
+  return useMutation<{ post_id: string }, Error, string>({
+    mutationFn: async (sessionId) => {
+      // /public/* sits at root, not under /api/v1
+      const apiRoot = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1").replace(/\/api\/v1\/?$/, "");
+      const res = await api.post(`${apiRoot}/public/claim-session`, { session_id: sessionId });
+      return res.data;
+    },
+  });
+}

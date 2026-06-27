@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
+import { useClaimAnonSession } from "../../../lib/api-hooks";
 
 interface CompleteStepProps {
   name: string;
@@ -8,6 +10,9 @@ interface CompleteStepProps {
 export function CompleteStep({ name }: CompleteStepProps) {
   const navigate = useNavigate();
   const firstName = name.split(" ")[0];
+  const claim = useClaimAnonSession();
+  const [claiming, setClaiming] = useState(false);
+  const anonSession = localStorage.getItem("pcs_anon_session");
 
   return (
     <div className="flex flex-col items-center text-center space-y-6 py-4">
@@ -76,9 +81,24 @@ export function CompleteStep({ name }: CompleteStepProps) {
       <Button
         size="lg"
         fullWidth
-        onClick={() => navigate("/composer")}
+        disabled={claiming}
+        onClick={async () => {
+          if (anonSession) {
+            setClaiming(true);
+            try {
+              const { post_id } = await claim.mutateAsync(anonSession);
+              localStorage.removeItem("pcs_anon_session");
+              navigate(`/composer/${post_id}`);
+            } catch {
+              localStorage.removeItem("pcs_anon_session");
+              navigate("/composer");
+            }
+          } else {
+            navigate("/composer");
+          }
+        }}
       >
-        Write my first post →
+        {claiming ? "Loading your post…" : anonSession ? "Take me to my post →" : "Write my first post →"}
       </Button>
 
       <button

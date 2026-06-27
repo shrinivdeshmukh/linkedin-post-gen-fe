@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -38,8 +38,13 @@ const PASSWORD_RULES = [
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Preserve anon session from landing page so CompleteStep can claim it
+  const anonSession = searchParams.get("session");
+  if (anonSession) localStorage.setItem("pcs_anon_session", anonSession);
 
   const {
     register,
