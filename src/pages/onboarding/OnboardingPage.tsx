@@ -39,14 +39,18 @@ export default function OnboardingPage() {
   const [companyDescription, setCompanyDescription] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isOnboarded, setIsOnboarded] = useState(false);
 
-  // Step 1 submit: create org + user in DB
+  // Step 1 submit: create org + user in DB (only on first submit)
   async function handleWorkspaceSubmit(data: WorkspaceFormData) {
-    await onboard.mutateAsync({
-      org_name: data.org_name,
-      org_slug: data.org_slug,
-      display_name: data.display_name,
-    });
+    if (!isOnboarded) {
+      await onboard.mutateAsync({
+        org_name: data.org_name,
+        org_slug: data.org_slug,
+        display_name: data.display_name,
+      });
+      setIsOnboarded(true);
+    }
     setWorkspaceData(data);
     setStep(1);
   }
