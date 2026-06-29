@@ -67,7 +67,7 @@ export default function DashboardPage() {
   // Next Action derivation — priority order
   const pendingCount = stats.pending;
   const campaignNeedingReview = campaigns.find(
-    (c) => c.status === "ready_for_review" || (c.status === "active" && c.campaign_posts.some((cp) => cp.post.status === "pending_approval"))
+    (c) => c.status === "ready_for_review" || (c.status === "active" && (c.campaign_posts ?? []).some((cp) => cp.post.status === "pending_approval"))
   ) ?? null;
   const lastPublished = posts
     .filter((p) => p.status === "published" && p.published_at)
