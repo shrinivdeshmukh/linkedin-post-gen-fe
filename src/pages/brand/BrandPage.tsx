@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   usePillars,
   useCreatePillar,
@@ -194,6 +194,15 @@ function PillarsTab() {
   const [adding, setAdding] = useState(false);
   const [retiringPillar, setRetiringPillar] = useState<ContentPillar | null>(null);
   const [showRetired, setShowRetired] = useState(false);
+  const suggestFired = useRef(false);
+
+  // Auto-generate suggestions once when user has no pillars at all
+  useEffect(() => {
+    if (!isLoading && allPillars.length === 0 && !suggestFired.current) {
+      suggestFired.current = true;
+      suggest.mutate();
+    }
+  }, [isLoading, allPillars.length]);
 
   const active = allPillars.filter((p) => p.status === "active");
   const suggested = allPillars.filter((p) => p.status === "suggested");
@@ -210,31 +219,15 @@ function PillarsTab() {
           </p>
         </div>
         {!adding && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => suggest.mutate()}
-              disabled={suggest.isPending}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-sm font-semibold rounded-xl border border-slate-200 transition-colors"
-            >
-              {suggest.isPending ? (
-                <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              )}
-              {suggest.isPending ? "Generating…" : "Suggest for me"}
-            </button>
-            <button
-              onClick={() => setAdding(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Add pillar
-            </button>
-          </div>
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add pillar
+          </button>
         )}
       </div>
 
@@ -258,30 +251,9 @@ function PillarsTab() {
           ))}
         </div>
       ) : active.length === 0 && suggested.length === 0 && !adding ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center space-y-4">
-          <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mx-auto">
-            <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 012-2z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-700">No pillars yet</p>
-            <p className="text-xs text-slate-400 mt-1">Let AI suggest 5 pillars based on your profile, or add your own.</p>
-          </div>
-          <button
-            onClick={() => suggest.mutate()}
-            disabled={suggest.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
-          >
-            {suggest.isPending ? (
-              <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-            ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            )}
-            {suggest.isPending ? "Generating suggestions…" : "Suggest pillars for me"}
-          </button>
+        <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center space-y-3">
+          <div className="w-8 h-8 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-slate-500">Generating pillar suggestions…</p>
         </div>
       ) : (
         <div className="space-y-3">
