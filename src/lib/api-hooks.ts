@@ -1038,6 +1038,10 @@ export function useLatestResearch(mode?: string) {
       return r.data ?? null;
     },
     staleTime: 30_000,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "pending" || status === "running" ? 3000 : false;
+    },
   });
 }
 

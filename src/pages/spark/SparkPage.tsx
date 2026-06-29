@@ -471,7 +471,7 @@ export default function SparkPage() {
     : null;
 
   async function handleRefreshAll() {
-    const modes = ["competitor_feed", "industry_trends", "world_politics", "creative_angles"];
+    const modes = ["auto_pulse", "competitor_feed", "industry_trends", "world_politics", "creative_angles"];
     await Promise.allSettled(modes.map(mode => triggerResearch.mutateAsync({ mode })));
   }
 
