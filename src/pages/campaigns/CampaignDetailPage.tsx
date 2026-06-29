@@ -6,6 +6,7 @@ import {
   useRegenerateCampaign,
   useRegenerateCampaignPost,
   useUpdatePost,
+  useUpdateCampaign,
   useMe,
   type CampaignPost,
 } from "../../lib/api-hooks";
@@ -215,6 +216,8 @@ export default function CampaignDetailPage() {
   const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
   const [scheduleValue, setScheduleValue] = useState("");
   const [scheduleError, setScheduleError] = useState("");
+  const [editingStartDate, setEditingStartDate] = useState(false);
+  const updateCampaign = useUpdateCampaign();
 
   async function handleScheduleSubmit() {
     if (!schedulingPostId || !scheduleValue) return;
@@ -318,7 +321,34 @@ export default function CampaignDetailPage() {
         </div>
         <div>
           <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-0.5">Start date</p>
-          <p className="font-semibold text-slate-800">{new Date(campaign.start_date).toLocaleDateString()}</p>
+          {editingStartDate ? (
+            <input
+              type="date"
+              defaultValue={campaign.start_date}
+              autoFocus
+              onBlur={(e) => {
+                const val = e.target.value;
+                setEditingStartDate(false);
+                if (val && val !== campaign.start_date) {
+                  updateCampaign.mutate({ id: campaign.id, start_date: val });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+                if (e.key === "Escape") setEditingStartDate(false);
+              }}
+              className="text-sm font-semibold text-slate-800 bg-white border border-indigo-300 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingStartDate(true)}
+              className="font-semibold text-slate-800 hover:text-indigo-600 hover:underline decoration-dashed underline-offset-2 transition-colors text-left"
+              title="Click to edit"
+            >
+              {new Date(campaign.start_date + "T00:00:00").toLocaleDateString()}
+            </button>
+          )}
         </div>
         <div>
           <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-0.5">Target outcome</p>
