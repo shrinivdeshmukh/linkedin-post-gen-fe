@@ -143,6 +143,7 @@ export default function ComposerPage() {
   const [rejectMode, setRejectMode] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [pillarId, setPillarId] = useState<string | null>(null);
+  const [selectedPillarId, setSelectedPillarId] = useState<string | null>(null);
   const hydrated = useRef(false);
 
   const { data: activePillars = [] } = usePillars();
@@ -234,7 +235,7 @@ export default function ComposerPage() {
         id = post.id;
         setPostId(id);
       }
-      const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext, raw_context: rawContext.trim() || null, post_length: postLength });
+      const results = await generateAI.mutateAsync({ postId: id, topic, document_context: documentContext, raw_context: rawContext.trim() || null, post_length: postLength, pillar_id: selectedPillarId });
       setAiResults(results);
       const fallback = results.find((r) => !r.error);
       setActiveModel(fallback?.model ?? "claude");
@@ -433,20 +434,41 @@ export default function ComposerPage() {
               </Button>
             </div>
 
-            {/* Pillar quick-picks — shown when topic is empty and pillars exist */}
-            {!topic.trim() && activePillars.length > 0 && phase === "setup" && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-slate-400">Write about:</span>
-                {activePillars.slice(0, 5).map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setTopic(p.name)}
-                    className="text-xs px-2.5 py-1 rounded-full border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50 transition-all"
-                  >
-                    {p.name}
-                  </button>
-                ))}
+            {/* Focus area picker — always shown when pillars exist and in setup phase */}
+            {activePillars.length > 0 && phase === "setup" && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500">Focus area</span>
+                  {selectedPillarId && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPillarId(null)}
+                      className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {activePillars.slice(0, 6).map((p) => {
+                    const active = selectedPillarId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedPillarId(active ? null : p.id)}
+                        className={[
+                          "text-xs px-3 py-1.5 rounded-xl border font-medium transition-all duration-150",
+                          active
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50",
+                        ].join(" ")}
+                      >
+                        {p.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -561,7 +583,9 @@ export default function ComposerPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Generating options…
+                {selectedPillarId
+                  ? `Writing about ${activePillars.find((p) => p.id === selectedPillarId)?.name ?? "your focus area"}…`
+                  : "Generating options…"}
               </div>
               <div className="rounded-2xl border-2 border-slate-100 p-5 space-y-3">
                 <div className="flex gap-2">

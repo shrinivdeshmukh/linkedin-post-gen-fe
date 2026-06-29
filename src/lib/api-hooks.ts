@@ -575,12 +575,14 @@ export function useGenerateAI() {
       document_context,
       raw_context,
       post_length,
+      pillar_id,
     }: {
       postId: string;
       topic: string;
       document_context?: string | null;
       raw_context?: string | null;
       post_length?: "short" | "medium" | "long";
+      pillar_id?: string | null;
     }) =>
       api
         .post<{ results: AIResult[] }>(`/posts/${postId}/generate`, {
@@ -588,6 +590,7 @@ export function useGenerateAI() {
           document_context: document_context ?? undefined,
           raw_context: raw_context ?? undefined,
           post_length: post_length ?? "medium",
+          pillar_id: pillar_id ?? undefined,
         })
         .then((r) => r.data.results),
   });
