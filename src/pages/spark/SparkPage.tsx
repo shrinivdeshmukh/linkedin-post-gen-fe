@@ -243,16 +243,18 @@ function FeedSection({
   section,
   onWritePost,
   onCampaign,
+  externalRunning = false,
 }: {
   section: typeof FEED_SECTIONS[number];
   onWritePost: (title: string, context: string) => void;
   onCampaign: (topic: string) => void;
+  externalRunning?: boolean;
 }) {
   const navigate = useNavigate();
   const { data: session, isLoading, refetch } = useLatestResearch(section.mode);
   const triggerResearch = useTriggerResearch();
   const result = session?.result as FeedResult | null | undefined;
-  const isRunning = session?.status === "pending" || session?.status === "running";
+  const isRunning = externalRunning || session?.status === "pending" || session?.status === "running";
   const isFailed = session?.status === "failed";
   const [throttled, setThrottled] = useState(false);
 
@@ -461,18 +463,24 @@ export default function SparkPage() {
   const { data: org } = useOrgProfile();
   const updateOrg = useUpdateOrgSettings();
   const { data: streak } = useStreak();
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
 
   // Today's brief — reads latest auto_pulse for the summary line
   const { data: pulseSession } = useLatestResearch("auto_pulse");
   const pulseResult = pulseSession?.result as { summary?: string; topics?: SparkTopic[] } | null | undefined;
+  const isPulseRunning = isRefreshingAll || pulseSession?.status === "pending" || pulseSession?.status === "running";
 
   const lastPulse = pulseSession?.completed_at
     ? new Date(pulseSession.completed_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
     : null;
 
   async function handleRefreshAll() {
+    setIsRefreshingAll(true);
     const modes = ["auto_pulse", "competitor_feed", "industry_trends", "world_politics", "creative_angles"];
     await Promise.allSettled(modes.map(mode => triggerResearch.mutateAsync({ mode })));
+    // Give backend ~2s to persist sessions and queries to pick up the running status,
+    // then hand off to each section's own isRunning polling
+    setTimeout(() => setIsRefreshingAll(false), 2000);
   }
 
   function handleWritePost(title: string, context: string) {
@@ -507,7 +515,10 @@ export default function SparkPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-white/70 uppercase tracking-wider">Today's Brief</p>
-                {lastPulse && <p className="text-[11px] text-white/50">Updated {lastPulse}</p>}
+                {isPulseRunning
+                ? <p className="text-[11px] text-white/60 animate-pulse">Refreshing brief…</p>
+                : lastPulse && <p className="text-[11px] text-white/50">Updated {lastPulse}</p>
+              }
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -522,17 +533,23 @@ export default function SparkPage() {
               )}
               <button
                 onClick={handleRefreshAll}
-                disabled={triggerResearch.isPending}
+                disabled={triggerResearch.isPending || isRefreshingAll}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white/15 hover:bg-white/25 text-white rounded-xl transition-colors disabled:opacity-50"
               >
-                <svg className={`w-3 h-3 ${triggerResearch.isPending ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className={`w-3 h-3 ${(triggerResearch.isPending || isRefreshingAll) ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Refresh all
+                {isRefreshingAll ? "Starting…" : "Refresh all"}
               </button>
             </div>
           </div>
-          {pulseResult?.summary ? (
+          {isPulseRunning ? (
+            <div className="space-y-2 pt-1">
+              <div className="h-3 rounded-full bg-white/20 w-full" style={{animation:"shimmer 1.5s ease-in-out infinite", backgroundImage:"linear-gradient(90deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0.25) 40%,rgba(255,255,255,0.1) 80%)", backgroundSize:"400px 100%"}} />
+              <div className="h-3 rounded-full bg-white/20 w-4/5" style={{animation:"shimmer 1.5s ease-in-out infinite 0.2s", backgroundImage:"linear-gradient(90deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0.25) 40%,rgba(255,255,255,0.1) 80%)", backgroundSize:"400px 100%"}} />
+              <div className="h-3 rounded-full bg-white/20 w-3/5" style={{animation:"shimmer 1.5s ease-in-out infinite 0.4s", backgroundImage:"linear-gradient(90deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0.25) 40%,rgba(255,255,255,0.1) 80%)", backgroundSize:"400px 100%"}} />
+            </div>
+          ) : pulseResult?.summary ? (
             <p className="text-sm text-white/90 leading-relaxed">{pulseResult.summary}</p>
           ) : (
             <p className="text-sm text-white/60 italic">No brief yet — refresh to generate your daily pulse.</p>
@@ -567,6 +584,7 @@ export default function SparkPage() {
               section={section}
               onWritePost={handleWritePost}
               onCampaign={handleCampaign}
+              externalRunning={isRefreshingAll}
             />
           ))}
         </div>
