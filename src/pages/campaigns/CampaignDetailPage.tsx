@@ -216,7 +216,9 @@ export default function CampaignDetailPage() {
   const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
   const [scheduleValue, setScheduleValue] = useState("");
   const [scheduleError, setScheduleError] = useState("");
-  const [editingStartDate, setEditingStartDate] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTimeVal] = useState("");
   const updateCampaign = useUpdateCampaign();
 
   async function handleScheduleSubmit() {
@@ -319,33 +321,52 @@ export default function CampaignDetailPage() {
           <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-0.5">Frequency</p>
           <p className="font-semibold text-slate-800 capitalize">{FREQ_LABELS[campaign.frequency_days] ?? `${campaign.frequency_days}d`}</p>
         </div>
-        <div>
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-0.5">Start date</p>
-          {editingStartDate ? (
-            <input
-              type="date"
-              defaultValue={campaign.start_date}
-              autoFocus
-              onBlur={(e) => {
-                const val = e.target.value;
-                setEditingStartDate(false);
-                if (val && val !== campaign.start_date) {
-                  updateCampaign.mutate({ id: campaign.id, start_date: val });
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-                if (e.key === "Escape") setEditingStartDate(false);
-              }}
-              className="text-sm font-semibold text-slate-800 bg-white border border-indigo-300 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-            />
+        <div className="space-y-1">
+          <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Start date & time</p>
+          {editingSchedule ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                className="text-sm font-semibold text-slate-800 bg-white border border-indigo-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
+              <input
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTimeVal(e.target.value)}
+                className="text-sm font-semibold text-slate-800 bg-white border border-indigo-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  updateCampaign.mutate({ id: campaign.id, start_date: scheduleDate, start_time: scheduleTime });
+                  setEditingSchedule(false);
+                }}
+                disabled={!scheduleDate || !scheduleTime || updateCampaign.isPending}
+                className="text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {updateCampaign.isPending ? "Saving…" : "Save & reschedule"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingSchedule(false)}
+                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           ) : (
             <button
               type="button"
-              onClick={() => setEditingStartDate(true)}
+              onClick={() => {
+                setScheduleDate(campaign.start_date);
+                setScheduleTimeVal(campaign.start_time ?? "09:00");
+                setEditingSchedule(true);
+              }}
               className="flex items-center gap-1.5 font-semibold text-slate-800 hover:text-indigo-600 transition-colors group"
             >
-              {new Date(campaign.start_date + "T00:00:00").toLocaleDateString()}
+              {new Date(campaign.start_date + "T" + (campaign.start_time ?? "09:00")).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
               <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>

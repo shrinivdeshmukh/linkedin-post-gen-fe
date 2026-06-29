@@ -455,6 +455,7 @@ export interface Campaign {
   post_count: number;
   frequency_days: number;
   start_date: string;
+  start_time: string;
   post_type: string;
   include_images: boolean;
   tone_override?: string;
@@ -514,7 +515,7 @@ export function useCreateCampaign() {
 export function useUpdateCampaign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; name?: string; start_date?: string; frequency_days?: number; target_outcome?: string; tone_override?: string }) =>
+    mutationFn: ({ id, ...body }: { id: string; name?: string; start_date?: string; start_time?: string; frequency_days?: number; target_outcome?: string; tone_override?: string }) =>
       api.patch<Campaign>(`/campaigns/${id}`, body).then((r) => r.data),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["campaign", data.id] });
