@@ -340,7 +340,11 @@ export function useApprovePost() {
   return useMutation({
     mutationFn: ({ id, action, reason }: { id: string; action: "approve" | "reject"; reason?: string }) =>
       api.post<Post>(`/posts/${id}/approve`, { action, reason }).then((r) => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      // Update campaign progress bars — approved_count changes when a post is approved
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+    },
   });
 }
 
@@ -1731,8 +1735,13 @@ export function useNextBrandQuestion() {
 }
 
 export function useAnswerBrandQuestion() {
+  const qc = useQueryClient();
   return useMutation<void, Error, { promptId: string; answer: string }>({
     mutationFn: async ({ promptId, answer }) => { await api.post(`/brand/answer/${promptId}`, { answer }) },
+    onSuccess: () => {
+      // Answering a brand question updates a voice profile dimension — keep Composer in sync
+      qc.invalidateQueries({ queryKey: ["voice-profile"] });
+    },
   });
 }
 

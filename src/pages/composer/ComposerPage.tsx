@@ -24,6 +24,8 @@ import {
   useLinkedInStatus,
   usePillars,
   useTagPost,
+  useCampaign,
+  useCampaigns,
   type PostType,
   type PostStatus,
   type AIResult,
@@ -96,9 +98,11 @@ const POST_TYPE_OPTIONS: { type: PostType; label: string; icon: React.ReactNode 
 export default function ComposerPage() {
   const { postId: urlPostId } = useParams<{ postId: string }>();
   const location = useLocation();
-  const locationState = location.state as { rawContext?: string; spark?: { topic?: string; rawContext?: string } } | null;
+  const locationState = location.state as { rawContext?: string; spark?: { topic?: string; rawContext?: string }; campaignId?: string } | null;
   const sparkState = locationState?.spark;
+  const campaignIdFromState = locationState?.campaignId ?? null;
   const { data: me } = useMe();
+  const { data: campaignContext } = useCampaign(campaignIdFromState);
   // No-cache fetch — always load fresh post data, never show stale content
   const { data: existingPost } = useQuery<Post>({
     queryKey: ["post-composer", urlPostId],
@@ -143,6 +147,8 @@ export default function ComposerPage() {
 
   const { data: activePillars = [] } = usePillars();
   const tagPost = useTagPost();
+  const { data: allCampaigns = [] } = useCampaigns();
+  const [dismissedCampaignSuggestion, setDismissedCampaignSuggestion] = useState(false);
 
   // Load existing post into state once when fresh data arrives
   useEffect(() => {
@@ -193,6 +199,17 @@ export default function ComposerPage() {
   const schedulePost = useSchedulePost();
   const unschedulePost = useUnschedulePost();
   const approvePost = useApprovePost();
+
+  // Find a campaign that might match the current topic (only when not already in a campaign context)
+  const suggestedCampaign = !campaignContext && !dismissedCampaignSuggestion && topic.trim().length > 10
+    ? (() => {
+        const words = topic.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+        return allCampaigns.find((c) => {
+          const haystack = `${c.name} ${c.topic}`.toLowerCase();
+          return words.some((w) => haystack.includes(w));
+        }) ?? null;
+      })()
+    : null;
 
   function handleTypeToggle(type: PostType) {
     const next = postType === type ? "text" : type;
@@ -413,6 +430,28 @@ export default function ComposerPage() {
                 Generate
               </Button>
             </div>
+
+            {/* Campaign suggestion chip */}
+            {suggestedCampaign && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-xl">
+                <svg className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <p className="text-xs text-indigo-700 flex-1">
+                  This might fit your <span className="font-semibold">{suggestedCampaign.name}</span> campaign arc.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setDismissedCampaignSuggestion(true)}
+                  className="text-indigo-300 hover:text-indigo-500 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
 
             {/* Post type checkboxes */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -738,6 +777,32 @@ export default function ComposerPage() {
               postType={postType}
               imageUrl={imageUrl}
             />
+
+            {/* Campaign context — shown when arriving from a campaign */}
+            {campaignContext && (
+              <div className="bg-white rounded-2xl border border-indigo-100 p-3.5 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Campaign</p>
+                </div>
+                <p className="text-sm font-semibold text-slate-800 leading-tight">{campaignContext.name}</p>
+                {campaignContext.target_outcome && (
+                  <p className="text-xs text-slate-500 leading-relaxed">{campaignContext.target_outcome}</p>
+                )}
+                {campaignContext.key_messages.length > 0 && (
+                  <div className="space-y-1 pt-0.5">
+                    {campaignContext.key_messages.slice(0, 3).map((msg, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-indigo-300 flex-shrink-0 mt-1.5" />
+                        <p className="text-xs text-slate-600 leading-relaxed">{msg}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Pillar selector — shown once content exists */}
             {phase === "editing" && postId && activePillars.length > 0 && (

@@ -43,6 +43,7 @@ import DeckDetailPage from "./pages/decks/DeckDetailPage";
 import DeckPublicPage from "./pages/decks/DeckPublicPage";
 import McpConnectPage from "./pages/mcp/McpConnectPage";
 import BrandPage from "./pages/brand/BrandPage";
+import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -94,7 +95,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/spark" replace />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="studio" element={<StudioPage />} />
           <Route path="composer" element={<ComposerRoute />} />
@@ -111,6 +112,7 @@ export default function App() {
           <Route path="media/podcasts/:jobId" element={<PodcastDetailPage />} />
           <Route path="calendar" element={<ContentCalendarPage />} />
           <Route path="brand" element={<BrandPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="spark" element={<SparkPage />} />
           <Route path="spark/research/:sessionId" element={<DeepResearchPage />} />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMe, usePosts, useDeletePost, useSchedulePost, useAchievements, useStreak, type PostStatus } from "../../lib/api-hooks";
+import { useMe, usePosts, useDeletePost, useSchedulePost, useAchievements, useStreak, useCampaigns, type PostStatus } from "../../lib/api-hooks";
 import { StatCard } from "../../components/dashboard/StatCard";
 import { PostRow } from "../../components/dashboard/PostRow";
 import { EmptyState } from "../../components/dashboard/EmptyState";
@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const schedulePost = useSchedulePost();
   const { data: achievements = [] } = useAchievements();
   const { data: streak } = useStreak();
+  const { data: campaigns = [] } = useCampaigns();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [copied, setCopied] = useState(false);
   const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
@@ -62,6 +63,61 @@ export default function DashboardPage() {
     pending: posts.filter((p) => p.status === "pending_approval").length,
     scheduled: posts.filter((p) => p.status === "scheduled").length,
   };
+
+  // Next Action derivation — priority order
+  const pendingCount = stats.pending;
+  const campaignNeedingReview = campaigns.find(
+    (c) => c.status === "ready_for_review" || (c.status === "active" && c.campaign_posts.some((cp) => cp.post.status === "pending_approval"))
+  ) ?? null;
+  const lastPublished = posts
+    .filter((p) => p.status === "published" && p.published_at)
+    .sort((a, b) => new Date(b.published_at!).getTime() - new Date(a.published_at!).getTime())[0] ?? null;
+  const daysSinceLast = lastPublished
+    ? Math.floor((Date.now() - new Date(lastPublished.published_at!).getTime()) / 86_400_000)
+    : null;
+
+  type NextAction = { icon: React.ReactNode; headline: string; sub: string; cta: string; onClick: () => void; accent: string };
+  const nextAction: NextAction = (() => {
+    if (pendingCount > 0) return {
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
+      headline: `${pendingCount} post${pendingCount > 1 ? "s" : ""} waiting for your approval`,
+      sub: "Review and approve before they can be scheduled or published.",
+      cta: "Review now",
+      onClick: () => navigate("/approvals"),
+      accent: "amber",
+    };
+    if (campaignNeedingReview) return {
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />,
+      headline: `"${campaignNeedingReview.name}" is ready for review`,
+      sub: "Your campaign posts are generated and waiting for your sign-off.",
+      cta: "Open campaign",
+      onClick: () => navigate(`/campaigns/${campaignNeedingReview.id}`),
+      accent: "violet",
+    };
+    if (daysSinceLast !== null && daysSinceLast >= 5) return {
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+      headline: `You haven't posted in ${daysSinceLast} days`,
+      sub: "Consistency builds an audience. Share something today — even a short take.",
+      cta: "Write a post",
+      onClick: () => navigate("/composer"),
+      accent: "indigo",
+    };
+    return {
+      icon: <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />,
+      headline: "What do you want to share today?",
+      sub: "Turn an idea, insight, or experience into a LinkedIn post.",
+      cta: "Create post",
+      onClick: () => navigate("/composer"),
+      accent: "indigo",
+    };
+  })();
+
+  const accentMap: Record<string, { bg: string; border: string; icon: string; btn: string; sub: string }> = {
+    amber:  { bg: "bg-amber-50",  border: "border-amber-200",  icon: "text-amber-500",  btn: "bg-amber-500 hover:bg-amber-600",  sub: "text-amber-700" },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-500", btn: "bg-violet-600 hover:bg-violet-700", sub: "text-violet-700" },
+    indigo: { bg: "bg-indigo-50", border: "border-indigo-200", icon: "text-indigo-500", btn: "bg-indigo-600 hover:bg-indigo-700", sub: "text-indigo-700" },
+  };
+  const ac = accentMap[nextAction.accent];
 
   // Filter posts for active tab
   const filtered =
@@ -105,14 +161,10 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Today</p>
           <h1 className="text-2xl font-bold text-slate-900">
             {greeting(me?.display_name)}
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            {stats.total === 0
-              ? "Ready to build your LinkedIn presence?"
-              : `You have ${stats.pending > 0 ? `${stats.pending} post${stats.pending > 1 ? "s" : ""} pending approval` : `${stats.total} post${stats.total > 1 ? "s" : ""} in your workspace`}.`}
-          </p>
         </div>
         <Button onClick={() => navigate("/composer")}>
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -121,6 +173,28 @@ export default function DashboardPage() {
           New post
         </Button>
       </div>
+
+      {/* Next Action card */}
+      {!isLoading && (
+        <div className={`flex items-start gap-4 p-5 rounded-2xl border ${ac.bg} ${ac.border}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/70 ${ac.icon}`}>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {nextAction.icon}
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-slate-900 leading-snug">{nextAction.headline}</p>
+            <p className={`text-xs mt-0.5 leading-relaxed ${ac.sub} opacity-80`}>{nextAction.sub}</p>
+          </div>
+          <button
+            type="button"
+            onClick={nextAction.onClick}
+            className={`flex-shrink-0 text-xs font-semibold text-white px-4 py-2 rounded-xl transition-colors ${ac.btn}`}
+          >
+            {nextAction.cta}
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

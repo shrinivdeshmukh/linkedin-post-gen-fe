@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useRetirePillar, usePillars, type ContentPillar } from "../lib/api-hooks";
+import { useNavigate } from "react-router-dom";
+import { useRetirePillar, usePillars, useCampaigns, type ContentPillar } from "../lib/api-hooks";
 
 interface Props {
   pillar: ContentPillar;
@@ -9,17 +10,66 @@ interface Props {
 
 export default function RetirePillarDialog({ pillar, onDone, onCancel }: Props) {
   const [reassignTo, setReassignTo] = useState<string>("");
+  const [done, setDone] = useState(false);
   const { data: allPillars = [] } = usePillars();
+  const { data: campaigns = [] } = useCampaigns();
   const retire = useRetirePillar();
+  const navigate = useNavigate();
 
   const activePillars = allPillars.filter((p) => p.id !== pillar.id && p.status === "active");
+  const activeCampaigns = campaigns.filter((c) => c.status === "active" || c.status === "ready_for_review");
+  const hasPosts = pillar.post_count > 0;
 
   async function handleRetire() {
     await retire.mutateAsync({
       id: pillar.id,
       reassign_to_pillar_id: reassignTo || null,
     });
-    onDone();
+    if (hasPosts && activeCampaigns.length > 0) {
+      setDone(true);
+    } else {
+      onDone();
+    }
+  }
+
+  if (done) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">"{pillar.name}" retired</p>
+              <p className="text-xs text-slate-500 mt-0.5">Posts are preserved in your history.</p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-4 space-y-2">
+            <p className="text-xs font-semibold text-indigo-700">Those posts might fit an active campaign</p>
+            <p className="text-xs text-indigo-600 leading-relaxed">
+              You have {activeCampaigns.length} active campaign{activeCampaigns.length > 1 ? "s" : ""}. Open Campaigns to link any of these posts to a running arc.
+            </p>
+            <button
+              onClick={() => { onDone(); navigate("/campaigns"); }}
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              Go to Campaigns →
+            </button>
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={onDone}
+              className="text-sm text-slate-500 hover:text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-100 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

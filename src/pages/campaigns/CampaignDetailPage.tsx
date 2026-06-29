@@ -174,7 +174,7 @@ function PostCard({
               </svg>
             </button>
           )}
-          <Button size="sm" variant="outline" onClick={() => navigate(`/composer/${post.id}`)}>
+          <Button size="sm" variant="outline" onClick={() => navigate(`/composer/${post.id}`, { state: { campaignId: cp.campaign_id } })}>
             Edit
           </Button>
         </div>
