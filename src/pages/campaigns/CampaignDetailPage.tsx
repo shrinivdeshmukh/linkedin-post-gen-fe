@@ -254,7 +254,7 @@ export default function CampaignDetailPage() {
     );
   }
 
-  const sorted = [...campaign.campaign_posts].sort((a, b) => a.sequence_number - b.sequence_number);
+  const sorted = [...(campaign.campaign_posts ?? [])].sort((a, b) => a.sequence_number - b.sequence_number);
   const allApproved = sorted.every(cp => ["approved", "scheduled", "published"].includes(cp.post.status));
   const canApprove = isOwner && campaign.status === "ready_for_review" && sorted.length > 0;
 

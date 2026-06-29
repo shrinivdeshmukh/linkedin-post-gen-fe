@@ -44,7 +44,7 @@ const POST_STATUS_LABELS: Record<string, string> = {
 function CampaignCard({ campaign, onDelete }: { campaign: Campaign; onDelete: () => void }) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
-  const approved = campaign.approved_count ?? campaign.campaign_posts.filter(cp => cp.post.status === "approved" || cp.post.status === "scheduled" || cp.post.status === "published").length;
+  const approved = campaign.approved_count ?? (campaign.campaign_posts ?? []).filter(cp => cp.post.status === "approved" || cp.post.status === "scheduled" || cp.post.status === "published").length;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-sm transition-all overflow-hidden">
@@ -114,9 +114,9 @@ function CampaignCard({ campaign, onDelete }: { campaign: Campaign; onDelete: ()
       </div>
 
       {/* Inline posts list */}
-      {expanded && campaign.campaign_posts.length > 0 && (
+      {expanded && (campaign.campaign_posts ?? []).length > 0 && (
         <div className="border-t border-slate-100 divide-y divide-slate-50">
-          {campaign.campaign_posts.map((cp) => {
+          {(campaign.campaign_posts ?? []).map((cp) => {
             const post = cp.post;
             const preview = post.content ? post.content.slice(0, 120) + (post.content.length > 120 ? "…" : "") : "No content yet.";
             return (
@@ -143,7 +143,7 @@ function CampaignCard({ campaign, onDelete }: { campaign: Campaign; onDelete: ()
         </div>
       )}
 
-      {expanded && campaign.campaign_posts.length === 0 && (
+      {expanded && (campaign.campaign_posts ?? []).length === 0 && (
         <div className="border-t border-slate-100 px-5 py-4 text-xs text-slate-400 text-center">
           No posts yet — campaign is still generating.
         </div>
