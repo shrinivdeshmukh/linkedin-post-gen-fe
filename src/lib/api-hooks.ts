@@ -1695,7 +1695,7 @@ export function useCreatePillar() {
 
 export function useUpdatePillar() {
   const qc = useQueryClient();
-  return useMutation<ContentPillar, Error, { id: string; name?: string; description?: string; weight?: number; color?: string }>({
+  return useMutation<ContentPillar, Error, { id: string; name?: string; description?: string; weight?: number; color?: string; status?: string }>({
     mutationFn: async ({ id, ...body }) => (await api.patch(`/brand/pillars/${id}`, body)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pillars"] }),
   });
