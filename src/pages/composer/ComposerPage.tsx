@@ -791,9 +791,9 @@ export default function ComposerPage() {
                 {campaignContext.target_outcome && (
                   <p className="text-xs text-slate-500 leading-relaxed">{campaignContext.target_outcome}</p>
                 )}
-                {campaignContext.key_messages.length > 0 && (
+                {(campaignContext.key_messages ?? []).length > 0 && (
                   <div className="space-y-1 pt-0.5">
-                    {campaignContext.key_messages.slice(0, 3).map((msg, i) => (
+                    {(campaignContext.key_messages ?? []).slice(0, 3).map((msg, i) => (
                       <div key={i} className="flex items-start gap-1.5">
                         <span className="w-1 h-1 rounded-full bg-indigo-300 flex-shrink-0 mt-1.5" />
                         <p className="text-xs text-slate-600 leading-relaxed">{msg}</p>

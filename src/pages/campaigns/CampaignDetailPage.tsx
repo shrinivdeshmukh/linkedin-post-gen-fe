@@ -377,11 +377,11 @@ export default function CampaignDetailPage() {
           <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-0.5">Target outcome</p>
           <p className="font-semibold text-slate-800">{campaign.target_outcome}</p>
         </div>
-        {campaign.key_messages.length > 0 && (
+        {(campaign.key_messages ?? []).length > 0 && (
           <div className="flex-1 min-w-0">
             <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Key messages</p>
             <div className="flex flex-wrap gap-1.5">
-              {campaign.key_messages.map((m, i) => (
+              {(campaign.key_messages ?? []).map((m, i) => (
                 <span key={i} className="text-xs bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-lg">{m}</span>
               ))}
             </div>
