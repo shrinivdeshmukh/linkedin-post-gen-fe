@@ -224,7 +224,6 @@ export default function ComposerPage() {
   }
 
   async function handleGenerate() {
-    if (!topic.trim()) return;
     setPhase("generating");
     setAiResults(null);
 
@@ -407,29 +406,49 @@ export default function ComposerPage() {
 
           {/* Topic input */}
           <div className="space-y-3">
-            <label className="text-sm font-semibold text-slate-700">
-              What do you want to post about?
-            </label>
+            <div className="flex items-baseline justify-between">
+              <label className="text-sm font-semibold text-slate-700">
+                What's on your mind?
+              </label>
+              <span className="text-xs text-slate-400">Optional — we'll pick a topic if you skip this</span>
+            </div>
             <div className="flex gap-3">
               <textarea
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate(); }}
-                placeholder="e.g. Why most leaders underestimate company culture during hypergrowth…"
+                placeholder="e.g. Why most leaders underestimate company culture during hypergrowth… or leave blank to let AI decide"
                 rows={2}
                 className="flex-1 px-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent hover:border-slate-400 transition-colors resize-none"
               />
               <Button
                 onClick={handleGenerate}
                 loading={phase === "generating"}
-                disabled={!topic.trim() || phase === "generating"}
+                disabled={phase === "generating"}
                 size="lg"
                 className="self-start"
               >
                 <SparklesIcon />
-                Generate
+                {topic.trim() ? "Generate" : "Inspire me"}
               </Button>
             </div>
+
+            {/* Pillar quick-picks — shown when topic is empty and pillars exist */}
+            {!topic.trim() && activePillars.length > 0 && phase === "setup" && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-slate-400">Write about:</span>
+                {activePillars.slice(0, 5).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setTopic(p.name)}
+                    className="text-xs px-2.5 py-1 rounded-full border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700 hover:bg-indigo-50 transition-all"
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Campaign suggestion chip */}
             {suggestedCampaign && (
