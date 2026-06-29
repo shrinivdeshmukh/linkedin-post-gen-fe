@@ -51,8 +51,11 @@ export default function DashboardPage() {
   const { data: streak } = useStreak();
   const { data: campaigns = [] } = useCampaigns();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const [page, setPage] = useState(1);
   const [copied, setCopied] = useState(false);
   const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
+
+  const PAGE_SIZE = 10;
   const [scheduleValue, setScheduleValue] = useState("");
   const [scheduleError, setScheduleError] = useState("");
 
@@ -123,6 +126,14 @@ export default function DashboardPage() {
   const filtered =
     activeTab === "all" ? posts : posts.filter((p) => p.status === activeTab);
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function changeTab(tab: FilterTab) {
+    setActiveTab(tab);
+    setPage(1);
+  }
+
   // Count per tab for badges
   const countByStatus = posts.reduce<Record<string, number>>((acc, p) => {
     acc[p.status] = (acc[p.status] ?? 0) + 1;
@@ -173,6 +184,38 @@ export default function DashboardPage() {
           New post
         </Button>
       </div>
+
+      {/* Achievements + streak — shown right below greeting when earned */}
+      {achievements.length > 0 && (
+        <div className="flex items-center justify-between gap-3 flex-wrap animate-fade-in">
+          <div className="flex gap-1.5 flex-wrap">
+            {achievements.map((a) => (
+              <div
+                key={a.type}
+                title={`${a.title}: ${a.description}\nEarned ${new Date(a.earned_at).toLocaleDateString()}`}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-100 rounded-xl text-xs font-medium text-slate-700 cursor-default hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
+              >
+                <span className="text-sm leading-none">{a.icon}</span>
+                <span>{a.title}</span>
+              </div>
+            ))}
+          </div>
+          {streak && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 flex-shrink-0">
+              <span>🔥</span>
+              <span><span className="font-semibold text-slate-700">{streak.current_streak}</span>-day streak</span>
+              <span className="text-slate-300">·</span>
+              <span><span className="font-semibold text-slate-700">{streak.total_published}</span> published</span>
+              {streak.longest_streak > streak.current_streak && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span>best <span className="font-semibold text-slate-700">{streak.longest_streak}</span>d</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Next Action card */}
       {isLoading ? (
@@ -252,7 +295,7 @@ export default function DashboardPage() {
             return (
               <button
                 key={key}
-                onClick={() => setActiveTab(key)}
+                onClick={() => changeTab(key)}
                 className={[
                   "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-150",
                   isActive
@@ -295,17 +338,62 @@ export default function DashboardPage() {
         ) : filtered.length === 0 ? (
           <EmptyState filter={activeTab} />
         ) : (
-          <div className="space-y-2 stagger-children">
-            {filtered.map((post) => (
-              <PostRow
-                key={post.id}
-                post={post}
-                onCopy={handleCopy}
-                onDelete={(id) => deletePost.mutate(id)}
-                onSchedule={openSchedule}
-              />
-            ))}
-          </div>
+          <>
+            <div className="space-y-2 stagger-children">
+              {paginated.map((post) => (
+                <PostRow
+                  key={post.id}
+                  post={post}
+                  onCopy={handleCopy}
+                  onDelete={(id) => deletePost.mutate(id)}
+                  onSchedule={openSchedule}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-xs text-slate-400">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={[
+                        "w-7 h-7 rounded-lg text-xs font-medium transition-colors",
+                        p === page
+                          ? "bg-indigo-600 text-white"
+                          : "text-slate-500 hover:bg-slate-100",
+                      ].join(" ")}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -349,41 +437,6 @@ export default function DashboardPage() {
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Achievements shelf */}
-      {achievements.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Achievements</p>
-            {streak && (
-              <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                <span>🔥</span>
-                <span><span className="font-semibold text-slate-700">{streak.current_streak}</span>-day streak</span>
-                <span className="text-slate-300">·</span>
-                <span><span className="font-semibold text-slate-700">{streak.total_published}</span> published</span>
-                {streak.longest_streak > streak.current_streak && (
-                  <>
-                    <span className="text-slate-300">·</span>
-                    <span>best <span className="font-semibold text-slate-700">{streak.longest_streak}</span>d</span>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {achievements.map((a) => (
-              <div
-                key={a.type}
-                title={`${a.title}: ${a.description}\nEarned ${new Date(a.earned_at).toLocaleDateString()}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-100 rounded-xl text-xs font-medium text-slate-700 cursor-default hover:border-indigo-200 hover:bg-indigo-50 transition-colors"
-              >
-                <span className="text-base leading-none">{a.icon}</span>
-                <span>{a.title}</span>
-              </div>
-            ))}
           </div>
         </div>
       )}
