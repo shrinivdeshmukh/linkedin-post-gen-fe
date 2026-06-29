@@ -1701,6 +1701,14 @@ export function useUpdatePillar() {
   });
 }
 
+export function useSuggestPillars() {
+  const qc = useQueryClient();
+  return useMutation<ContentPillar[], Error, void>({
+    mutationFn: async () => (await api.post("/brand/pillars/suggest")).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pillars"] }),
+  });
+}
+
 export function useRetirePillar() {
   const qc = useQueryClient();
   return useMutation<
