@@ -42,6 +42,7 @@ import NewDeckPage from "./pages/decks/NewDeckPage";
 import DeckDetailPage from "./pages/decks/DeckDetailPage";
 import DeckPublicPage from "./pages/decks/DeckPublicPage";
 import McpConnectPage from "./pages/mcp/McpConnectPage";
+import BrandPage from "./pages/brand/BrandPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -109,6 +110,7 @@ export default function App() {
           <Route path="media/videos/:videoId" element={<VideoDetailPage />} />
           <Route path="media/podcasts/:jobId" element={<PodcastDetailPage />} />
           <Route path="calendar" element={<ContentCalendarPage />} />
+          <Route path="brand" element={<BrandPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="spark" element={<SparkPage />} />
           <Route path="spark/research/:sessionId" element={<DeepResearchPage />} />

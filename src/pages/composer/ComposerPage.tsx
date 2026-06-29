@@ -22,6 +22,8 @@ import {
   useUnschedulePost,
   useApprovePost,
   useLinkedInStatus,
+  usePillars,
+  useTagPost,
   type PostType,
   type PostStatus,
   type AIResult,
@@ -136,7 +138,11 @@ export default function ComposerPage() {
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [rejectMode, setRejectMode] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [pillarId, setPillarId] = useState<string | null>(null);
   const hydrated = useRef(false);
+
+  const { data: activePillars = [] } = usePillars();
+  const tagPost = useTagPost();
 
   // Load existing post into state once when fresh data arrives
   useEffect(() => {
@@ -174,6 +180,7 @@ export default function ComposerPage() {
       }
       setPostStatus((existingPost.status as PostStatus) ?? "draft");
       if (existingPost.rejection_reason) setRejectionReason(existingPost.rejection_reason);
+      if (existingPost.pillar_id) setPillarId(existingPost.pillar_id);
       hydrated.current = true;
     }
   }, [existingPost]);
@@ -731,6 +738,43 @@ export default function ComposerPage() {
               postType={postType}
               imageUrl={imageUrl}
             />
+
+            {/* Pillar selector — shown once content exists */}
+            {phase === "editing" && postId && activePillars.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Content pillar</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {activePillars.map((p) => {
+                    const selected = pillarId === p.id;
+                    const dot = p.color ? `var(--pillar-${p.color}, #6366f1)` : "#94a3b8";
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          const next = selected ? null : p.id;
+                          setPillarId(next);
+                          tagPost.mutate({ postId, pillar_id: next });
+                        }}
+                        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${
+                          selected
+                            ? "bg-slate-900 text-white border-slate-900"
+                            : "border-slate-200 text-slate-600 hover:border-slate-400 bg-white"
+                        }`}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ background: selected ? "white" : dot }}
+                        />
+                        {p.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {activePillars.length === 0 && (
+                  <p className="text-xs text-slate-400">Add pillars in the Brand section to tag posts.</p>
+                )}
+              </div>
+            )}
 
             {phase === "setup" && (
               <div className="bg-indigo-50 rounded-2xl p-4 space-y-2">

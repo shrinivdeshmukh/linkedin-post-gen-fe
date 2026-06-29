@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { usePosts, useApprovePost, useSchedulePost, useMe, type Post } from "../../lib/api-hooks";
+import { usePosts, useApprovePost, useSchedulePost, useMe, useNextBrandQuestion, type Post, type BrandQuestion } from "../../lib/api-hooks";
 import { StatusBadge } from "../../components/dashboard/StatusBadge";
+import BrandQuestionDialog from "../../components/BrandQuestionDialog";
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -45,6 +46,8 @@ export default function ApprovalsPage() {
   const [scheduleValue, setScheduleValue] = useState("");
   const [scheduleError, setScheduleError] = useState("");
   const [scheduling, setScheduling] = useState(false);
+  const [brandQuestion, setBrandQuestion] = useState<BrandQuestion | null>(null);
+  const nextBrandQuestion = useNextBrandQuestion();
 
   const pendingCount = posts.filter((p) => p.status === "pending_approval").length;
   const approvedCount = posts.filter((p) => p.status === "approved").length;
@@ -78,6 +81,13 @@ export default function ApprovalsPage() {
     setSelectedId(null);
     setRejectMode(false);
     setRejectReason("");
+    // After approval, check if we should ask a brand voice question
+    try {
+      const q = await nextBrandQuestion.mutateAsync({ trigger_event: "post_published", trigger_ref_id: selected.id });
+      if (q) setBrandQuestion(q);
+    } catch {
+      // brand questions are non-critical
+    }
   }
 
   async function handleReject() {
@@ -89,6 +99,13 @@ export default function ApprovalsPage() {
   }
 
   return (
+    <>
+    {brandQuestion && (
+      <BrandQuestionDialog
+        question={brandQuestion}
+        onDone={() => setBrandQuestion(null)}
+      />
+    )}
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="px-4 py-4 md:px-6 md:py-5 border-b border-slate-100 bg-white flex-shrink-0">
@@ -318,6 +335,7 @@ export default function ApprovalsPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

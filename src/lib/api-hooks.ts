@@ -246,6 +246,12 @@ export interface Post {
   published_at?: string;
   created_at: string;
   updated_at: string;
+  // Brand system
+  pillar_id?: string | null;
+  post_format?: string | null;
+  ending_type?: string | null;
+  topic_cluster?: string | null;
+  post_intent?: string | null;
 }
 
 export function usePost(id: string | null) {
@@ -1636,5 +1642,112 @@ export function useClaimAnonSession() {
       const res = await api.post(`${apiRoot}/public/claim-session`, { session_id: sessionId });
       return res.data;
     },
+  });
+}
+
+// ─── Brand system ─────────────────────────────────────────────────────────────
+
+export interface ContentPillar {
+  id: string;
+  name: string;
+  description: string | null;
+  weight: number;
+  color: string | null;
+  status: "active" | "retired" | "suggested";
+  post_count: number;
+}
+
+export interface BrandQuestion {
+  id: string;
+  dimension: string;
+  question: string;
+}
+
+export interface ContentMapPost {
+  id: string;
+  title: string | null;
+  content_preview: string | null;
+  published_at: string | null;
+  status: string;
+  pillar_id: string | null;
+  pillar_name: string | null;
+  pillar_color: string | null;
+  pillar_status: "active" | "retired" | "suggested" | null;
+  post_format: string | null;
+  topic_cluster: string | null;
+  post_intent: string | null;
+}
+
+export function usePillars(includeRetired = false) {
+  return useQuery<ContentPillar[]>({
+    queryKey: ["pillars", includeRetired],
+    queryFn: async () => (await api.get("/brand/pillars", { params: { include_retired: includeRetired } })).data,
+  });
+}
+
+export function useCreatePillar() {
+  const qc = useQueryClient();
+  return useMutation<ContentPillar, Error, { name: string; description?: string; weight?: number; color?: string }>({
+    mutationFn: async (body) => (await api.post("/brand/pillars", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pillars"] }),
+  });
+}
+
+export function useUpdatePillar() {
+  const qc = useQueryClient();
+  return useMutation<ContentPillar, Error, { id: string; name?: string; description?: string; weight?: number; color?: string }>({
+    mutationFn: async ({ id, ...body }) => (await api.patch(`/brand/pillars/${id}`, body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pillars"] }),
+  });
+}
+
+export function useRetirePillar() {
+  const qc = useQueryClient();
+  return useMutation<
+    { ok: boolean; posts_reassigned: boolean; posts_kept_in_history: number },
+    Error,
+    { id: string; reassign_to_pillar_id?: string | null }
+  >({
+    mutationFn: async ({ id, ...body }) => (await api.post(`/brand/pillars/${id}/retire`, body)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pillars"] });
+      qc.invalidateQueries({ queryKey: ["content-map"] });
+    },
+  });
+}
+
+export function useNextBrandQuestion() {
+  return useMutation<BrandQuestion | null, Error, { trigger_event: string; trigger_ref_id?: string }>({
+    mutationFn: async (body) => (await api.post("/brand/next-question", body)).data,
+  });
+}
+
+export function useAnswerBrandQuestion() {
+  return useMutation<void, Error, { promptId: string; answer: string }>({
+    mutationFn: async ({ promptId, answer }) => { await api.post(`/brand/answer/${promptId}`, { answer }) },
+  });
+}
+
+export function useSkipBrandQuestion() {
+  return useMutation<void, Error, string>({
+    mutationFn: async (promptId) => { await api.post(`/brand/skip/${promptId}`) },
+  });
+}
+
+export function useTagPost() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { postId: string; pillar_id?: string | null; post_format?: string; ending_type?: string; topic_cluster?: string; post_intent?: string }>({
+    mutationFn: async ({ postId, ...body }) => { await api.patch(`/brand/posts/${postId}/tag`, body) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pillars"] });
+      qc.invalidateQueries({ queryKey: ["content-map"] });
+    },
+  });
+}
+
+export function useContentMap() {
+  return useQuery<ContentMapPost[]>({
+    queryKey: ["content-map"],
+    queryFn: async () => (await api.get("/brand/content-map")).data,
   });
 }
