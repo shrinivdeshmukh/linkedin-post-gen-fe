@@ -137,7 +137,7 @@ export default function ApprovalsPage() {
           {isLoading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-slate-100 rounded-2xl animate-pulse" />
+                <div key={i} className="h-20 skeleton" />
               ))}
             </div>
           ) : posts.length === 0 ? (
@@ -151,7 +151,7 @@ export default function ApprovalsPage() {
               <p className="text-xs text-slate-400 mt-1">No posts pending approval.</p>
             </div>
           ) : (
-            <div className="p-3 space-y-2">
+            <div className="p-3 space-y-2 stagger-children">
               {posts.map((post) => (
                 <PostListItem
                   key={post.id}
@@ -171,7 +171,7 @@ export default function ApprovalsPage() {
               Select a post to review
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto px-4 py-5 md:px-6 md:py-6 space-y-6">
+            <div className="max-w-2xl mx-auto px-4 py-5 md:px-6 md:py-6 space-y-6 animate-fade-in">
               {/* Post meta */}
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3 flex-wrap">

@@ -357,8 +357,8 @@ export default function ChatPage() {
 
         <div className="flex-1 overflow-y-auto py-2">
           {isLoading && (
-            <div className="space-y-2 p-3 animate-pulse">
-              {[1, 2, 3].map((i) => <div key={i} className="h-12 bg-slate-100 rounded-xl" />)}
+            <div className="space-y-2 p-3">
+              {[1, 2, 3].map((i) => <div key={i} className="h-12 skeleton rounded-xl" />)}
             </div>
           )}
           {conversations?.map((conv: ChatConversation) => (

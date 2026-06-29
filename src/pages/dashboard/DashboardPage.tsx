@@ -159,7 +159,7 @@ export default function DashboardPage() {
   return (
     <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-7">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+      <div className="flex items-start justify-between gap-3 flex-wrap animate-slide-up">
         <div>
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Today</p>
           <h1 className="text-2xl font-bold text-slate-900">
@@ -175,8 +175,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Next Action card */}
-      {!isLoading && (
-        <div className={`flex items-start gap-4 p-5 rounded-2xl border ${ac.bg} ${ac.border}`}>
+      {isLoading ? (
+        <div className="h-20 skeleton" />
+      ) : (
+        <div className={`flex items-start gap-4 p-5 rounded-2xl border animate-scale-in ${ac.bg} ${ac.border}`}>
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/70 ${ac.icon}`}>
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               {nextAction.icon}
@@ -197,7 +199,7 @@ export default function DashboardPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
         <StatCard
           label="Total Posts"
           value={stats.total}
@@ -275,7 +277,7 @@ export default function DashboardPage() {
 
         {/* Copy toast */}
         {copied && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50 flex items-center gap-2">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50 flex items-center gap-2 animate-slide-up">
             <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
@@ -287,13 +289,13 @@ export default function DashboardPage() {
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+              <div key={i} className="h-16 skeleton" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState filter={activeTab} />
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 stagger-children">
             {filtered.map((post) => (
               <PostRow
                 key={post.id}
@@ -310,7 +312,7 @@ export default function DashboardPage() {
       {/* Schedule modal */}
       {schedulingPostId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setSchedulingPostId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4 animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div>
               <h2 className="text-base font-bold text-slate-900">Schedule post</h2>
               <p className="text-xs text-slate-400 mt-0.5">Pick a date and time — we'll post automatically.</p>

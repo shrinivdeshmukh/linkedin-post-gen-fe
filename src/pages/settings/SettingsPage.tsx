@@ -845,7 +845,7 @@ export default function SettingsPage() {
         )}
 
         {isLoading ? (
-          <div className="h-10 bg-slate-100 rounded-xl animate-pulse" />
+          <div className="h-10 skeleton rounded-xl" />
         ) : liAccount?.is_active ? (
           <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
             <div className="flex items-center gap-3">
@@ -986,7 +986,7 @@ function ApiKeysSection() {
 
       {/* Existing keys */}
       {isLoading ? (
-        <div className="h-10 bg-slate-100 rounded-xl animate-pulse" />
+        <div className="h-10 skeleton rounded-xl" />
       ) : keys.length > 0 ? (
         <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
           {keys.map((k: ApiKey) => (

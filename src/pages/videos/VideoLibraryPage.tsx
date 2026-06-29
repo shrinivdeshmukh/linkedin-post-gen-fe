@@ -305,7 +305,7 @@ export default function VideoLibraryPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-2xl bg-slate-100 aspect-video animate-pulse" />
+            <div key={i} className="rounded-2xl aspect-video skeleton" />
           ))}
         </div>
       ) : videos.length === 0 ? (

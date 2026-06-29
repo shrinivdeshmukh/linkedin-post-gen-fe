@@ -237,10 +237,10 @@ export default function CampaignDetailPage() {
   if (isLoading) {
     return (
       <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-5">
-        <div className="h-8 w-48 bg-slate-100 rounded-xl animate-pulse" />
-        <div className="h-40 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+        <div className="h-8 w-48 skeleton rounded-xl" />
+        <div className="h-40 skeleton rounded-2xl" />
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-36 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+          <div key={i} className="h-36 skeleton rounded-2xl" />
         ))}
       </div>
     );

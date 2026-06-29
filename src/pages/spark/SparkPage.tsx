@@ -322,9 +322,9 @@ function FeedSection({
 
       {/* Loading */}
       {(isLoading || isRunning) && (
-        <div className="space-y-3 animate-pulse">
+        <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-28 bg-slate-100 rounded-2xl" />
+            <div key={i} className="h-28 skeleton rounded-2xl" />
           ))}
         </div>
       )}

@@ -38,7 +38,7 @@ function LibraryPicker({ onSelect }: { onSelect: (url: string) => void }) {
           All collections
         </button>
         {detailLoading ? (
-          <div className="grid grid-cols-3 gap-2">{[...Array(6)].map((_, i) => <div key={i} className="aspect-square bg-slate-100 rounded-xl animate-pulse"/>)}</div>
+          <div className="grid grid-cols-3 gap-2">{[...Array(6)].map((_, i) => <div key={i} className="aspect-square skeleton rounded-xl"/>)}</div>
         ) : !detail?.items.length ? (
           <p className="text-sm text-slate-400 text-center py-6">No images in this collection.</p>
         ) : (

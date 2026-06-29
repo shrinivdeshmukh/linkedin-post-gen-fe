@@ -103,8 +103,8 @@ function SparkPanel({ onUsePost, onUseCampaign }: {
 
         {/* Loading */}
         {(isLoading || isRunning) && (
-          <div className="space-y-2 animate-pulse">
-            {[1, 2, 3].map(i => <div key={i} className="h-20 bg-slate-100 rounded-xl" />)}
+          <div className="space-y-2">
+            {[1, 2, 3].map(i => <div key={i} className="h-20 skeleton rounded-xl" />)}
           </div>
         )}
 

@@ -47,7 +47,7 @@ function CampaignCard({ campaign, onDelete }: { campaign: Campaign; onDelete: ()
   const approved = campaign.approved_count ?? (campaign.campaign_posts ?? []).filter(cp => cp.post.status === "approved" || cp.post.status === "scheduled" || cp.post.status === "published").length;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-sm transition-all overflow-hidden">
+    <div className="bg-white rounded-2xl border border-slate-200 hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
       {/* Card header — clickable to expand */}
       <div
         className="p-5 space-y-4 cursor-pointer"
@@ -115,7 +115,7 @@ function CampaignCard({ campaign, onDelete }: { campaign: Campaign; onDelete: ()
 
       {/* Inline posts list */}
       {expanded && (campaign.campaign_posts ?? []).length > 0 && (
-        <div className="border-t border-slate-100 divide-y divide-slate-50">
+        <div className="border-t border-slate-100 divide-y divide-slate-50 animate-slide-up">
           {(campaign.campaign_posts ?? []).map((cp) => {
             const post = cp.post;
             const preview = post.content ? post.content.slice(0, 120) + (post.content.length > 120 ? "…" : "") : "No content yet.";
@@ -175,11 +175,11 @@ export default function CampaignsPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-56 bg-white rounded-2xl border border-slate-100 animate-pulse" />
+            <div key={i} className="h-56 skeleton" />
           ))}
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
+        <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 animate-fade-in">
           <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center">
             <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -192,7 +192,7 @@ export default function CampaignsPage() {
           <Button onClick={() => navigate("/campaigns/new")}>Create your first campaign</Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 stagger-children">
           {campaigns.map(c => (
             <CampaignCard
               key={c.id}

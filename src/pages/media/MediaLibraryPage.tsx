@@ -176,7 +176,7 @@ function CollectionDetail({
           {isLoading ? (
             <div className="grid grid-cols-3 gap-3">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="aspect-square bg-slate-100 rounded-xl animate-pulse" />
+                <div key={i} className="aspect-square skeleton rounded-xl" />
               ))}
             </div>
           ) : !collection?.items.length ? (
@@ -622,7 +622,7 @@ export default function MediaLibraryPage() {
       {tab === "images" && (
         collectionsLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <div key={i} className="aspect-video bg-slate-100 rounded-2xl animate-pulse" />)}
+            {[...Array(4)].map((_, i) => <div key={i} className="aspect-video skeleton rounded-2xl" />)}
           </div>
         ) : !collections?.length ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">

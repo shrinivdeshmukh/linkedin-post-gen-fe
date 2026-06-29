@@ -124,7 +124,7 @@ export default function AddonsSection() {
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2].map((i) => (
-              <div key={i} className="h-8 bg-slate-100 rounded-xl animate-pulse" />
+              <div key={i} className="h-8 skeleton rounded-xl" />
             ))}
           </div>
         ) : activeAddons.length === 0 ? (

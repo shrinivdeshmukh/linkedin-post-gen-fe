@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../../lib/firebase";
 import { useMe, usePlanStatus } from "../../lib/api-hooks";
 import { Button } from "../ui/Button";
@@ -126,6 +126,7 @@ export default function AppLayout() {
   const { data: me } = useMe();
   const { data: plan } = usePlanStatus();
   const navigate = useNavigate();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Safety net: if the user somehow lands in the app without completing onboarding, redirect them
@@ -346,7 +347,9 @@ export default function AppLayout() {
           </div>
         )}
 
-        <Outlet />
+        <div key={location.pathname} className="flex-1 overflow-hidden min-w-0 flex flex-col animate-fade-in" style={{animationDuration:"180ms"}}>
+          <Outlet />
+        </div>
       </main>
       <FloatingChat />
     </div>

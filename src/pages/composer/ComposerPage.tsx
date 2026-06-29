@@ -563,17 +563,17 @@ export default function ComposerPage() {
                 </svg>
                 Generating options…
               </div>
-              <div className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 animate-pulse">
+              <div className="rounded-2xl border-2 border-slate-100 p-5 space-y-3">
                 <div className="flex gap-2">
                   {["Option 1", "Option 2"].map((m) => (
-                    <div key={m} className="h-7 w-16 bg-slate-200 rounded-lg" />
+                    <div key={m} className="h-7 w-16 skeleton rounded-lg" />
                   ))}
                 </div>
                 <div className="space-y-2 pt-2">
-                  <div className="h-4 bg-slate-200 rounded-full w-3/4" />
-                  <div className="h-3 bg-slate-200 rounded-full w-full" />
-                  <div className="h-3 bg-slate-200 rounded-full w-5/6" />
-                  <div className="h-3 bg-slate-200 rounded-full w-4/6" />
+                  <div className="h-4 skeleton rounded-full w-3/4" />
+                  <div className="h-3 skeleton rounded-full w-full" />
+                  <div className="h-3 skeleton rounded-full w-5/6" />
+                  <div className="h-3 skeleton rounded-full w-4/6" />
                 </div>
               </div>
             </div>

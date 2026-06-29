@@ -247,7 +247,7 @@ function PillarsTab() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-2xl border border-slate-100 bg-slate-50 h-20 animate-pulse" />
+            <div key={i} className="rounded-2xl h-20 skeleton" />
           ))}
         </div>
       ) : active.length === 0 && suggested.length === 0 && !adding ? (
@@ -376,10 +376,10 @@ function ContentMapTab() {
         <div className="space-y-6">
           {[1, 2].map((i) => (
             <div key={i} className="space-y-3">
-              <div className="h-4 bg-slate-100 rounded w-32 animate-pulse" />
+              <div className="h-4 skeleton rounded w-32" />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {[1, 2, 3, 4].map((j) => (
-                  <div key={j} className="h-24 rounded-xl bg-slate-100 animate-pulse" />
+                  <div key={j} className="h-24 skeleton rounded-xl" />
                 ))}
               </div>
             </div>

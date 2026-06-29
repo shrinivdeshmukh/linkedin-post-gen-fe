@@ -273,9 +273,9 @@ export default function SparkSectionPage() {
 
         {/* Loading */}
         {isLoading && (
-          <div className="space-y-3 animate-pulse">
+          <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-24 bg-slate-100 rounded-2xl" />
+              <div key={i} className="h-24 skeleton rounded-2xl" />
             ))}
           </div>
         )}

@@ -46,7 +46,7 @@ export default function DecksPage() {
         {isLoading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1,2,3].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-slate-100 h-40 animate-pulse" />
+              <div key={i} className="rounded-2xl h-40 skeleton" />
             ))}
           </div>
         )}
