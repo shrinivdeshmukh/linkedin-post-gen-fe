@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useGenerateImage, useMediaCollections, useMediaCollection, useOrgProfile } from "../../../lib/api-hooks";
+import { ImageLightbox } from "../../../components/ui/ImageLightbox";
 
 interface ImageUploadPanelProps {
   postId: string | null;
@@ -103,6 +104,8 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
     }
   }, [org?.logo_url]);
   const [, setGeneratedDataUrl] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const colorInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const generateImage = useGenerateImage();
 
@@ -174,6 +177,14 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
   if (imageUrl) {
     return (
       <div className="space-y-3">
+        {lightboxOpen && (
+          <ImageLightbox
+            src={imageUrl}
+            alt="Post image"
+            onClose={() => setLightboxOpen(false)}
+            onDownload={handleDownload}
+          />
+        )}
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-slate-700">Image</label>
           <div className="flex items-center gap-3">
@@ -196,10 +207,21 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
             </button>
           </div>
         </div>
-        <div className="relative group rounded-2xl overflow-hidden border border-slate-200">
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          className="relative group w-full rounded-2xl overflow-hidden border border-slate-200 block"
+        >
           <img src={imageUrl} alt="Post image" className="w-full max-h-72 object-cover" />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-        </div>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              Expand
+            </span>
+          </div>
+        </button>
         <button
           type="button"
           onClick={() => { onChange(null, null); setGeneratedDataUrl(null); }}
@@ -240,16 +262,34 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
             <p className="text-xs font-semibold text-slate-600">Brand colours</p>
             <div className="flex items-center gap-2 flex-wrap">
               {colors.map((color, i) => (
-                <div key={i} className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2 py-1.5">
+                <div key={i} className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg pl-1.5 pr-2 py-1.5">
+                  {/* Hidden native color input — triggered by the swatch button */}
                   <input
+                    ref={(el) => { colorInputRefs.current[i] = el; }}
                     type="color"
                     value={color}
                     onChange={(e) => updateColor(i, e.target.value)}
-                    className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent"
+                    className="sr-only"
+                    tabIndex={-1}
                   />
-                  <span className="text-xs font-mono text-slate-500">{color}</span>
+                  {/* Visible swatch pill — click opens the color picker */}
+                  <button
+                    type="button"
+                    onClick={() => colorInputRefs.current[i]?.click()}
+                    className="group relative flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-slate-50 transition-colors"
+                    title="Click to change colour"
+                  >
+                    <span
+                      className="w-5 h-5 rounded-md border border-black/10 flex-shrink-0 ring-1 ring-slate-200 group-hover:ring-indigo-400 transition-all"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-xs font-mono text-slate-500 group-hover:text-slate-700 transition-colors">{color}</span>
+                    <svg className="w-3 h-3 text-slate-300 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
                   {colors.length > 1 && (
-                    <button type="button" onClick={() => removeColor(i)} className="text-slate-300 hover:text-red-400 ml-0.5 text-xs leading-none">✕</button>
+                    <button type="button" onClick={() => removeColor(i)} className="text-slate-300 hover:text-red-400 text-xs leading-none ml-0.5">✕</button>
                   )}
                 </div>
               ))}

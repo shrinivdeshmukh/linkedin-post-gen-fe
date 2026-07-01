@@ -11,6 +11,7 @@ import {
   type CampaignPost,
 } from "../../lib/api-hooks";
 import { Button } from "../../components/ui/Button";
+import { ImageLightbox } from "../../components/ui/ImageLightbox";
 
 const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 function formatPreview(val: string) {
@@ -129,6 +130,7 @@ function PostCard({
 }) {
   const navigate = useNavigate();
   const post = cp.post;
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // Route to the blog composer for blog posts
   if (post.medium === "blog") {
@@ -181,25 +183,37 @@ function PostCard({
         </div>
       </div>
 
-      {(post.content_json?.image_data as string | undefined) && (
-        <div className="relative group">
-          <img
-            src={`data:${(post.content_json?.mime_type as string | undefined) ?? "image/png"};base64,${post.content_json?.image_data as string}`}
-            alt="Post image"
-            className="w-full rounded-xl object-cover max-h-48"
-          />
-          <a
-            href={`data:${(post.content_json?.mime_type as string | undefined) ?? "image/png"};base64,${post.content_json?.image_data as string}`}
-            download={`post-image-${post.id}.png`}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white text-slate-600 hover:text-indigo-600 rounded-lg px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 shadow-sm"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Download
-          </a>
-        </div>
-      )}
+      {(post.content_json?.image_data as string | undefined) && (() => {
+        const src = `data:${(post.content_json?.mime_type as string | undefined) ?? "image/png"};base64,${post.content_json?.image_data as string}`;
+        return (
+          <>
+            {lightboxOpen && (
+              <ImageLightbox
+                src={src}
+                alt="Post image"
+                onClose={() => setLightboxOpen(false)}
+                onDownload={() => {
+                  const a = document.createElement("a");
+                  a.href = src;
+                  a.download = `post-image-${post.id}.png`;
+                  a.click();
+                }}
+              />
+            )}
+            <button type="button" onClick={() => setLightboxOpen(true)} className="relative group w-full block">
+              <img src={src} alt="Post image" className="w-full rounded-xl object-cover max-h-48" />
+              <div className="absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                  Expand
+                </span>
+              </div>
+            </button>
+          </>
+        );
+      })()}
 
       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{preview}</p>
 
