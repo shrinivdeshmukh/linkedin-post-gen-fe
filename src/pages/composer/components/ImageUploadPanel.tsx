@@ -145,19 +145,56 @@ export function ImageUploadPanel({ postId, topic, imageUrl, onChange }: ImageUpl
     }
   }
 
+  function handleDownload() {
+    const a = document.createElement("a");
+    if (imageUrl!.startsWith("data:")) {
+      a.href = imageUrl!;
+      a.download = `post-image-${Date.now()}.png`;
+      a.click();
+    } else {
+      // External URL — fetch as blob to force download (avoids browser just navigating)
+      fetch(imageUrl!)
+        .then((r) => r.blob())
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          a.href = url;
+          const ext = imageUrl!.split(".").pop()?.split("?")[0] ?? "jpg";
+          a.download = `post-image-${Date.now()}.${ext}`;
+          a.click();
+          URL.revokeObjectURL(url);
+        })
+        .catch(() => {
+          // Fallback: open in new tab if fetch fails (e.g. CORS)
+          window.open(imageUrl!, "_blank");
+        });
+    }
+  }
+
   // If image already set (generated or uploaded), show preview
   if (imageUrl) {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm font-semibold text-slate-700">Image</label>
-          <button
-            type="button"
-            onClick={() => { onChange(null, null); setGeneratedDataUrl(null); }}
-            className="text-xs text-slate-400 hover:text-red-500 transition-colors"
-          >
-            Remove
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="text-xs text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-1"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download
+            </button>
+            <button
+              type="button"
+              onClick={() => { onChange(null, null); setGeneratedDataUrl(null); }}
+              className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+            >
+              Remove
+            </button>
+          </div>
         </div>
         <div className="relative group rounded-2xl overflow-hidden border border-slate-200">
           <img src={imageUrl} alt="Post image" className="w-full max-h-72 object-cover" />
