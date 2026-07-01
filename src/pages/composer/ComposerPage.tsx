@@ -434,8 +434,8 @@ export default function ComposerPage() {
               </Button>
             </div>
 
-            {/* Focus area picker — always shown when pillars exist and in setup phase */}
-            {activePillars.length > 0 && phase === "setup" && (
+            {/* Focus area picker — shown in setup and editing phases */}
+            {activePillars.length > 0 && (phase === "setup" || phase === "editing") && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-500">Focus area</span>
@@ -600,6 +600,26 @@ export default function ComposerPage() {
                   <div className="h-3 skeleton rounded-full w-4/6" />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Regenerate nudge — shown when editing an existing post that has no AI results in this session */}
+          {phase === "editing" && !aiResults && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347a3.75 3.75 0 01-5.303 0l-.347-.347z" />
+              </svg>
+              <p className="text-xs text-slate-500 flex-1">Want AI to rewrite or give you fresh options? Update the topic above and hit Generate.</p>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1 flex-shrink-0"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Regenerate
+              </button>
             </div>
           )}
 
