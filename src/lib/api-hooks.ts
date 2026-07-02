@@ -1471,7 +1471,7 @@ export interface DeckItem {
 
 export interface DeckCreate {
   title: string;
-  topic: string;
+  topic?: string;
   format?: "deck" | "onepager";
   mode?: "scratch" | "from_post" | "from_campaign";
   source_id?: string;
@@ -1483,6 +1483,7 @@ export interface DeckCreate {
   font_family?: string;
   theme?: "dark" | "light";
   slide_count?: number;
+  custom_html?: string;
 }
 
 export function useDecks() {
