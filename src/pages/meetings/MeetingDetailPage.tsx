@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMeeting, useUpdateMeeting, type MeetingSuggestion } from "../../lib/api-hooks";
 import api from "../../lib/api";
