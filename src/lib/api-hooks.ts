@@ -1789,3 +1789,93 @@ export function useContentMap() {
     queryFn: async () => (await api.get("/brand/content-map")).data,
   });
 }
+
+// ── Meetings ──────────────────────────────────────────────────────────────────
+
+export interface MeetingListItem {
+  id: string;
+  title: string;
+  status: "recording" | "processing" | "ready" | "failed";
+  transcript_status: "none" | "processing" | "done";
+  duration_seconds: number | null;
+  chunk_count: number;
+  meeting_type: string | null;
+  created_at: string;
+  finalized_at: string | null;
+}
+
+export interface MeetingSuggestion {
+  type: "post" | "campaign" | "deck";
+  title: string;
+  context: string;
+}
+
+export interface Meeting extends MeetingListItem {
+  org_id: string;
+  user_id: string;
+  spaces_url: string | null;
+  file_size: number | null;
+  transcript_json: Array<{ seq: number; speaker: "you" | "others"; text: string }> | null;
+  transcript_text: string | null;
+  summary: string | null;
+  key_points_json: string[] | null;
+  action_items_json: string[] | null;
+  suggestions_json: MeetingSuggestion[] | null;
+  updated_at: string;
+}
+
+export function useMeetings() {
+  return useQuery<MeetingListItem[]>({
+    queryKey: ["meetings"],
+    queryFn: async () => (await api.get("/meetings")).data,
+  });
+}
+
+export function useMeeting(id: string | null) {
+  return useQuery<Meeting>({
+    queryKey: ["meetings", id],
+    queryFn: async () => (await api.get(`/meetings/${id}`)).data,
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const d = query.state.data;
+      if (!d) return false;
+      return d.status === "processing" || d.transcript_status === "processing" ? 4000 : false;
+    },
+  });
+}
+
+export function useCreateMeeting() {
+  const qc = useQueryClient();
+  return useMutation<Meeting, Error, { title?: string }>({
+    mutationFn: async (body) => (await api.post("/meetings", body)).data,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["meetings"] }),
+  });
+}
+
+export function useUpdateMeeting() {
+  const qc = useQueryClient();
+  return useMutation<Meeting, Error, { id: string; title: string }>({
+    mutationFn: async ({ id, title }) => (await api.patch(`/meetings/${id}`, { title })).data,
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ["meetings"] });
+      qc.invalidateQueries({ queryKey: ["meetings", id] });
+    },
+  });
+}
+
+export function useFinalizeMeeting() {
+  const qc = useQueryClient();
+  return useMutation<Meeting, Error, { id: string; spaces_key: string; file_size: number; duration_seconds?: number }>({
+    mutationFn: async ({ id, ...body }) => (await api.post(`/meetings/${id}/finalize`, body)).data,
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ["meetings"] });
+      qc.invalidateQueries({ queryKey: ["meetings", id] });
+    },
+  });
+}
+
+export function useMeetingPresign() {
+  return useMutation<{ upload_url: string; key: string; public_url: string }, Error, { meeting_id: string; file_size: number; content_type?: string }>({
+    mutationFn: async (body) => (await api.post("/meetings/presign", body)).data,
+  });
+}

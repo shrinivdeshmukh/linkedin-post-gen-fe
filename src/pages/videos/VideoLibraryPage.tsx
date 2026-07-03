@@ -246,8 +246,8 @@ export default function VideoLibraryPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Video Library</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Upload and manage videos for LinkedIn posts</p>
+          <h1 className="text-xl font-bold text-slate-900">Recordings</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Upload and manage video and audio recordings for LinkedIn posts</p>
         </div>
         <button
           onClick={() => fileInputRef.current?.click()}

@@ -44,6 +44,8 @@ import DeckPublicPage from "./pages/decks/DeckPublicPage";
 import McpConnectPage from "./pages/mcp/McpConnectPage";
 import BrandPage from "./pages/brand/BrandPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
+import MeetingsPage from "./pages/meetings/MeetingsPage";
+import MeetingDetailPage from "./pages/meetings/MeetingDetailPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -123,6 +125,8 @@ export default function App() {
           <Route path="decks" element={<DecksPage />} />
           <Route path="decks/new" element={<NewDeckPage />} />
           <Route path="decks/:deckId" element={<DeckDetailPage />} />
+          <Route path="meetings" element={<MeetingsPage />} />
+          <Route path="meetings/:meetingId" element={<MeetingDetailPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
