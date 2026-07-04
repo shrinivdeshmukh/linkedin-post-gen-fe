@@ -48,7 +48,7 @@ export default function ExtensionAuthPage() {
         cr.runtime!.sendMessage(
           extId,
           { type: "auth-complete", apiKey: data.api_key, apiBaseUrl, appUrl, userEmail: data.user_email },
-          (response: unknown) => {
+          (_response: unknown) => {
             if ((window as unknown as { chrome?: { runtime?: { lastError?: { message: string } } } }).chrome?.runtime?.lastError) {
               reject(new Error((window as unknown as { chrome?: { runtime?: { lastError?: { message: string } } } }).chrome!.runtime!.lastError!.message));
             } else {
