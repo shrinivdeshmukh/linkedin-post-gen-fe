@@ -1815,7 +1815,7 @@ export interface Meeting extends MeetingListItem {
   user_id: string;
   spaces_url: string | null;
   file_size: number | null;
-  transcript_json: Array<{ seq: number; speaker: "you" | "others"; text: string }> | null;
+  transcript_json: Array<{ seq: number; speaker: string; start?: string; end?: string; text: string }> | null;
   transcript_text: string | null;
   summary: string | null;
   key_points_json: string[] | null;

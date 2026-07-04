@@ -103,11 +103,34 @@ function AudioPlayer({ src }: { src: string }) {
 
 // ── Transcript Panel ──────────────────────────────────────────────────────────
 
+type TranscriptChunk = {
+  seq: number;
+  speaker: string;
+  start?: string;
+  end?: string;
+  text: string;
+};
+
+// Assign a stable color index to each unique speaker label
+const SPEAKER_COLORS = [
+  { bar: "bg-indigo-400", label: "text-indigo-600", bg: "bg-indigo-50" },
+  { bar: "bg-violet-400", label: "text-violet-600", bg: "bg-violet-50" },
+  { bar: "bg-emerald-400", label: "text-emerald-600", bg: "bg-emerald-50" },
+  { bar: "bg-amber-400", label: "text-amber-600", bg: "bg-amber-50" },
+  { bar: "bg-rose-400", label: "text-rose-600", bg: "bg-rose-50" },
+  { bar: "bg-cyan-400", label: "text-cyan-600", bg: "bg-cyan-50" },
+];
+
+function speakerColor(speaker: string, speakerIndex: Map<string, number>) {
+  if (!speakerIndex.has(speaker)) speakerIndex.set(speaker, speakerIndex.size);
+  return SPEAKER_COLORS[speakerIndex.get(speaker)! % SPEAKER_COLORS.length];
+}
+
 function TranscriptPanel({ chunks, status }: {
-  chunks: Array<{ seq: number; speaker: "you" | "others"; text: string }> | null;
+  chunks: TranscriptChunk[] | null;
   status: string;
 }) {
-  if (status === "processing" && (!chunks || chunks.length === 0)) {
+  if ((status === "processing" || status === "recording") && (!chunks || chunks.length === 0)) {
     return (
       <div className="flex items-center gap-2 py-8 justify-center text-sm text-slate-400">
         <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -122,29 +145,29 @@ function TranscriptPanel({ chunks, status }: {
     return <p className="py-8 text-center text-sm text-slate-400">No transcript yet.</p>;
   }
 
-  // Group consecutive same-speaker entries into paragraphs
-  const groups: Array<{ speaker: string; texts: string[] }> = [];
-  for (const c of chunks) {
-    if (groups.length > 0 && groups[groups.length - 1].speaker === c.speaker) {
-      groups[groups.length - 1].texts.push(c.text);
-    } else {
-      groups.push({ speaker: c.speaker, texts: [c.text] });
-    }
-  }
+  const speakerIndex = new Map<string, number>();
 
   return (
-    <div className="space-y-4 text-sm">
-      {groups.map((g, i) => (
-        <div key={i} className="flex gap-3">
-          <div className={`w-1 rounded-full flex-shrink-0 ${g.speaker === "you" ? "bg-indigo-400" : "bg-slate-300"}`} />
-          <div>
-            <p className={`text-[11px] font-bold uppercase tracking-wide mb-1 ${g.speaker === "you" ? "text-indigo-500" : "text-slate-400"}`}>
-              {g.speaker === "you" ? "You" : "Others"}
-            </p>
-            <p className="text-slate-700 leading-relaxed">{g.texts.join(" ")}</p>
+    <div className="space-y-3 text-sm">
+      {chunks.map((c, i) => {
+        const color = speakerColor(c.speaker, speakerIndex);
+        return (
+          <div key={i} className="flex gap-3">
+            <div className={`w-1 rounded-full flex-shrink-0 mt-1 ${color.bar}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className={`text-[11px] font-bold uppercase tracking-wide ${color.label}`}>
+                  {c.speaker}
+                </span>
+                {c.start && (
+                  <span className="text-[11px] text-slate-400 font-mono">{c.start}</span>
+                )}
+              </div>
+              <p className="text-slate-700 leading-relaxed">{c.text}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
