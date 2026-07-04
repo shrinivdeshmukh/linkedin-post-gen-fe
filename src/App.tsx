@@ -46,6 +46,7 @@ import BrandPage from "./pages/brand/BrandPage";
 import AnalyticsPage from "./pages/analytics/AnalyticsPage";
 import MeetingsPage from "./pages/meetings/MeetingsPage";
 import MeetingDetailPage from "./pages/meetings/MeetingDetailPage";
+import ExtensionAuthPage from "./pages/ExtensionAuthPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthState();
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/shared/collections/:token" element={<PublicCollectionPage />} />
         <Route path="/invite/:token" element={<AcceptInvitePage />} />
         <Route path="/d/:slug" element={<DeckPublicPage />} />
+        <Route path="/extension-auth" element={<ExtensionAuthPage />} />
 
         {/* Onboarding — authenticated but no org yet */}
         <Route

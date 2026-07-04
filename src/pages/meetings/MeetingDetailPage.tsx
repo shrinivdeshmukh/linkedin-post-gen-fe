@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import { useMeeting, useUpdateMeeting, type MeetingSuggestion } from "../../lib/api-hooks";
 import api from "../../lib/api";
 
@@ -47,6 +48,7 @@ function AudioPlayer({ src }: { src: string }) {
   }
 
   function fmt(s: number) {
+    if (!isFinite(s) || isNaN(s)) return "0:00";
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
     return `${m}:${sec.toString().padStart(2, "0")}`;
@@ -57,7 +59,9 @@ function AudioPlayer({ src }: { src: string }) {
       <audio
         ref={audioRef}
         src={src}
+        preload="metadata"
         onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onDurationChange={(e) => setDuration(e.currentTarget.duration)}
         onEnded={() => setPlaying(false)}
       />
@@ -202,7 +206,11 @@ function ChatPanel({ meetingId, transcriptReady }: { meetingId: string; transcri
           if (!line.startsWith("data: ")) continue;
           const data = line.slice(6);
           if (data === "[DONE]") break;
-          assistantText += data;
+          try {
+            assistantText += JSON.parse(data);
+          } catch {
+            assistantText += data; // fallback for plain-text chunks
+          }
           setMessages((prev) => [
             ...prev.slice(0, -1),
             { role: "assistant", content: assistantText },
@@ -247,12 +255,24 @@ function ChatPanel({ meetingId, transcriptReady }: { meetingId: string; transcri
 
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+            <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
               m.role === "user"
-                ? "bg-indigo-600 text-white rounded-br-sm"
+                ? "bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap"
                 : "bg-white border border-slate-200 text-slate-700 rounded-bl-sm"
             }`}>
-              {m.content || (
+              {m.role === "assistant" && m.content ? (
+                <ReactMarkdown components={{
+                  h1: ({children}) => <p className="font-semibold mb-1">{children}</p>,
+                  h2: ({children}) => <p className="font-semibold mb-1">{children}</p>,
+                  h3: ({children}) => <p className="font-semibold mb-1">{children}</p>,
+                  p: ({children}) => <p className="mb-1 last:mb-0">{children}</p>,
+                  ul: ({children}) => <ul className="list-disc ml-4 my-1 space-y-0.5">{children}</ul>,
+                  ol: ({children}) => <ol className="list-decimal ml-4 my-1 space-y-0.5">{children}</ol>,
+                  li: ({children}) => <li className="leading-snug">{children}</li>,
+                  strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                  code: ({children}) => <code className="bg-slate-100 rounded px-1 text-xs font-mono">{children}</code>,
+                }}>{m.content}</ReactMarkdown>
+              ) : m.content || (
                 <span className="inline-flex gap-1 items-center text-slate-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms" }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -361,11 +381,13 @@ export default function MeetingDetailPage() {
   }
 
   function handleUseSuggestion(s: MeetingSuggestion) {
-    const ctx = encodeURIComponent(s.context);
-    const title = encodeURIComponent(s.title);
-    if (s.type === "post") navigate(`/composer?topic=${title}&context=${ctx}`);
-    else if (s.type === "campaign") navigate(`/campaigns/new?topic=${title}&context=${ctx}`);
-    else if (s.type === "deck") navigate(`/decks/new?topic=${title}&context=${ctx}`);
+    if (s.type === "post") {
+      navigate("/composer", { state: { spark: { topic: s.title, rawContext: s.context } } });
+    } else if (s.type === "campaign") {
+      navigate("/campaigns/new", { state: { spark: { topic: s.title, rawContext: s.context } } });
+    } else if (s.type === "deck") {
+      navigate("/decks/new", { state: { spark: { topic: s.title, rawContext: s.context } } });
+    }
   }
 
   if (isLoading) {
