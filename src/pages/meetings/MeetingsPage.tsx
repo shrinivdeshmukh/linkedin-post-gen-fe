@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMeetings, type MeetingListItem } from "../../lib/api-hooks";
+import { useMeetings, useCreateMeeting, type MeetingListItem } from "../../lib/api-hooks";
 
 function formatDuration(secs: number | null): string {
   if (!secs) return "—";
@@ -95,6 +96,21 @@ function MeetingRow({ meeting }: { meeting: MeetingListItem }) {
 
 export default function MeetingsPage() {
   const { data: meetings, isLoading } = useMeetings();
+  const navigate = useNavigate();
+  const createMeeting = useCreateMeeting();
+  const [starting, setStarting] = useState(false);
+
+  async function handleNewRecording() {
+    setStarting(true);
+    try {
+      const meeting = await createMeeting.mutateAsync({
+        title: `Meeting – ${new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`,
+      });
+      navigate(`/meetings/${meeting.id}?autoRecord=1`);
+    } catch {
+      setStarting(false);
+    }
+  }
 
   return (
     <div className="h-full overflow-y-auto px-4 py-5 md:px-8 md:py-7 space-y-6">
@@ -103,20 +119,26 @@ export default function MeetingsPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-900">Meetings</h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Recordings from the Postcards Chrome extension — transcribed and ready to create content from
+            Record, transcribe and create content from your meetings
           </p>
         </div>
-        <a
-          href="https://chrome.google.com/webstore"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2a8 8 0 110 16A8 8 0 0112 4zm0 2a6 6 0 100 12A6 6 0 0012 6z" />
-          </svg>
-          Get Chrome extension
-        </a>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleNewRecording}
+            disabled={starting}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            {starting ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <span className="w-2.5 h-2.5 rounded-full bg-white" />
+            )}
+            New Recording
+          </button>
+        </div>
       </div>
 
       {/* How it works banner — shown only when empty */}

@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useMeeting, useUpdateMeeting, type MeetingSuggestion } from "../../lib/api-hooks";
+import { useWebRecorder } from "../../hooks/useWebRecorder";
 import api from "../../lib/api";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -362,14 +363,38 @@ function SuggestionCard({ s, onUse }: { s: MeetingSuggestion; onUse: (s: Meeting
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+function fmtElapsed(s: number): string {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
 export default function MeetingDetailPage() {
   const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
-  const { data: meeting, isLoading } = useMeeting(meetingId ?? null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: meeting, isLoading, refetch } = useMeeting(meetingId ?? null);
   const updateMeeting = useUpdateMeeting();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [activeTab, setActiveTab] = useState<"transcript" | "analysis">("transcript");
+
+  const recorder = useWebRecorder();
+
+  // Auto-start recording if ?autoRecord=1 is in URL
+  useEffect(() => {
+    if (!meetingId || !searchParams.get("autoRecord")) return;
+    // Remove param immediately so refresh doesn't re-trigger
+    setSearchParams({}, { replace: true });
+    recorder.start(meetingId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId]);
+
+  // After saving, refetch the meeting to show transcript status
+  useEffect(() => {
+    if (recorder.phase === "done") refetch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorder.phase]);
 
   function saveTitle() {
     if (!meeting || !titleDraft.trim() || titleDraft.trim() === meeting.title) {
@@ -466,6 +491,68 @@ export default function MeetingDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Recording banner */}
+      {(recorder.phase === "requesting" || recorder.phase === "recording" || recorder.phase === "saving") && (
+        <div className={`flex-shrink-0 flex items-center gap-3 px-4 md:px-8 py-3 border-b ${
+          recorder.phase === "saving" ? "bg-amber-50 border-amber-100" : "bg-red-50 border-red-100"
+        }`}>
+          {recorder.phase === "requesting" && (
+            <svg className="w-4 h-4 animate-spin text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+          {recorder.phase === "recording" && (
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+          )}
+          {recorder.phase === "saving" && (
+            <svg className="w-4 h-4 animate-spin text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+
+          <span className={`text-sm font-semibold ${recorder.phase === "saving" ? "text-amber-700" : "text-red-600"}`}>
+            {recorder.phase === "requesting" && "Starting recording…"}
+            {recorder.phase === "saving" && "Saving your meeting…"}
+            {recorder.phase === "recording" && (
+              <>Recording · <span className="font-mono">{fmtElapsed(recorder.elapsed)}</span></>
+            )}
+          </span>
+
+          {recorder.phase === "recording" && recorder.hasTabAudio && (
+            <span className="text-xs text-red-400 hidden sm:inline">Tab audio captured</span>
+          )}
+          {recorder.phase === "recording" && !recorder.hasTabAudio && (
+            <span className="text-xs text-red-400 hidden sm:inline">Mic only</span>
+          )}
+
+          <div className="flex-1" />
+
+          {recorder.phase === "recording" && (
+            <button
+              onClick={() => recorder.stop()}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+              </svg>
+              Stop & Save
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Recorder error */}
+      {recorder.phase === "error" && recorder.error && (
+        <div className="flex-shrink-0 flex items-center gap-2 px-4 md:px-8 py-3 bg-red-50 border-b border-red-100 text-sm text-red-600">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          {recorder.error}
+        </div>
+      )}
 
       {/* Body: two-column on desktop */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row min-h-0">
