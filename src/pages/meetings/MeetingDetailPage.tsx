@@ -521,11 +521,8 @@ export default function MeetingDetailPage() {
             )}
           </span>
 
-          {recorder.phase === "recording" && recorder.hasTabAudio && (
-            <span className="text-xs text-red-400 hidden sm:inline">Tab audio captured</span>
-          )}
-          {recorder.phase === "recording" && !recorder.hasTabAudio && (
-            <span className="text-xs text-red-400 hidden sm:inline">Mic only</span>
+          {recorder.phase === "recording" && (
+            <span className="text-xs text-red-400 hidden sm:inline">Mic recording</span>
           )}
 
           <div className="flex-1" />

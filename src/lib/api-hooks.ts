@@ -1839,7 +1839,7 @@ export function useMeeting(id: string | null) {
     refetchInterval: (query) => {
       const d = query.state.data;
       if (!d) return false;
-      return d.status === "processing" || d.transcript_status === "processing" ? 4000 : false;
+      return d.status === "recording" || d.status === "processing" || d.transcript_status === "processing" ? 5000 : false;
     },
   });
 }
