@@ -1863,6 +1863,14 @@ export function useUpdateMeeting() {
   });
 }
 
+export function useDeleteMeeting() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) => api.delete(`/meetings/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["meetings"] }),
+  });
+}
+
 export function useFinalizeMeeting() {
   const qc = useQueryClient();
   return useMutation<Meeting, Error, { id: string; spaces_key: string; file_size: number; duration_seconds?: number }>({

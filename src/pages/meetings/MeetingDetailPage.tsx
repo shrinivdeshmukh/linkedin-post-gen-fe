@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { useMeeting, useUpdateMeeting, type MeetingSuggestion } from "../../lib/api-hooks";
+import { useMeeting, useUpdateMeeting, useDeleteMeeting, type MeetingSuggestion } from "../../lib/api-hooks";
 import { useWebRecorder } from "../../hooks/useWebRecorder";
 import api from "../../lib/api";
 
@@ -398,6 +398,7 @@ export default function MeetingDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: meeting, isLoading, refetch } = useMeeting(meetingId ?? null);
   const updateMeeting = useUpdateMeeting();
+  const deleteMeeting = useDeleteMeeting();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [activeTab, setActiveTab] = useState<"transcript" | "analysis">("transcript");
@@ -426,6 +427,13 @@ export default function MeetingDetailPage() {
     }
     updateMeeting.mutate({ id: meeting.id, title: titleDraft.trim() });
     setEditingTitle(false);
+  }
+
+  async function handleDelete() {
+    if (!meeting) return;
+    if (!window.confirm(`Delete "${meeting.title}"? This cannot be undone.`)) return;
+    await deleteMeeting.mutateAsync(meeting.id);
+    navigate("/meetings");
   }
 
   function handleUseSuggestion(s: MeetingSuggestion) {
@@ -512,6 +520,18 @@ export default function MeetingDetailPage() {
               Analyzing…
             </span>
           )}
+
+          {/* Delete button */}
+          <button
+            onClick={handleDelete}
+            disabled={deleteMeeting.isPending}
+            title="Delete meeting"
+            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
         </div>
       </div>
 
