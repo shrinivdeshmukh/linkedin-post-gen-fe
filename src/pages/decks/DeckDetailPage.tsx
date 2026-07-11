@@ -37,9 +37,9 @@ export default function DeckDetailPage() {
   const isFailed = deck?.status === "failed";
   const isReady = deck?.status === "ready";
 
-  // Point to the backend HTML endpoint — it has OG tags injected so WhatsApp/Slack
-  // previews show the deck title and thumbnail image correctly.
-  const publicUrl = deck?.slug ? `${api.defaults.baseURL}/decks/public/${deck.slug}/html` : null;
+  // Share URL uses the frontend route so users see app.postcards.studio, not the backend.
+  // The iframe preview still points directly to the backend HTML endpoint.
+  const publicUrl = deck?.slug ? `${window.location.origin}/decks/public/${deck.slug}` : null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const slideOverrides: Record<string, string> = (deck?.slides_json as any)?._slide_overrides ?? {};
   const overrideIndices = Object.keys(slideOverrides).map(Number);
