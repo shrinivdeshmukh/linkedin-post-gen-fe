@@ -39,7 +39,7 @@ export default function DeckDetailPage() {
 
   // Share URL uses the frontend route so users see app.postcards.studio, not the backend.
   // The iframe preview still points directly to the backend HTML endpoint.
-  const publicUrl = deck?.slug ? `${window.location.origin}/decks/public/${deck.slug}` : null;
+  const publicUrl = deck?.slug ? `${window.location.origin}/d/${deck.slug}` : null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const slideOverrides: Record<string, string> = (deck?.slides_json as any)?._slide_overrides ?? {};
   const overrideIndices = Object.keys(slideOverrides).map(Number);
