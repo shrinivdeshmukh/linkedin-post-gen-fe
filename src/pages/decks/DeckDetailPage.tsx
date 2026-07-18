@@ -361,7 +361,16 @@ export default function DeckDetailPage() {
                     placeholder="Leave blank for no password"
                     className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
                   />
-                  <p className="text-[11px] text-slate-500 mt-1">Viewers must enter this password to access the deck.</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-[11px] text-slate-500">Viewers must enter this password to access the deck.</p>
+                    <button
+                      type="button"
+                      onClick={() => setSharePassword(Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8))}
+                      className="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors flex-shrink-0 ml-2"
+                    >
+                      Generate
+                    </button>
+                  </div>
                 </div>
 
                 {/* Lead capture toggle */}
