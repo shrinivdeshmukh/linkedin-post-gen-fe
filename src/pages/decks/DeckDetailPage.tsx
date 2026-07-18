@@ -18,6 +18,7 @@ export default function DeckDetailPage() {
   const { data: deck, isLoading } = useDeck(deckId ?? null);
   const regenerate = useRegenerateDeck();
   const [downloading, setDownloading] = useState<"html" | "pdf" | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   // Edit panel state
   const [editOpen, setEditOpen] = useState(false);
@@ -68,6 +69,14 @@ export default function DeckDetailPage() {
       setAccessList(Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, v.join("\n")])));
     }
   }, [shareOpen, deck]);
+
+  // Fetch owner preview HTML (bypasses gate) whenever deck becomes ready or is edited
+  useEffect(() => {
+    if (!deckId || deck?.status !== "ready") return;
+    api.get(`/decks/${deckId}/preview-html`, { responseType: "text" })
+      .then((r) => setPreviewHtml(r.data))
+      .catch(() => setPreviewHtml(null));
+  }, [deckId, deck?.status, iframeVersion]);
 
   // Load slide HTML into editor when selection changes
   useEffect(() => {
@@ -311,14 +320,20 @@ export default function DeckDetailPage() {
             </div>
           )}
 
-          {isReady && deck?.slug && (
-            <iframe
-              key={iframeVersion}
-              src={`${api.defaults.baseURL}/decks/public/${deck.slug}/html`}
-              className="w-full h-full border-0"
-              title={deck.title}
-              sandbox="allow-scripts allow-same-origin allow-popups"
-            />
+          {isReady && (
+            previewHtml ? (
+              <iframe
+                key={iframeVersion}
+                srcDoc={previewHtml}
+                className="w-full h-full border-0"
+                title={deck?.title ?? "Deck"}
+                sandbox="allow-scripts allow-same-origin allow-popups"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )
           )}
         </div>
 
