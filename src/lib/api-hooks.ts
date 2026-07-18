@@ -1465,6 +1465,9 @@ export interface DeckItem {
   slug: string | null;
   status: "generating" | "ready" | "failed";
   error: string | null;
+  share_password: string | null;
+  lead_capture_enabled: boolean;
+  lead_capture_fields: Array<{ name: string; label: string; type: string; required: boolean }> | null;
   created_at: string;
   updated_at: string;
 }
@@ -1506,11 +1509,88 @@ export function useDeck(deckId: string | null) {
   });
 }
 
+export interface DeckPublicMeta {
+  slug: string;
+  title: string;
+  company_name: string | null;
+  password_required: boolean;
+  lead_capture_enabled: boolean;
+  lead_capture_fields: Array<{ name: string; label: string; type: string; required: boolean }> | null;
+}
+
 export function usePublicDeck(slug: string | null) {
-  return useQuery<DeckItem>({
+  return useQuery<DeckPublicMeta>({
     queryKey: ["decks", "public", slug],
     queryFn: () => api.get(`/decks/public/${slug}`).then((r) => r.data),
     enabled: !!slug,
+  });
+}
+
+export interface ShareSettings {
+  share_password?: string | null;
+  lead_capture_enabled: boolean;
+  lead_capture_fields?: Array<{ name: string; label: string; type: string; required: boolean }> | null;
+}
+
+export function useUpdateShareSettings() {
+  const qc = useQueryClient();
+  return useMutation<DeckItem, Error, { id: string } & ShareSettings>({
+    mutationFn: ({ id, ...body }) =>
+      api.patch(`/decks/${id}/share-settings`, body).then((r) => r.data),
+    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: ["decks", id] }),
+  });
+}
+
+export function useDeckGateSubmit(slug: string) {
+  return useMutation<{ gate_token: string }, Error, { password?: string; fields?: Record<string, string> }>({
+    mutationFn: (body) => api.post(`/decks/public/${slug}/gate`, body).then((r) => r.data),
+  });
+}
+
+export interface DeckLead {
+  id: string;
+  fields_json: Record<string, string>;
+  ip_address: string | null;
+  device_type: string | null;
+  os: string | null;
+  browser: string | null;
+  country: string | null;
+  city: string | null;
+  created_at: string;
+}
+
+export function useDeckLeads(deckId: string | null) {
+  return useQuery<DeckLead[]>({
+    queryKey: ["decks", deckId, "leads"],
+    queryFn: () => api.get(`/decks/${deckId}/leads`).then((r) => r.data),
+    enabled: !!deckId,
+  });
+}
+
+export interface DeckAnalytics {
+  total_views: number;
+  unique_ips: number;
+  by_device: Record<string, number>;
+  by_os: Record<string, number>;
+  by_browser: Record<string, number>;
+  by_country: Record<string, number>;
+  recent_views: Array<{
+    id: string;
+    ip_address: string | null;
+    device_type: string | null;
+    os: string | null;
+    browser: string | null;
+    country: string | null;
+    city: string | null;
+    created_at: string;
+  }>;
+}
+
+export function useDeckAnalytics(deckId: string | null) {
+  return useQuery<DeckAnalytics>({
+    queryKey: ["decks", deckId, "analytics"],
+    queryFn: () => api.get(`/decks/${deckId}/analytics`).then((r) => r.data),
+    enabled: !!deckId,
   });
 }
 

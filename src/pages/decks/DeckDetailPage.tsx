@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useDeck, useRegenerateDeck, useSlides, useUpdateSlide } from "../../lib/api-hooks";
+import { useDeck, useRegenerateDeck, useSlides, useUpdateSlide, useUpdateShareSettings, useDeckLeads, useDeckAnalytics } from "../../lib/api-hooks";
 import api from "../../lib/api";
 
 function triggerDownload(blob: Blob, filename: string) {
@@ -30,6 +30,18 @@ export default function DeckDetailPage() {
   const [regenModal, setRegenModal] = useState(false);
   const [protectSlides, setProtectSlides] = useState<number[]>([]);
 
+  // Share settings panel state
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharePassword, setSharePassword] = useState(deck?.share_password ?? "");
+  const [leadEnabled, setLeadEnabled] = useState(deck?.lead_capture_enabled ?? false);
+  const [leadFields, setLeadFields] = useState<Array<{ name: string; label: string; type: string; required: boolean }>>(
+    (deck?.lead_capture_fields as Array<{ name: string; label: string; type: string; required: boolean }>) ?? []
+  );
+  const [shareSaved, setShareSaved] = useState(false);
+  const updateShare = useUpdateShareSettings();
+  const { data: leads = [] } = useDeckLeads(shareOpen && isReady ? (deckId ?? null) : null);
+  const { data: analytics } = useDeckAnalytics(shareOpen && isReady ? (deckId ?? null) : null);
+
   const { data: slides = [], isLoading: slidesLoading } = useSlides(editOpen ? (deckId ?? null) : null);
   const updateSlide = useUpdateSlide();
 
@@ -44,6 +56,15 @@ export default function DeckDetailPage() {
   const slideOverrides: Record<string, string> = (deck?.slides_json as any)?._slide_overrides ?? {};
   const overrideIndices = Object.keys(slideOverrides).map(Number);
   const slideCount: number = (deck?.slides_json as any)?._slide_count ?? 8;
+
+  // Sync share settings from deck data when panel opens
+  useEffect(() => {
+    if (shareOpen && deck) {
+      setSharePassword(deck.share_password ?? "");
+      setLeadEnabled(deck.lead_capture_enabled ?? false);
+      setLeadFields((deck.lead_capture_fields as Array<{ name: string; label: string; type: string; required: boolean }>) ?? []);
+    }
+  }, [shareOpen, deck]);
 
   // Load slide HTML into editor when selection changes
   useEffect(() => {
@@ -66,6 +87,30 @@ export default function DeckDetailPage() {
 
   function copyLink() {
     if (publicUrl) navigator.clipboard.writeText(publicUrl);
+  }
+
+  async function saveShareSettings() {
+    if (!deckId) return;
+    await updateShare.mutateAsync({
+      id: deckId,
+      share_password: sharePassword.trim() || null,
+      lead_capture_enabled: leadEnabled,
+      lead_capture_fields: leadFields.length > 0 ? leadFields : null,
+    });
+    setShareSaved(true);
+    setTimeout(() => setShareSaved(false), 2000);
+  }
+
+  function addLeadField() {
+    setLeadFields((prev) => [...prev, { name: `field_${prev.length + 1}`, label: "", type: "text", required: false }]);
+  }
+
+  function removeLeadField(idx: number) {
+    setLeadFields((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateLeadField(idx: number, key: string, value: string | boolean) {
+    setLeadFields((prev) => prev.map((f, i) => i === idx ? { ...f, [key]: value } : f));
   }
 
   async function downloadHtml() {
@@ -167,6 +212,22 @@ export default function DeckDetailPage() {
                 Copy link
               </button>
               <button
+                onClick={() => setShareOpen((o) => !o)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+                  shareOpen
+                    ? "bg-indigo-600 border-indigo-600 text-white"
+                    : "text-slate-300 hover:text-white border-slate-600 hover:border-slate-400"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Share settings
+                {(deck?.share_password || deck?.lead_capture_enabled) && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                )}
+              </button>
+              <button
                 onClick={downloadHtml}
                 disabled={downloading !== null}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 rounded-lg transition-colors disabled:opacity-50"
@@ -241,6 +302,175 @@ export default function DeckDetailPage() {
             />
           )}
         </div>
+
+        {/* Share settings panel */}
+        {shareOpen && isReady && (
+          <div className="w-80 flex-shrink-0 bg-slate-800 border-l border-slate-700 flex flex-col overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+              <p className="text-sm font-semibold text-white">Share settings</p>
+              <button onClick={() => setShareOpen(false)} className="p-1 text-slate-400 hover:text-white rounded transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <div className="px-4 py-4 space-y-5">
+                {/* Password */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Password protection</label>
+                  <input
+                    type="text"
+                    value={sharePassword}
+                    onChange={(e) => setSharePassword(e.target.value)}
+                    placeholder="Leave blank for no password"
+                    className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">Viewers must enter this password to access the deck.</p>
+                </div>
+
+                {/* Lead capture toggle */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-300">Lead capture</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Collect info before showing the deck.</p>
+                    </div>
+                    <button
+                      onClick={() => setLeadEnabled((v) => !v)}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${leadEnabled ? "bg-indigo-600" : "bg-slate-600"}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${leadEnabled ? "translate-x-5" : ""}`} />
+                    </button>
+                  </div>
+
+                  {leadEnabled && (
+                    <div className="space-y-3">
+                      {leadFields.map((f, idx) => (
+                        <div key={idx} className="bg-slate-900 rounded-lg p-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              value={f.label}
+                              onChange={(e) => updateLeadField(idx, "label", e.target.value)}
+                              placeholder="Field label (e.g. Full Name)"
+                              className="flex-1 px-2 py-1.5 text-xs bg-slate-800 border border-slate-600 rounded text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                            />
+                            <button onClick={() => removeLeadField(idx)} className="p-1 text-slate-500 hover:text-red-400 transition-colors">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={f.type}
+                              onChange={(e) => updateLeadField(idx, "type", e.target.value)}
+                              className="flex-1 px-2 py-1.5 text-xs bg-slate-800 border border-slate-600 rounded text-white focus:border-indigo-500 focus:outline-none"
+                            >
+                              <option value="text">Text</option>
+                              <option value="email">Email</option>
+                              <option value="tel">Phone</option>
+                            </select>
+                            <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={f.required}
+                                onChange={(e) => updateLeadField(idx, "required", e.target.checked)}
+                                className="w-3.5 h-3.5 accent-indigo-500"
+                              />
+                              Required
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={addLeadField}
+                        className="w-full py-1.5 text-xs text-indigo-400 hover:text-indigo-300 border border-dashed border-slate-600 hover:border-indigo-500 rounded-lg transition-colors"
+                      >
+                        + Add field
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Save button */}
+            <div className="px-4 py-3 border-t border-slate-700 flex-shrink-0">
+              <button
+                onClick={saveShareSettings}
+                disabled={updateShare.isPending}
+                className="w-full py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-lg transition-colors"
+              >
+                {shareSaved ? "Saved!" : updateShare.isPending ? "Saving…" : "Save settings"}
+              </button>
+            </div>
+
+            {/* Analytics */}
+            {analytics && (
+              <div className="border-t border-slate-700">
+                <div className="px-4 py-3 border-b border-slate-700">
+                  <p className="text-xs font-semibold text-slate-300">Analytics</p>
+                </div>
+                <div className="px-4 py-3 grid grid-cols-2 gap-3">
+                  <div className="bg-slate-900 rounded-lg px-3 py-2 text-center">
+                    <p className="text-lg font-bold text-white">{analytics.total_views}</p>
+                    <p className="text-[11px] text-slate-400">Views</p>
+                  </div>
+                  <div className="bg-slate-900 rounded-lg px-3 py-2 text-center">
+                    <p className="text-lg font-bold text-white">{analytics.unique_ips}</p>
+                    <p className="text-[11px] text-slate-400">Unique visitors</p>
+                  </div>
+                </div>
+                {Object.keys(analytics.by_country).length > 0 && (
+                  <div className="px-4 pb-3 space-y-1.5">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Top countries</p>
+                    {Object.entries(analytics.by_country).slice(0, 5).map(([country, count]) => (
+                      <div key={country} className="flex items-center justify-between">
+                        <p className="text-[11px] text-slate-300">{country}</p>
+                        <p className="text-[11px] text-slate-500">{count}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {Object.keys(analytics.by_device).length > 0 && (
+                  <div className="px-4 pb-3 space-y-1.5">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Device</p>
+                    {Object.entries(analytics.by_device).map(([d, count]) => (
+                      <div key={d} className="flex items-center justify-between">
+                        <p className="text-[11px] text-slate-300 capitalize">{d}</p>
+                        <p className="text-[11px] text-slate-500">{count}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Leads list */}
+            {leads.length > 0 && (
+              <div className="border-t border-slate-700">
+                <div className="px-4 py-3 border-b border-slate-700">
+                  <p className="text-xs font-semibold text-slate-300">Leads ({leads.length})</p>
+                </div>
+                <div className="max-h-48 overflow-y-auto divide-y divide-slate-700">
+                  {leads.map((lead) => (
+                    <div key={lead.id} className="px-4 py-2.5">
+                      {Object.entries(lead.fields_json).map(([k, v]) => (
+                        <p key={k} className="text-[11px] text-slate-300 truncate">{v}</p>
+                      ))}
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        {lead.country ? `${lead.city ?? ""} ${lead.country} · ` : ""}
+                        {lead.device_type ?? ""} · {new Date(lead.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Edit panel */}
         {editOpen && isReady && (
