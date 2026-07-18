@@ -40,6 +40,7 @@ import PodcastDetailPage from "./pages/media/PodcastDetailPage";
 import DecksPage from "./pages/decks/DecksPage";
 import NewDeckPage from "./pages/decks/NewDeckPage";
 import DeckDetailPage from "./pages/decks/DeckDetailPage";
+import DeckAnalyticsPage from "./pages/decks/DeckAnalyticsPage";
 import DeckPublicPage from "./pages/decks/DeckPublicPage";
 import McpConnectPage from "./pages/mcp/McpConnectPage";
 import BrandPage from "./pages/brand/BrandPage";
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="decks" element={<DecksPage />} />
           <Route path="decks/new" element={<NewDeckPage />} />
           <Route path="decks/:deckId" element={<DeckDetailPage />} />
+          <Route path="decks/:deckId/analytics" element={<DeckAnalyticsPage />} />
           <Route path="meetings" element={<MeetingsPage />} />
           <Route path="meetings/:meetingId" element={<MeetingDetailPage />} />
         </Route>

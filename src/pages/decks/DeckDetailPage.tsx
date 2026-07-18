@@ -37,6 +37,7 @@ export default function DeckDetailPage() {
   const [leadFields, setLeadFields] = useState<Array<{ name: string; label: string; type: string; required: boolean }>>(
     (deck?.lead_capture_fields as Array<{ name: string; label: string; type: string; required: boolean }>) ?? []
   );
+  const [accessList, setAccessList] = useState<Record<string, string>>({});  // fieldName -> newline-joined values
   const [shareSaved, setShareSaved] = useState(false);
   const updateShare = useUpdateShareSettings();
   const { data: leads = [] } = useDeckLeads(shareOpen && deck?.status === "ready" ? (deckId ?? null) : null);
@@ -63,6 +64,8 @@ export default function DeckDetailPage() {
       setSharePassword(deck.share_password ?? "");
       setLeadEnabled(deck.lead_capture_enabled ?? false);
       setLeadFields((deck.lead_capture_fields as Array<{ name: string; label: string; type: string; required: boolean }>) ?? []);
+      const raw = (deck.access_list ?? {}) as Record<string, string[]>;
+      setAccessList(Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, v.join("\n")])));
     }
   }, [shareOpen, deck]);
 
@@ -91,11 +94,18 @@ export default function DeckDetailPage() {
 
   async function saveShareSettings() {
     if (!deckId) return;
+    // Convert newline-joined textarea values back to arrays, drop empty fields
+    const accessListParsed: Record<string, string[]> = {};
+    for (const [field, raw] of Object.entries(accessList)) {
+      const vals = raw.split("\n").map((v) => v.trim()).filter(Boolean);
+      if (vals.length > 0) accessListParsed[field] = vals;
+    }
     await updateShare.mutateAsync({
       id: deckId,
       share_password: sharePassword.trim() || null,
       lead_capture_enabled: leadEnabled,
       lead_capture_fields: leadFields.length > 0 ? leadFields : null,
+      access_list: Object.keys(accessListParsed).length > 0 ? accessListParsed : null,
     });
     setShareSaved(true);
     setTimeout(() => setShareSaved(false), 2000);
@@ -210,6 +220,15 @@ export default function DeckDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
                 Copy link
+              </button>
+              <button
+                onClick={() => navigate(`/decks/${deckId}/analytics`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 rounded-lg transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Analytics
               </button>
               <button
                 onClick={() => setShareOpen((o) => !o)}
@@ -393,6 +412,34 @@ export default function DeckDetailPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Access control */}
+                {leadEnabled && leadFields.length > 0 && (
+                  <div>
+                    <div className="mb-2">
+                      <p className="text-xs font-semibold text-slate-300">Access control</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Restrict access to specific values per field. Leave blank to allow anyone.
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      {leadFields.map((f) => (
+                        <div key={f.name}>
+                          <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                            Allowed {f.label || f.name}s
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={accessList[f.name] ?? ""}
+                            onChange={(e) => setAccessList((prev) => ({ ...prev, [f.name]: e.target.value }))}
+                            placeholder={`One allowed value per line\ne.g. john@company.com`}
+                            className="w-full px-2 py-1.5 text-xs bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-600 focus:border-indigo-500 focus:outline-none resize-none font-mono leading-relaxed"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

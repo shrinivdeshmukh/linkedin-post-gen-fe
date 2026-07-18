@@ -1468,6 +1468,7 @@ export interface DeckItem {
   share_password: string | null;
   lead_capture_enabled: boolean;
   lead_capture_fields: Array<{ name: string; label: string; type: string; required: boolean }> | null;
+  access_list: Record<string, string[]> | null;
   created_at: string;
   updated_at: string;
 }
@@ -1530,6 +1531,7 @@ export interface ShareSettings {
   share_password?: string | null;
   lead_capture_enabled: boolean;
   lead_capture_fields?: Array<{ name: string; label: string; type: string; required: boolean }> | null;
+  access_list?: Record<string, string[]> | null;
 }
 
 export function useUpdateShareSettings() {
