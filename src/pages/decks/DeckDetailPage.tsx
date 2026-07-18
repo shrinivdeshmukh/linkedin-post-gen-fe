@@ -39,8 +39,8 @@ export default function DeckDetailPage() {
   );
   const [shareSaved, setShareSaved] = useState(false);
   const updateShare = useUpdateShareSettings();
-  const { data: leads = [] } = useDeckLeads(shareOpen && isReady ? (deckId ?? null) : null);
-  const { data: analytics } = useDeckAnalytics(shareOpen && isReady ? (deckId ?? null) : null);
+  const { data: leads = [] } = useDeckLeads(shareOpen && deck?.status === "ready" ? (deckId ?? null) : null);
+  const { data: analytics } = useDeckAnalytics(shareOpen && deck?.status === "ready" ? (deckId ?? null) : null);
 
   const { data: slides = [], isLoading: slidesLoading } = useSlides(editOpen ? (deckId ?? null) : null);
   const updateSlide = useUpdateSlide();
