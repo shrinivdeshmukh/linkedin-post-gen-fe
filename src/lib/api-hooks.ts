@@ -1561,6 +1561,32 @@ export interface DeckLead {
   created_at: string;
 }
 
+export interface DeckChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface DeckChatResult {
+  reply: string;
+  slides_changed: number[];
+}
+
+export function useDeckChat() {
+  return useMutation<
+    DeckChatResult,
+    Error,
+    { deckId: string; message: string; files: File[]; history: DeckChatMessage[] }
+  >({
+    mutationFn: ({ deckId, message, files, history }) => {
+      const form = new FormData();
+      form.append("message", message);
+      form.append("history_json", JSON.stringify(history.map((h) => ({ role: h.role, content: h.content }))));
+      files.forEach((f) => form.append("files", f));
+      return api.post(`/decks/${deckId}/chat`, form).then((r) => r.data);
+    },
+  });
+}
+
 export function useDeckLeads(deckId: string | null) {
   return useQuery<DeckLead[]>({
     queryKey: ["decks", deckId, "leads"],

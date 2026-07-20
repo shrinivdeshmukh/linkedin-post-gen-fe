@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDeck, useRegenerateDeck, useSlides, useUpdateSlide, useUpdateShareSettings, useDeckLeads, useDeckAnalytics } from "../../lib/api-hooks";
 import api from "../../lib/api";
+import DeckChatPanel from "./DeckChatPanel";
 
 function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -30,6 +31,9 @@ export default function DeckDetailPage() {
   // Regenerate modal state
   const [regenModal, setRegenModal] = useState(false);
   const [protectSlides, setProtectSlides] = useState<number[]>([]);
+
+  // Chat panel state
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Share settings panel state
   const [shareOpen, setShareOpen] = useState(false);
@@ -200,9 +204,24 @@ export default function DeckDetailPage() {
         <div className="flex items-center gap-2">
           {isReady && (
             <>
+              {/* Chat to edit */}
+              <button
+                onClick={() => { setChatOpen((o) => !o); if (editOpen) setEditOpen(false); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+                  chatOpen
+                    ? "bg-indigo-600 border-indigo-600 text-white"
+                    : "text-slate-300 hover:text-white border-slate-600 hover:border-slate-400"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Chat to edit
+              </button>
+
               {/* Edit slides toggle */}
               <button
-                onClick={() => setEditOpen((o) => !o)}
+                onClick={() => { setEditOpen((o) => !o); if (chatOpen) setChatOpen(false); }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
                   editOpen
                     ? "bg-indigo-600 border-indigo-600 text-white"
@@ -336,6 +355,15 @@ export default function DeckDetailPage() {
             )
           )}
         </div>
+
+        {/* Chat to edit panel */}
+        {chatOpen && isReady && deckId && (
+          <DeckChatPanel
+            deckId={deckId}
+            onClose={() => setChatOpen(false)}
+            onChangesApplied={() => setIframeVersion((v) => v + 1)}
+          />
+        )}
 
         {/* Share settings panel */}
         {shareOpen && isReady && (
